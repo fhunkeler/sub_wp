@@ -1,0 +1,71 @@
+<!-- wp:template-part {"slug":"header","tagName":"div"} /-->
+
+<!-- wp:group {"tagName":"main","anchor":"sub-contenu","layout":{"type":"constrained"}} -->
+<main class="wp-block-group" id="sub-contenu"><!-- wp:pattern {"slug":"subalcatel/hero-accueil"} /-->
+
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|60","bottom":"var:preset|spacing|60"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--60);padding-bottom:var(--wp--preset--spacing--60)"><!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|20"}},"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between","verticalAlignment":"bottom"}} -->
+<div class="wp-block-group"><!-- wp:heading -->
+<h2 class="wp-block-heading">Prochaines sorties</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph {"fontSize":"petit"} -->
+<p class="has-petit-font-size"><a href="/agenda/">Voir tout l'agenda →</a></p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->
+
+<!-- wp:paragraph {"className":"is-style-sub-chapeau","style":{"spacing":{"margin":{"top":"var:preset|spacing|10"}}}} -->
+<p class="is-style-sub-chapeau" style="margin-top:var(--wp--preset--spacing--10)">Les inscriptions se font depuis l'espace membre.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:group {"style":{"spacing":{"margin":{"top":"var:preset|spacing|40"}}},"layout":{"type":"default"}} -->
+<div class="wp-block-group" style="margin-top:var(--wp--preset--spacing--40)"><!-- wp:shortcode -->
+[subalcatel_prochaines_sorties limite="3"]
+<!-- /wp:shortcode --></div>
+<!-- /wp:group --></div>
+<!-- /wp:group -->
+
+<!-- wp:pattern {"slug":"subalcatel/section-activites"} /-->
+
+<!-- wp:pattern {"slug":"subalcatel/chiffres-club"} /-->
+
+<!-- wp:group {"align":"full","backgroundColor":"ecume","style":{"spacing":{"padding":{"top":"var:preset|spacing|60","bottom":"var:preset|spacing|60"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-ecume-background-color has-background" style="padding-top:var(--wp--preset--spacing--60);padding-bottom:var(--wp--preset--spacing--60)"><!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|20"}},"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between","verticalAlignment":"bottom"}} -->
+<div class="wp-block-group"><!-- wp:heading -->
+<h2 class="wp-block-heading">Actualités</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph {"fontSize":"petit"} -->
+<p class="has-petit-font-size"><a href="/actualites/">Tous les articles →</a></p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->
+
+<!-- wp:query {"queryId":1,"query":{"perPage":3,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":false},"align":"wide","style":{"spacing":{"margin":{"top":"var:preset|spacing|40"}}},"layout":{"type":"default"}} -->
+<div class="wp-block-query alignwide" style="margin-top:var(--wp--preset--spacing--40)"><!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
+<!-- wp:group {"className":"is-style-sub-carte","style":{"spacing":{"blockGap":"var:preset|spacing|20","padding":{"bottom":"var:preset|spacing|30"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group is-style-sub-carte" style="padding-bottom:var(--wp--preset--spacing--30)"><!-- wp:post-featured-image {"isLink":true,"sizeSlug":"subalcatel-carte","height":"200px","className":"sub-vignette"} /-->
+
+<!-- wp:group {"style":{"spacing":{"blockGap":"10px"}},"layout":{"type":"flex","flexWrap":"wrap"}} -->
+<div class="wp-block-group"><!-- wp:post-terms {"term":"category"} /-->
+
+<!-- wp:post-date {"format":"j F Y"} /--></div>
+<!-- /wp:group -->
+
+<!-- wp:post-title {"isLink":true,"level":3} /-->
+
+<!-- wp:post-excerpt {"excerptLength":22} /--></div>
+<!-- /wp:group -->
+<!-- /wp:post-template -->
+
+<!-- wp:query-no-results -->
+<!-- wp:paragraph -->
+<p>Aucun article publié pour le moment.</p>
+<!-- /wp:paragraph -->
+<!-- /wp:query-no-results --></div>
+<!-- /wp:query --></div>
+<!-- /wp:group -->
+
+<!-- wp:pattern {"slug":"subalcatel/encart-cta"} /--></main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"div"} /-->

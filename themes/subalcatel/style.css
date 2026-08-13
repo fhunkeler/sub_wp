@@ -1,0 +1,19 @@
+/*
+Theme Name: Sub Alcatel
+Theme URI: https://subalcatel.net/
+Update URI: https://github.com/fhunkeler/sub_wp
+Author: Club Sub Alcatel
+Description: Thème bloc du club de plongée Sub Alcatel. Design system marin (bleus profonds, corail, sable), gabarits vitrine, blog et espace membre. Aucune règle métier : celles-ci vivent dans l'extension subalcatel-club.
+Version: 1.4.0
+Requires at least: 6.5
+Tested up to: 7.0
+Requires PHP: 8.0
+License: GNU General Public License v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: subalcatel
+Tags: block-templates, full-site-editing, accessibility-ready, custom-colors, custom-menu, translation-ready
+
+Ce fichier ne sert qu'à déclarer le thème. Les styles vivent dans :
+  - theme.json          → tokens, styles de blocs et d'éléments
+  - assets/css/site.css → composants que theme.json ne sait pas exprimer
+*/

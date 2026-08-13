@@ -1,0 +1,47 @@
+<!-- wp:template-part {"slug":"header","tagName":"div"} /-->
+
+<!-- wp:group {"tagName":"main","anchor":"sub-contenu","className":"sub-lecture","layout":{"type":"constrained"}} -->
+<main class="wp-block-group sub-lecture" id="sub-contenu"><!-- wp:group {"tagName":"article","style":{"spacing":{"padding":{"top":"var:preset|spacing|40","bottom":"var:preset|spacing|60"}}},"layout":{"type":"constrained"}} -->
+<article class="wp-block-group" style="padding-top:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--60)"><!-- wp:subalcatel/fil-ariane /-->
+
+<!-- wp:group {"className":"sub-article-meta","style":{"spacing":{"blockGap":"12px"}},"layout":{"type":"flex","flexWrap":"wrap"}} -->
+<div class="wp-block-group sub-article-meta"><!-- wp:post-terms {"term":"category"} /-->
+
+<!-- wp:post-date {"format":"j F Y"} /-->
+
+<!-- wp:post-author-name {"isLink":false,"prefix":"par ","fontSize":"micro"} /--></div>
+<!-- /wp:group -->
+
+<!-- wp:post-title {"level":1,"style":{"spacing":{"margin":{"top":"var:preset|spacing|20"}}}} /-->
+
+<!-- wp:post-featured-image {"style":{"spacing":{"margin":{"top":"var:preset|spacing|30","bottom":"var:preset|spacing|40"}}}} /-->
+
+<!-- wp:post-content {"layout":{"type":"constrained"}} /-->
+
+<!-- wp:separator {"style":{"spacing":{"margin":{"top":"var:preset|spacing|50","bottom":"var:preset|spacing|40"}}},"className":"is-style-wide"} -->
+<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide" style="margin-top:var(--wp--preset--spacing--50);margin-bottom:var(--wp--preset--spacing--40)"/>
+<!-- /wp:separator -->
+
+<!-- wp:post-terms {"term":"post_tag","prefix":"Mots-clés : ","fontSize":"petit"} /--></article>
+<!-- /wp:group -->
+
+<!-- wp:group {"align":"full","backgroundColor":"ecume","style":{"spacing":{"padding":{"top":"var:preset|spacing|60","bottom":"var:preset|spacing|60"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-ecume-background-color has-background" style="padding-top:var(--wp--preset--spacing--60);padding-bottom:var(--wp--preset--spacing--60)"><!-- wp:heading -->
+<h2 class="wp-block-heading">À lire aussi</h2>
+<!-- /wp:heading -->
+
+<!-- wp:query {"queryId":2,"query":{"perPage":3,"pages":1,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":false,"exclude":[]},"align":"wide","style":{"spacing":{"margin":{"top":"var:preset|spacing|30"}}},"layout":{"type":"default"}} -->
+<div class="wp-block-query alignwide" style="margin-top:var(--wp--preset--spacing--30)"><!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
+<!-- wp:group {"className":"is-style-sub-carte","style":{"spacing":{"blockGap":"var:preset|spacing|20","padding":{"bottom":"var:preset|spacing|30"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group is-style-sub-carte" style="padding-bottom:var(--wp--preset--spacing--30)"><!-- wp:post-featured-image {"isLink":true,"sizeSlug":"subalcatel-carte","height":"170px","className":"sub-vignette"} /-->
+
+<!-- wp:post-date {"format":"j F Y"} /-->
+
+<!-- wp:post-title {"isLink":true,"level":3} /--></div>
+<!-- /wp:group -->
+<!-- /wp:post-template --></div>
+<!-- /wp:query --></div>
+<!-- /wp:group --></main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"div"} /-->

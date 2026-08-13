@@ -1,0 +1,735 @@
+/**
+ * Sub Alcatel — composants.
+ *
+ * Cette feuille ne contient QUE ce que theme.json ne sait pas exprimer :
+ * états au survol, composants applicatifs, barre collante, accessibilité.
+ * Toute couleur, taille ou espacement vient des variables générées par
+ * theme.json — aucune valeur en dur, sauf opacités et ombres.
+ */
+
+/* ------------------------------------------------------------------
+   1. Raccourcis vers les tokens theme.json
+   ------------------------------------------------------------------ */
+:root {
+	--sub-abysse: var(--wp--preset--color--abysse);
+	--sub-profond: var(--wp--preset--color--profond);
+	--sub-lien: var(--wp--preset--color--lien);
+	--sub-lagon: var(--wp--preset--color--lagon);
+	--sub-ecume: var(--wp--preset--color--ecume);
+	--sub-blanc: var(--wp--preset--color--blanc);
+	--sub-ardoise: var(--wp--preset--color--ardoise);
+	--sub-brume: var(--wp--preset--color--brume);
+	--sub-corail: var(--wp--preset--color--corail);
+	--sub-corail-fonce: var(--wp--preset--color--corail-fonce);
+	--sub-sable: var(--wp--preset--color--sable);
+	--sub-algue: var(--wp--preset--color--algue);
+
+	--sub-r-champ: 4px;
+	--sub-r-carte: 12px;
+	--sub-r-pastille: 999px;
+	--sub-ombre-1: 0 1px 2px rgba(4, 30, 48, 0.08), 0 0 0 1px rgba(4, 30, 48, 0.05);
+	--sub-ombre-2: 0 8px 24px rgba(4, 30, 48, 0.12);
+}
+
+/* ------------------------------------------------------------------
+   2. Accessibilité — non négociable
+   ------------------------------------------------------------------ */
+
+/* Focus clavier toujours visible. Ne jamais remplacer par outline: none. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+	outline: 2px solid var(--sub-lagon);
+	outline-offset: 2px;
+	border-radius: var(--sub-r-champ);
+}
+
+/* Sur fond sombre, le lagon ne ressort pas assez : on passe au sable. */
+.sub-header :where(a, button):focus-visible,
+.sub-footer :where(a, button):focus-visible {
+	outline-color: var(--sub-sable);
+}
+
+.sub-skip-link {
+	position: absolute;
+	left: -9999px;
+	z-index: 999;
+	padding: 12px 20px;
+	background: var(--sub-sable);
+	color: var(--sub-abysse);
+	font-weight: 600;
+	text-decoration: none;
+	border-radius: 0 0 var(--sub-r-carte) 0;
+}
+
+.sub-skip-link:focus {
+	left: 0;
+	top: 0;
+}
+
+/* Toute cible tactile atteint 44 px. */
+.wp-block-button__link,
+.sub-btn,
+.sub-onglets a {
+	min-height: 44px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 150ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* Largeur de lecture : au-delà, l'œil perd la ligne. */
+.sub-lecture :where(p, ul, ol) {
+	max-width: 72ch;
+}
+
+/* ------------------------------------------------------------------
+   3. En-tête public
+   ------------------------------------------------------------------ */
+.sub-header {
+	position: relative;
+	z-index: 20;
+}
+
+.sub-header .wp-block-site-title a {
+	text-decoration: none;
+}
+
+.sub-header .wp-block-navigation a {
+	color: #dbe7ee;
+	text-decoration: none;
+	padding: 9px 13px;
+	border-radius: var(--sub-r-champ);
+}
+
+.sub-header .wp-block-navigation a:hover {
+	background: rgba(255, 255, 255, 0.09);
+	color: var(--sub-blanc);
+}
+
+.sub-header .wp-block-navigation .current-menu-item > a,
+.sub-header .wp-block-navigation .current_page_ancestor > a {
+	color: var(--sub-blanc);
+	box-shadow: inset 0 -2px 0 var(--sub-lagon);
+}
+
+.sub-baseline {
+	display: block;
+	font-size: 10.5px;
+	font-weight: 500;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--sub-lagon);
+	line-height: 1.3;
+}
+
+/* ------------------------------------------------------------------
+   4. Bouton de compte (bloc subalcatel/compte)
+   ------------------------------------------------------------------ */
+.sub-compte {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-shrink: 0;
+}
+
+.sub-compte__lien {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	color: var(--sub-blanc);
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 15px;
+}
+
+.sub-compte__lien:hover .sub-compte__nom {
+	text-decoration: underline;
+}
+
+.sub-avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-lagon);
+	color: var(--sub-blanc);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 13px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+/* Boutons hors bloc « Bouton » de l'éditeur. */
+.sub-btn {
+	gap: 8px;
+	padding: 11px 18px;
+	border-radius: var(--sub-r-carte);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	border: 1.5px solid transparent;
+	cursor: pointer;
+}
+
+.sub-btn--principal {
+	background: var(--sub-corail-fonce);
+	color: var(--sub-blanc);
+}
+
+.sub-btn--principal:hover {
+	background: #a83019;
+	color: var(--sub-blanc);
+}
+
+.sub-btn--fantome {
+	background: transparent;
+	color: var(--sub-blanc);
+	border-color: rgba(255, 255, 255, 0.4);
+}
+
+.sub-btn--fantome:hover {
+	border-color: var(--sub-blanc);
+	color: var(--sub-blanc);
+}
+
+.sub-btn--sm {
+	padding: 8px 14px;
+	font-size: 14px;
+	min-height: 38px;
+}
+
+/* ------------------------------------------------------------------
+   6. Cartes et grilles
+   ------------------------------------------------------------------ */
+.is-style-sub-carte {
+	background: var(--sub-blanc);
+	border-radius: var(--sub-r-carte);
+	box-shadow: var(--sub-ombre-1);
+	overflow: hidden;
+	transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+.is-style-sub-carte:hover {
+	box-shadow: var(--sub-ombre-2);
+}
+
+.is-style-sub-carte > :where(:not(.wp-block-post-featured-image):not(.wp-block-image)) {
+	padding-left: var(--wp--preset--spacing--30);
+	padding-right: var(--wp--preset--spacing--30);
+}
+
+.is-style-sub-carte > :last-child {
+	padding-bottom: var(--wp--preset--spacing--30);
+}
+
+.is-style-sub-carte .wp-block-post-featured-image img,
+.is-style-sub-carte > .wp-block-image img {
+	border-radius: 0;
+	width: 100%;
+	aspect-ratio: 3 / 2;
+	object-fit: cover;
+}
+
+/* Repli de vignette — voir subalcatel_featured_image_fallback().
+   Il occupe la place d'une photo absente pour que la grille garde sa ligne de
+   lecture. Rien à lire ici : le bloc est décoratif, et masqué aux lecteurs
+   d'écran côté serveur. */
+.sub-vignette--repli {
+	position: relative;
+	overflow: hidden;
+	aspect-ratio: 3 / 2;
+	background-color: var(--sub-profond);
+}
+
+/* Une hauteur posée par le bloc l'emporte sur le 3/2 : le repli fait alors
+   exactement la taille des vignettes voisines. */
+.sub-vignette--repli[style*="height"] {
+	aspect-ratio: auto;
+}
+
+.sub-vignette--repli > a {
+	display: block;
+	height: 100%;
+}
+
+/* Trois houles en bas de cadre, et l'assombrissement qui les tient ensemble
+   quelle que soit la teinte du fond. */
+.sub-vignette--repli::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-image:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 200' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='2.5' opacity='.22'%3E%3Cpath d='M-10 148q40-20 80 0t80 0 80 0 80 0'/%3E%3Cpath d='M-10 170q40-20 80 0t80 0 80 0 80 0'/%3E%3Cpath d='M-10 192q40-20 80 0t80 0 80 0 80 0'/%3E%3C/g%3E%3C/svg%3E"),
+		linear-gradient(155deg, rgba(4, 30, 48, 0) 30%, rgba(4, 30, 48, 0.6));
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+}
+
+/* Le logo du club en filigrane. Il est détouré et reteinté en blanc plutôt
+   qu'affiché tel quel : le sable de la charte, posé en transparence sur du
+   bleu, vire à l'olive et donne une tache plutôt qu'une signature. */
+.sub-vignette--repli::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-color: var(--sub-blanc);
+	-webkit-mask: url(../img/logo.svg) no-repeat center / 86px 86px;
+	mask: url(../img/logo.svg) no-repeat center / 86px 86px;
+	opacity: 0.24;
+}
+
+/* Quatre teintes, une par rubrique. Toutes sombres : le repli ne doit pas
+   attirer l'œil davantage qu'une vraie photo. */
+.sub-vignette--t1 {
+	background-color: var(--sub-abysse);
+}
+
+.sub-vignette--t2 {
+	background-color: var(--sub-lagon);
+}
+
+.sub-vignette--t3 {
+	background-color: var(--sub-lien);
+}
+
+.is-style-sub-panneau {
+	background: var(--sub-blanc);
+	border-radius: var(--sub-r-carte);
+	box-shadow: var(--sub-ombre-1);
+	padding: var(--wp--preset--spacing--30);
+}
+
+/* Grille de cartes : les colonnes de WordPress passent en une seule
+   colonne sous 782px, ce qui est brutal pour 3 ou 4 cartes. */
+@media (min-width: 600px) and (max-width: 981px) {
+	.is-style-sub-cartes.wp-block-columns:not(.is-not-stacked-on-mobile) {
+		flex-wrap: wrap !important;
+	}
+
+	.is-style-sub-cartes.wp-block-columns > .wp-block-column {
+		flex-basis: calc(50% - var(--wp--style--block-gap, 24px) / 2) !important;
+	}
+}
+
+/* ------------------------------------------------------------------
+   7. Encarts d'alerte
+   ------------------------------------------------------------------ */
+:where(.is-style-sub-alerte-info, .is-style-sub-alerte-attention, .is-style-sub-alerte-succes) {
+	border-left: 4px solid;
+	border-radius: var(--sub-r-carte);
+	padding: 17px 20px;
+}
+
+:where(.is-style-sub-alerte-info, .is-style-sub-alerte-attention, .is-style-sub-alerte-succes) :where(p, h2, h3, h4) {
+	max-width: none;
+}
+
+.is-style-sub-alerte-info {
+	background: #e6f1f7;
+	border-color: var(--sub-lagon);
+	color: #0d3b56;
+}
+
+.is-style-sub-alerte-attention {
+	background: #fdf4e0;
+	border-color: var(--sub-sable);
+	color: #4a3a10;
+}
+
+.is-style-sub-alerte-succes {
+	background: #e4f2ec;
+	border-color: var(--sub-algue);
+	color: #0d4433;
+}
+
+/* ------------------------------------------------------------------
+   8. Badges d'état
+   Un état n'est jamais signalé par la couleur seule : le libellé porte
+   toujours l'information (WCAG 1.4.1).
+   ------------------------------------------------------------------ */
+.sub-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	line-height: 1;
+	padding: 6px 11px;
+	border-radius: var(--sub-r-pastille);
+	white-space: nowrap;
+}
+
+.sub-badge--neutre {
+	background: var(--sub-ecume);
+	color: var(--sub-ardoise);
+}
+
+.sub-badge--info {
+	background: #dceaf2;
+	color: var(--sub-profond);
+}
+
+.sub-badge--attente {
+	background: var(--sub-sable);
+	color: var(--sub-abysse);
+}
+
+.sub-badge--valide {
+	background: var(--sub-algue);
+	color: var(--sub-blanc);
+}
+
+.sub-badge--refus {
+	background: var(--sub-corail-fonce);
+	color: var(--sub-blanc);
+}
+
+/* ------------------------------------------------------------------
+   9. Styles de texte
+   ------------------------------------------------------------------ */
+.is-style-sub-chapeau {
+	font-size: var(--wp--preset--font-size--moyen);
+	line-height: 1.55;
+	color: var(--sub-ardoise);
+}
+
+.is-style-sub-surtitre {
+	font-size: 12.5px;
+	font-weight: 700;
+	letter-spacing: 0.13em;
+	text-transform: uppercase;
+	color: var(--sub-lagon);
+}
+
+.has-abysse-background-color .is-style-sub-surtitre,
+.sub-hero .is-style-sub-surtitre {
+	color: var(--sub-sable);
+}
+
+.is-style-sub-liste-cochee {
+	list-style: none;
+	padding-left: 0;
+}
+
+.is-style-sub-liste-cochee li {
+	position: relative;
+	padding-left: 28px;
+	margin-bottom: 9px;
+}
+
+.is-style-sub-liste-cochee li::before {
+	content: "✓";
+	position: absolute;
+	left: 0;
+	top: 0;
+	color: var(--sub-algue);
+	font-weight: 700;
+}
+
+.is-style-sub-image-nette img {
+	border-radius: 0;
+}
+
+/* ------------------------------------------------------------------
+   10. Hero
+   ------------------------------------------------------------------ */
+.sub-hero {
+	position: relative;
+	overflow: hidden;
+}
+
+/* Rayons de lumière, visibles même sans photo de fond. */
+.sub-hero::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0.14;
+	background: repeating-linear-gradient(
+		101deg,
+		transparent 0 44px,
+		rgba(255, 255, 255, 0.6) 44px 47px,
+		transparent 47px 130px
+	);
+}
+
+.sub-hero > * {
+	position: relative;
+	z-index: 1;
+}
+
+.sub-hero :where(h1, h2) {
+	color: var(--sub-blanc);
+}
+
+/* ------------------------------------------------------------------
+   11. Fil d'Ariane
+   ------------------------------------------------------------------ */
+.sub-fil-ariane {
+	font-size: 13.5px;
+	color: var(--sub-ardoise);
+}
+
+.sub-fil-ariane a {
+	color: var(--sub-lien);
+	text-decoration: none;
+}
+
+.sub-fil-ariane a:hover {
+	text-decoration: underline;
+}
+
+.sub-fil-ariane [aria-current="page"] {
+	font-weight: 600;
+	color: var(--sub-abysse);
+}
+
+/* ------------------------------------------------------------------
+   12. Pied de page
+   ------------------------------------------------------------------ */
+.sub-footer {
+	color: #a8bfcd;
+	font-size: 14.5px;
+}
+
+.sub-footer :where(h2, h3, h4) {
+	color: var(--sub-blanc);
+}
+
+.sub-footer a {
+	color: #a8bfcd;
+	text-decoration: none;
+}
+
+.sub-footer a:hover {
+	color: var(--sub-blanc);
+	text-decoration: underline;
+}
+
+.sub-footer .wp-block-navigation a {
+	padding: 4px 0;
+}
+
+.sub-footer-bas {
+	border-top: 1px solid rgba(255, 255, 255, 0.11);
+	font-size: 13px;
+}
+
+/* ------------------------------------------------------------------
+   13. Écrans applicatifs (espace membre)
+   ------------------------------------------------------------------ */
+.sub-app {
+	background: var(--sub-ecume);
+	min-height: 60vh;
+}
+
+.sub-tuile {
+	background: var(--sub-blanc);
+	border-radius: var(--sub-r-carte);
+	box-shadow: var(--sub-ombre-1);
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.sub-tuile__libelle {
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--sub-ardoise);
+}
+
+.sub-tuile__valeur {
+	font-family: var(--wp--preset--font-family--titre);
+	font-size: 31px;
+	font-weight: 700;
+	line-height: 1.15;
+	color: var(--sub-profond);
+}
+
+.sub-tuile__valeur--alerte {
+	color: var(--sub-corail-fonce);
+}
+
+.sub-tuile__detail {
+	font-size: 13.5px;
+	color: var(--sub-ardoise);
+}
+
+/* ------------------------------------------------------------------
+   14. Tableaux
+   ------------------------------------------------------------------ */
+.wp-block-table table {
+	border-collapse: collapse;
+}
+
+.wp-block-table th {
+	text-align: left;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	color: var(--sub-ardoise);
+	font-weight: 700;
+	border-bottom: 2px solid var(--sub-brume);
+	padding: 10px 12px;
+}
+
+.wp-block-table td {
+	padding: 13px 12px;
+	border-bottom: 1px solid var(--sub-ecume);
+	border-top: 0;
+	border-left: 0;
+	border-right: 0;
+}
+
+/* Les montants s'alignent sur la virgule : chiffres tabulaires. */
+.wp-block-table td:last-child,
+.sub-nombre {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Sur mobile, un tableau défile dans son propre conteneur —
+   jamais la page entière. */
+.wp-block-table {
+	overflow-x: auto;
+}
+
+/* ------------------------------------------------------------------
+   15. Formulaires
+   ------------------------------------------------------------------ */
+:where(input[type="text"], input[type="email"], input[type="url"], input[type="password"],
+	input[type="search"], input[type="number"], input[type="tel"], input[type="date"],
+	select, textarea) {
+	width: 100%;
+	padding: 12px 14px;
+	min-height: 46px;
+	border: 1.5px solid var(--sub-brume);
+	border-radius: var(--sub-r-champ);
+	background: var(--sub-blanc);
+	color: var(--sub-abysse);
+	font-family: inherit;
+	font-size: 15px;
+}
+
+:where(input, select, textarea):focus {
+	border-color: var(--sub-lagon);
+}
+
+label {
+	display: block;
+	font-size: 14.5px;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+/* ------------------------------------------------------------------
+   16. Blog
+   ------------------------------------------------------------------ */
+.sub-article-meta {
+	font-size: 13.5px;
+	color: var(--sub-ardoise);
+}
+
+.wp-block-post-featured-image img {
+	border-radius: var(--sub-r-carte);
+}
+
+/* Marque visuelle des contenus réservés aux membres. */
+.sub-prive .wp-block-post-title::before {
+	content: "🔒";
+	margin-right: 8px;
+	font-size: 0.8em;
+}
+
+/* ------------------------------------------------------------------
+   17. Impression — le bureau imprime les listes d'inscrits
+   ------------------------------------------------------------------ */
+@media print {
+	.sub-header,
+	.sub-footer,
+	.sub-skip-link,
+	.wp-block-query-pagination {
+		display: none !important;
+	}
+
+	body {
+		background: #fff;
+		font-size: 12pt;
+	}
+
+	a[href^="http"]::after {
+		content: " (" attr(href) ")";
+		font-size: 9pt;
+		color: #555;
+	}
+}
+
+/* --- Repères de rédaction ---
+   Posés par l'installateur de pages du plugin, à supprimer une fois la page
+   écrite. Volontairement voyants : un repère discret reste six mois en ligne. */
+
+.sub-todo {
+	margin: 1rem 0;
+	padding: 0.75rem 1rem;
+	border-left: 4px solid #b26900;
+	border-radius: 4px;
+	background: #fff8ec;
+	color: #6b4400;
+	font-size: 0.95rem;
+}
+
+.sub-todo::before {
+	content: "À rédiger — ";
+	font-weight: 700;
+	font-style: normal;
+}
+
+/* ---------------------------------------------------------------------------
+   Images dans le corps des articles
+
+   Les articles repris de Joomla portent des `<img>` bruts, pas des blocs
+   Image : aucune règle de bloc ne s'y applique. Sans ce filet, une photo de
+   2 900 px déborde de la colonne de lecture et pousse la page en défilement
+   horizontal sur mobile.
+
+   `height: auto` est indispensable : les balises portent une hauteur en dur,
+   et la contraindre en largeur sans libérer la hauteur écrase l'image.
+   --------------------------------------------------------------------------- */
+
+.wp-block-post-content img,
+.entry-content img {
+	max-width: 100%;
+	height: auto;
+}
+
+/* Les photos pleine largeur méritent de respirer et de rester lisibles. */
+.wp-block-post-content > img,
+.wp-block-post-content p > img {
+	display: block;
+	margin-inline: auto;
+	border-radius: var(--wp--custom--rayon--moyen, 8px);
+}
+
+/* Deux images côte à côte dans un même paragraphe : on les laisse s'aligner
+   plutôt que de les empiler en colonne d'imagettes. */
+.wp-block-post-content p:has(img + img) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--wp--preset--spacing--30, 1rem);
+	align-items: flex-start;
+	justify-content: center;
+}

@@ -1,0 +1,2200 @@
+/*
+ * Formulaire d'adhésion.
+ *
+ * Les couleurs reprennent les tokens de wordpress/design-arborescence.md §2.1.
+ * Elles sont déclarées ici en repli : si le thème subalcatel est actif, ses
+ * propres variables prennent le dessus.
+ */
+
+/* --- Modèle de boîte des champs ---
+
+   Sans cela, `width: 100%` s'ajoute au padding et à la bordure : un champ
+   déclaré à 100 % dans un formulaire de 396 px en fait 422 et déborde de
+   26 px à droite. Le symptôme se lit comme un padding manquant, alors que
+   c'est le calcul de largeur qui est faux. WordPress ne pose pas cette règle
+   pour nous — le thème actif peut le faire ou non, on ne s'en remet pas à lui. */
+
+.sub-membership input,
+.sub-membership select,
+.sub-membership textarea,
+.sub-profile input,
+.sub-profile select,
+.sub-profile textarea,
+.sub-login input,
+.sub-signup input,
+.sub-doclib__search input,
+.sub-calendar input,
+.sub-event input,
+.sub-event select,
+.sub-event textarea {
+	box-sizing: border-box;
+}
+
+.sub-membership {
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-lien: #106a93;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume: #c9d6dd;
+	--sub-corail-fonce: #c43a22;
+	--sub-algue: #17795e;
+
+	color: var(--sub-abysse);
+	font-size: 17px;
+	line-height: 1.6;
+}
+
+.sub-membership__title {
+	color: var(--sub-profond);
+	margin-bottom: 0.25rem;
+}
+
+.sub-membership__dates {
+	color: var(--sub-ardoise);
+	margin-top: 0;
+}
+
+.sub-membership__layout {
+	display: grid;
+	gap: 32px;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+}
+
+@media (min-width: 900px) {
+	.sub-membership__layout {
+		grid-template-columns: minmax(0, 1fr) 340px;
+	}
+}
+
+/* --- Champs --- */
+
+.sub-field {
+	border: 1px solid var(--sub-brume);
+	border-radius: 12px;
+	padding: 16px 20px 12px;
+	margin: 0 0 16px;
+}
+
+.sub-field[hidden] {
+	display: none;
+}
+
+.sub-field legend {
+	font-weight: 600;
+	color: var(--sub-profond);
+	padding: 0 8px;
+}
+
+.sub-field__required {
+	color: var(--sub-corail-fonce);
+}
+
+.sub-field__help {
+	margin: 0 0 8px;
+	font-size: 15px;
+	color: var(--sub-ardoise);
+}
+
+.sub-choice {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 8px;
+	border-radius: 8px;
+	cursor: pointer;
+	min-height: 44px; /* cible tactile */
+}
+
+.sub-choice:hover {
+	background: var(--sub-ecume);
+}
+
+.sub-choice input:focus-visible {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+.sub-choice__label {
+	flex: 1;
+}
+
+.sub-choice__price {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	color: var(--sub-profond);
+	white-space: nowrap;
+}
+
+/* --- Récapitulatif --- */
+
+.sub-summary {
+	background: var(--sub-ecume);
+	border-radius: 12px;
+	padding: 20px;
+	position: sticky;
+	top: 24px;
+}
+
+.sub-summary__title {
+	margin-top: 0;
+	font-size: 18px;
+	color: var(--sub-profond);
+}
+
+.sub-summary__empty {
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-summary__line {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	font-size: 15px;
+	border-bottom: 1px solid rgba(4, 30, 48, 0.08);
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-summary__line--discount {
+	color: var(--sub-algue);
+	font-weight: 600;
+}
+
+.sub-summary__line--plan {
+	font-weight: 600;
+}
+
+.sub-summary__total {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin: 16px 0;
+	font-size: 20px;
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-summary__total strong {
+	font-size: 28px;
+	color: var(--sub-profond);
+}
+
+.sub-summary__note {
+	font-size: 13px;
+	color: var(--sub-ardoise);
+	margin-bottom: 0;
+}
+
+/* Un `<button>` centre son texte tout seul, horizontalement et verticalement,
+   et n'est jamais souligné : une règle écrite en le regardant paraît complète
+   alors qu'elle ne dit rien. Posée sur un `<a>` ou un `<summary>` — ce que font
+   le tableau de bord et l'agenda — le libellé se retrouve collé en haut à
+   gauche et souligné. Le centrage est donc déclaré explicitement, et la boîte
+   flexible le porte quel que soit l'élément. */
+.sub-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 48px;
+	padding: 10px 20px;
+	background: var(--sub-corail-fonce);
+	color: #fff;
+	border: 0;
+	border-radius: 12px;
+	font-family: inherit;
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 1.3;
+	text-align: center;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.sub-button:hover {
+	background: #a93018;
+}
+
+.sub-button:focus-visible {
+	outline: 2px solid var(--sub-abysse);
+	outline-offset: 2px;
+}
+
+/* --- Encarts --- */
+
+.sub-notice {
+	border-left: 4px solid #0b4f71;
+	background: #e8f1f5;
+	padding: 16px 20px;
+	border-radius: 0 8px 8px 0;
+}
+
+.sub-notice p {
+	margin-bottom: 0;
+}
+
+.sub-notice--success {
+	border-left-color: #17795e;
+}
+
+.sub-notice--error {
+	border-left-color: #c43a22;
+}
+
+.sub-notice--warning {
+	border-left-color: #b26900;
+}
+
+.sub-notice--info {
+	border-left-color: #0b4f71;
+}
+
+.sub-notice ul {
+	margin: 8px 0 0;
+	padding-left: 20px;
+}
+
+.sub-notice li + li {
+	margin-top: 6px;
+}
+
+/* --- Agenda --- */
+
+.sub-agenda {
+	display: grid;
+	gap: 16px;
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume: #c9d6dd;
+	--sub-corail-fonce: #c43a22;
+	--sub-algue: #17795e;
+	color: var(--sub-abysse);
+}
+
+.sub-event {
+	border: 1px solid var(--sub-brume);
+	border-radius: 12px;
+	padding: 20px;
+	background: #fff;
+}
+
+.sub-event__title {
+	margin: 0;
+	color: var(--sub-profond);
+	font-size: 20px;
+}
+
+.sub-event__meta {
+	margin: 4px 0 12px;
+	color: var(--sub-ardoise);
+}
+
+.sub-event__places {
+	font-variant-numeric: tabular-nums;
+	margin: 0 0 12px;
+}
+
+.sub-event__status {
+	display: inline-block;
+	padding: 6px 14px;
+	border-radius: 999px;
+	font-size: 15px;
+	margin: 0 0 12px;
+}
+
+.sub-event__status--confirmed {
+	background: var(--sub-algue);
+	color: #fff;
+}
+
+.sub-event__status--waiting {
+	background: #f2c14e;
+	color: var(--sub-abysse);
+}
+
+.sub-event__blocked {
+	background: var(--sub-ecume);
+	border-left: 4px solid var(--sub-corail-fonce);
+	padding: 12px 16px;
+	border-radius: 0 8px 8px 0;
+	margin: 0;
+}
+
+.sub-event .sub-button {
+	width: auto;
+	padding: 0 24px;
+}
+
+.sub-button--ghost {
+	background: transparent;
+	color: var(--sub-corail-fonce);
+	border: 1px solid var(--sub-corail-fonce);
+}
+
+.sub-button--ghost:hover {
+	background: var(--sub-ecume);
+}
+
+/* --- Calendrier mensuel --- */
+
+.sub-calendar__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.sub-calendar__month {
+	margin: 0;
+	font-size: 1.2rem;
+	text-align: center;
+}
+
+.sub-calendar__nav {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border: 1px solid var(--sub-brume, #ccd6dd);
+	border-radius: 4px;
+	font-size: 1.1rem;
+	text-decoration: none;
+}
+
+.sub-calendar__nav:hover {
+	background: var(--sub-ecume, #eef4f7);
+}
+
+.sub-calendar__grid {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.sub-calendar__grid th {
+	padding: 6px 4px;
+	border-bottom: 2px solid var(--sub-ecume, #eef4f7);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #5c6b73;
+}
+
+.sub-calendar__day {
+	height: 96px;
+	padding: 4px;
+	border: 1px solid var(--sub-ecume, #eef4f7);
+	vertical-align: top;
+	overflow: hidden;
+}
+
+.sub-calendar__day--empty {
+	background: #fafcfd;
+}
+
+.sub-calendar__day--today {
+	background: var(--sub-ecume, #eef4f7);
+}
+
+.sub-calendar__day--today .sub-calendar__number {
+	font-weight: 700;
+	color: var(--sub-profond, #0b4f71);
+}
+
+.sub-calendar__number {
+	display: block;
+	font-size: 0.8rem;
+	color: #5c6b73;
+}
+
+.sub-calendar__event {
+	display: block;
+	margin-top: 2px;
+	padding: 2px 4px;
+	border-radius: 3px;
+	background: var(--sub-profond, #0b4f71);
+	color: #fff;
+	font-size: 0.72rem;
+	line-height: 1.3;
+	text-decoration: none;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sub-calendar__event:hover {
+	background: var(--sub-abysse, #041e30);
+	color: #fff;
+}
+
+.sub-calendar__time {
+	font-weight: 700;
+	margin-right: 3px;
+}
+
+/* La liste double la grille : elle prend le relais sur petit écran. */
+.sub-calendar__list {
+	display: none;
+}
+
+.sub-calendar__row {
+	display: flex;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--sub-ecume, #eef4f7);
+}
+
+.sub-calendar__date {
+	flex: 0 0 44px;
+	text-align: center;
+}
+
+.sub-calendar__weekday {
+	display: block;
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	color: #5c6b73;
+}
+
+.sub-calendar__daynum {
+	display: block;
+	font-size: 1.3rem;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.sub-calendar__entries {
+	flex: 1;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sub-calendar__entries li + li {
+	margin-top: 6px;
+}
+
+.sub-calendar__place {
+	color: #5c6b73;
+	font-size: 0.9rem;
+}
+
+.sub-calendar__empty {
+	padding: 24px 0;
+	color: #5c6b73;
+	text-align: center;
+}
+
+.sub-calendar__subscribe {
+	margin-top: 24px;
+	padding: 16px 20px;
+	border: 1px solid var(--sub-brume, #ccd6dd);
+	border-radius: 8px;
+}
+
+.sub-calendar__subscribe h3 {
+	margin: 0 0 8px;
+	font-size: 1rem;
+}
+
+/* Sept colonnes à 375 px donnent des cases de 50 px, illisibles. On change de
+   représentation plutôt que de compresser. */
+@media (max-width: 782px) {
+	.sub-calendar__grid {
+		display: none;
+	}
+
+	.sub-calendar__list {
+		display: block;
+	}
+}
+
+/* --- Espace documentaire --- */
+
+.sub-doclib__search {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 24px;
+}
+
+.sub-doclib__search input[type="search"] {
+	flex: 1 1 200px;
+	min-width: 0;
+	padding: 8px 12px;
+	border: 1px solid var(--sub-brume, #ccd6dd);
+	border-radius: 4px;
+}
+
+.sub-doclib__group {
+	margin-bottom: 28px;
+}
+
+.sub-doclib__group h3 {
+	margin: 0 0 10px;
+	padding-bottom: 6px;
+	border-bottom: 2px solid var(--sub-ecume, #eef4f7);
+	font-size: 1.05rem;
+}
+
+.sub-doclib__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sub-doclib__item {
+	padding: 10px 0;
+	border-bottom: 1px solid var(--sub-ecume, #eef4f7);
+}
+
+.sub-doclib__item:last-child {
+	border-bottom: 0;
+}
+
+.sub-doclib__link {
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sub-doclib__link:hover {
+	text-decoration: underline;
+}
+
+.sub-doclib__meta {
+	margin-left: 8px;
+	font-size: 0.85rem;
+	color: #5c6b73;
+	white-space: nowrap;
+}
+
+.sub-doclib__desc {
+	margin: 4px 0 0;
+	font-size: 0.9rem;
+	color: #5c6b73;
+}
+
+/* --- Blocs du profil (lettre d'information, suppression) --- */
+
+.sub-panel-block {
+	margin-top: 32px;
+	padding: 20px;
+	border: 1px solid var(--sub-brume, #ccd6dd);
+	border-radius: 8px;
+}
+
+.sub-panel-block h2 {
+	margin: 0 0 12px;
+	font-size: 1.05rem;
+}
+
+.sub-check {
+	display: block;
+	margin-bottom: 8px;
+	line-height: 1.5;
+}
+
+.sub-check input {
+	margin-right: 8px;
+}
+
+/* --- Suppression de compte ---
+   Discrète et en bas de page : c'est une porte de sortie, pas une invitation. */
+
+.sub-danger-zone {
+	margin-top: 40px;
+	padding: 20px;
+	border: 1px solid #e0d5d2;
+	border-radius: 8px;
+	background: #fdfaf9;
+}
+
+.sub-danger-zone h2 {
+	margin: 0 0 8px;
+	font-size: 1.05rem;
+	color: #8a2b17;
+}
+
+.sub-button--danger {
+	background: transparent;
+	color: #8a2b17;
+	border: 1px solid #8a2b17;
+}
+
+.sub-button--danger:hover {
+	background: #8a2b17;
+	color: #fff;
+}
+
+/* --- Profil --- */
+
+.sub-profile {
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-lien: #106a93;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume: #c9d6dd;
+	--sub-corail-fonce: #c43a22;
+	color: var(--sub-abysse);
+	font-size: 17px;
+}
+
+.sub-profile .sub-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 4px 24px;
+}
+
+.sub-profile .sub-input {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 14px;
+}
+
+.sub-profile .sub-input--wide {
+	grid-column: 1 / -1;
+}
+
+.sub-profile label {
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--sub-profond);
+}
+
+.sub-profile input[type='text'],
+.sub-profile input[type='tel'],
+.sub-profile input[type='email'],
+.sub-profile input[type='date'],
+.sub-profile select,
+.sub-profile textarea {
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume);
+	border-radius: 8px;
+	font-size: 17px;
+	font-family: inherit;
+	min-height: 44px;
+}
+
+.sub-profile input:focus-visible,
+.sub-profile select:focus-visible,
+.sub-profile textarea:focus-visible {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+.sub-profile .sub-checkbox {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+}
+
+.sub-profile .sub-checkbox input {
+	width: 22px;
+	height: 22px;
+}
+
+/* Champ relevant du bureau : montré, mais pas modifiable. */
+.sub-profile .sub-readonly {
+	padding: 10px 12px;
+	background: var(--sub-ecume);
+	border-radius: 8px;
+	color: var(--sub-ardoise);
+	min-height: 44px;
+	display: flex;
+	align-items: center;
+}
+
+.sub-profile .sub-input__help {
+	color: var(--sub-ardoise);
+	font-size: 13px;
+}
+
+.sub-profile .sub-button {
+	width: auto;
+	padding: 0 32px;
+}
+
+/* --- Profil : onglets --- */
+
+.sub-profile .sub-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	border-bottom: 2px solid var(--sub-brume);
+	margin-bottom: 20px;
+}
+
+.sub-profile .sub-tabs__tab {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	padding: 12px 18px;
+	margin-bottom: -2px;
+	font: inherit;
+	font-weight: 600;
+	font-size: 16px;
+	color: var(--sub-ardoise);
+	cursor: pointer;
+	min-height: 44px;
+	border-radius: 8px 8px 0 0;
+}
+
+.sub-profile .sub-tabs__tab:hover {
+	background: var(--sub-ecume);
+	color: var(--sub-profond);
+}
+
+.sub-profile .sub-tabs__tab[aria-selected='true'] {
+	color: var(--sub-profond);
+	border-bottom-color: var(--sub-corail-fonce);
+}
+
+.sub-profile .sub-tabs__tab:focus-visible {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+/* Onglets actifs : la légende ferait doublon avec le libellé de l'onglet. */
+.sub-profile .sub-tabs:not([hidden]) ~ .sub-panel {
+	border: 0;
+	padding: 0;
+	margin: 0;
+}
+
+.sub-profile .sub-tabs:not([hidden]) ~ .sub-panel legend {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+	.sub-profile .sub-tabs {
+		overflow-x: auto;
+		flex-wrap: nowrap;
+	}
+
+	.sub-profile .sub-tabs__tab {
+		white-space: nowrap;
+	}
+}
+
+/* --- Mes documents --- */
+
+.sub-documents {
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-lien: #106a93;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume: #c9d6dd;
+	--sub-corail-fonce: #c43a22;
+	--sub-sable: #f2c14e;
+	--sub-algue: #17795e;
+	display: grid;
+	gap: 16px;
+	color: var(--sub-abysse);
+	font-size: 17px;
+}
+
+.sub-doc {
+	border: 1px solid var(--sub-brume);
+	border-left-width: 5px;
+	border-radius: 12px;
+	padding: 18px 20px;
+	background: #fff;
+}
+
+.sub-doc--valid    { border-left-color: var(--sub-algue); }
+.sub-doc--pending  { border-left-color: var(--sub-sable); }
+.sub-doc--expired,
+.sub-doc--rejected { border-left-color: var(--sub-corail-fonce); }
+.sub-doc--missing  { border-left-color: var(--sub-brume); }
+
+.sub-doc__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.sub-doc__title {
+	margin: 0;
+	font-size: 19px;
+	color: var(--sub-profond);
+}
+
+/* Jamais la couleur seule : le libelle porte l information (WCAG 1.4.1). */
+.sub-doc__state {
+	font-size: 14px;
+	font-weight: 600;
+	padding: 4px 12px;
+	border-radius: 999px;
+	background: var(--sub-ecume);
+	color: var(--sub-profond);
+}
+
+.sub-doc--valid .sub-doc__state    { background: var(--sub-algue); color: #fff; }
+.sub-doc--pending .sub-doc__state  { background: var(--sub-sable); color: var(--sub-abysse); }
+.sub-doc--expired .sub-doc__state,
+.sub-doc--rejected .sub-doc__state { background: var(--sub-corail-fonce); color: #fff; }
+
+.sub-doc__detail { margin: 8px 0 0; }
+
+.sub-doc__help,
+.sub-doc__filename,
+.sub-doc__warning {
+	color: var(--sub-ardoise);
+	font-size: 14px;
+}
+
+.sub-doc__file { margin: 12px 0 0; }
+
+.sub-doc__form {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--sub-brume);
+	display: grid;
+	gap: 10px;
+	max-width: 480px;
+}
+
+/* Un champ fichier se dimensionne sur son contenu : le bouton natif, plus le
+   nom du fichier choisi. Sur un élément de grille — dont le `min-width` vaut
+   `auto` par défaut — cette largeur intrinsèque devient un **plancher** : la
+   carte s'élargit pour la contenir, et tout ce qui est en 100 % s'élargit avec
+   elle, à commencer par le champ de date voisin. Un certificat scanné au nom à
+   rallonge suffisait à faire déborder la page.
+
+   `min-width: 0` rend la chaîne compressible ; la largeur ne vient plus alors
+   que du conteneur. Mesuré : la carte fait la même largeur avec un nom de 8 ou
+   de 130 caractères, et la page ne défile plus latéralement. */
+.sub-doc,
+.sub-doc__form,
+.sub-doc__form .sub-input {
+	min-width: 0;
+}
+
+.sub-doc__form .sub-input {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+}
+
+.sub-doc__form label {
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--sub-profond);
+}
+
+.sub-doc__form input[type='date'] {
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume);
+	border-radius: 8px;
+	font-size: 16px;
+	font-family: inherit;
+	min-height: 44px;
+}
+
+/* --- Champ fichier : bouton fixe, nom élastique ---
+
+   `text-overflow: ellipsis` posé sur le champ natif ne donne rien de bon : dans
+   Chrome le contrôle tronque déjà, à sa façon et sans qu'on choisisse où ; dans
+   Firefox la règle réduisait le libellé à trois points. La raison est la même
+   dans les deux cas — le bouton et le nom sont dessinés par le moteur, on ne
+   peut pas leur répartir la place.
+
+   D'où cette disposition : le champ natif reste là, transparent et étalé sur
+   toute la boîte, et c'est lui qui reçoit le clic, le focus et la validation ;
+   par-dessous, deux éléments à nous, un bouton de largeur fixe et un nom qui
+   prend tout le reste — donc une ellipse qui laisse le nom lisible. */
+
+.sub-file {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	min-height: 44px;
+	padding: 5px 12px 5px 5px;
+	border: 1px solid var(--sub-brume);
+	border-radius: 8px;
+	background: #fff;
+}
+
+.sub-file input[type='file'] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.sub-file__button {
+	flex: 0 0 auto;
+	padding: 7px 14px;
+	border-radius: 6px;
+	background: var(--sub-ecume);
+	color: var(--sub-profond);
+	font-size: 15px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/* `min-width: 0` est ce qui autorise l'ellipse : sans lui, l'élément flexible
+   refuse de descendre sous la largeur de son texte, et déborde au lieu de le
+   tronquer. */
+.sub-file__name {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 15px;
+	color: var(--sub-ardoise);
+}
+
+.sub-file__name--chosen {
+	color: var(--sub-abysse);
+}
+
+/* Le champ qui porte le focus étant invisible, l'anneau se pose sur la boîte. */
+.sub-file:focus-within {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+.sub-file:hover .sub-file__button {
+	background: var(--sub-brume);
+}
+
+/* Sur un téléphone, le bouton et le nom se partagent 260 px : il en reste cent
+   au nom, soit une douzaine de caractères avant l'ellipse. Le nom passe donc
+   sous le bouton, où il dispose de toute la largeur. */
+@media (max-width: 480px) {
+	.sub-file {
+		flex-wrap: wrap;
+		padding-bottom: 8px;
+	}
+
+	.sub-file__name {
+		flex-basis: 100%;
+		padding-left: 7px;
+	}
+}
+
+.sub-doc__form input:focus-visible {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+.sub-doc__form .sub-button {
+	width: auto;
+	justify-self: start;
+	padding: 0 28px;
+}
+
+.sub-doc__warning { display: block; }
+
+/* --- Inscription à une sortie --- */
+
+.sub-event__signup > summary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: auto;
+	padding: 0 24px;
+	cursor: pointer;
+	list-style: none;
+}
+
+.sub-event__signup > summary::-webkit-details-marker {
+	display: none;
+}
+
+.sub-event__signup[open] > summary {
+	background: var(--sub-ardoise);
+	margin-bottom: 16px;
+}
+
+/* Écrire au directeur de plongée, une fois inscrit. */
+
+.sub-event__contact {
+	margin-top: 12px;
+}
+
+.sub-event__contact > summary {
+	cursor: pointer;
+	list-style: none;
+}
+
+.sub-event__contact > summary::-webkit-details-marker {
+	display: none;
+}
+
+.sub-event__contact[open] > summary {
+	margin-bottom: 12px;
+}
+
+.sub-signup {
+	display: grid;
+	gap: 14px;
+	max-width: 520px;
+}
+
+.sub-signup__group {
+	border: 1px solid var(--sub-brume);
+	border-radius: 10px;
+	padding: 12px 16px 6px;
+	margin: 0;
+}
+
+.sub-signup__group legend {
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--sub-profond);
+	padding: 0 6px;
+}
+
+.sub-signup .sub-input {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 12px;
+}
+
+.sub-signup .sub-input[hidden] {
+	display: none;
+}
+
+.sub-signup label {
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--sub-abysse);
+}
+
+.sub-signup input[type='text'],
+.sub-signup input[type='number'],
+.sub-signup select,
+.sub-signup textarea {
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume);
+	border-radius: 8px;
+	font-size: 16px;
+	font-family: inherit;
+	min-height: 44px;
+	max-width: 100%;
+}
+
+.sub-signup__check {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 44px;
+	font-weight: 400;
+	cursor: pointer;
+}
+
+.sub-signup__check input {
+	width: 22px;
+	height: 22px;
+}
+
+.sub-signup__number {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sub-signup__number input {
+	width: 90px;
+}
+
+.sub-signup input:focus-visible,
+.sub-signup select:focus-visible,
+.sub-signup textarea:focus-visible {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+/* --- Espace membre --- */
+
+.sub-dashboard,
+.sub-membership-view,
+.sub-registrations {
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-lien: #106a93;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume: #c9d6dd;
+	--sub-corail-fonce: #c43a22;
+	--sub-sable: #f2c14e;
+	--sub-algue: #17795e;
+	color: var(--sub-abysse);
+	font-size: 17px;
+}
+
+.sub-dashboard__greeting {
+	font-size: 19px;
+	color: var(--sub-ardoise);
+	margin-bottom: 24px;
+}
+
+/* Ce qui demande une action passe avant tout le reste. */
+.sub-todo {
+	margin-bottom: 32px;
+}
+
+.sub-todo__title,
+.sub-block__title {
+	font-size: 20px;
+	color: var(--sub-profond);
+	margin: 0 0 12px;
+}
+
+.sub-todo__item {
+	border: 1px solid var(--sub-brume);
+	border-left-width: 5px;
+	border-radius: 12px;
+	padding: 16px 20px;
+	margin-bottom: 12px;
+	background: #fff;
+}
+
+.sub-todo__item--urgent  { border-left-color: var(--sub-corail-fonce); }
+.sub-todo__item--soon    { border-left-color: var(--sub-sable); }
+.sub-todo__item--waiting { border-left-color: var(--sub-brume); }
+
+.sub-todo__what {
+	margin: 0;
+	font-weight: 600;
+	font-size: 18px;
+}
+
+.sub-todo__why {
+	margin: 4px 0 12px;
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-card-ok {
+	background: var(--sub-ecume);
+	border-left: 5px solid var(--sub-algue);
+	border-radius: 0 12px 12px 0;
+	padding: 16px 20px;
+	margin-bottom: 32px;
+}
+
+.sub-card-ok p {
+	margin: 4px 0 0;
+	color: var(--sub-ardoise);
+}
+
+.sub-block {
+	margin-bottom: 32px;
+}
+
+.sub-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 8px;
+}
+
+.sub-list__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	border: 1px solid var(--sub-brume);
+	border-radius: 10px;
+	padding: 12px 16px;
+	background: #fff;
+}
+
+.sub-list__main {
+	flex: 1 1 240px;
+}
+
+.sub-pill {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 999px;
+	font-size: 14px;
+	font-weight: 600;
+	background: var(--sub-ecume);
+	color: var(--sub-profond);
+	white-space: nowrap;
+}
+
+.sub-pill--ok      { background: var(--sub-algue); color: #fff; }
+.sub-pill--waiting { background: var(--sub-sable); color: var(--sub-abysse); }
+
+.sub-button--small {
+	min-height: 40px;
+	font-size: 15px;
+	padding: 0 18px;
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+	width: auto;
+}
+
+.sub-shortcuts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	padding-top: 20px;
+	border-top: 1px solid var(--sub-brume);
+}
+
+.sub-shortcuts a {
+	color: var(--sub-lien);
+}
+
+/* --- Avancement du dossier --- */
+
+.sub-steps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 24px;
+	list-style: none;
+	margin: 0 0 20px;
+	padding: 0;
+}
+
+.sub-steps__step {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-steps__mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+	background: var(--sub-brume);
+	color: #fff;
+	font-weight: 700;
+	font-size: 14px;
+}
+
+.sub-steps__step--done .sub-steps__mark    { background: var(--sub-algue); }
+.sub-steps__step--current .sub-steps__mark { background: var(--sub-profond); }
+.sub-steps__step--current                  { color: var(--sub-abysse); font-weight: 600; }
+
+/* --- Détail tarifaire --- */
+
+.sub-lines {
+	width: 100%;
+	max-width: 560px;
+	border-collapse: collapse;
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-lines td {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--sub-brume);
+}
+
+.sub-lines__amount {
+	text-align: right;
+	white-space: nowrap;
+}
+
+.sub-lines__value {
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-lines__row--discount {
+	color: var(--sub-algue);
+	font-weight: 600;
+}
+
+.sub-lines tfoot td {
+	border-bottom: 0;
+	border-top: 2px solid var(--sub-profond);
+	font-size: 19px;
+	padding-top: 12px;
+}
+
+.sub-membership-view__meta {
+	color: var(--sub-ardoise);
+	margin-top: -8px;
+}
+
+.sub-membership-view__subtitle {
+	font-size: 17px;
+	color: var(--sub-profond);
+	margin: 24px 0 8px;
+}
+
+.sub-notice--waiting {
+	border-left-color: var(--sub-sable);
+}
+
+/* --- Mes inscriptions --- */
+
+.sub-registration {
+	border: 1px solid var(--sub-brume);
+	border-radius: 12px;
+	padding: 16px 20px;
+	margin-bottom: 12px;
+	background: #fff;
+}
+
+.sub-registration__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.sub-registration__title {
+	margin: 0;
+	font-size: 18px;
+	color: var(--sub-profond);
+}
+
+.sub-registration__meta {
+	margin: 2px 0 0;
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-registration__answers {
+	list-style: none;
+	margin: 12px 0 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 2px 16px;
+	font-size: 15px;
+	color: var(--sub-ardoise);
+}
+
+.sub-registration__comment {
+	margin: 10px 0 0;
+	font-style: italic;
+	color: var(--sub-profond);
+}
+
+.sub-registration form {
+	margin-top: 12px;
+}
+
+/* --- Aperçu public des prochaines sorties --- */
+
+.sub-upcoming__title {
+	margin: 0 0 16px;
+	font-size: 1.2rem;
+}
+
+.sub-upcoming__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sub-upcoming__item {
+	display: flex;
+	gap: 14px;
+	align-items: flex-start;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--sub-ecume, #eef4f7);
+}
+
+.sub-upcoming__item:last-child {
+	border-bottom: 0;
+}
+
+.sub-upcoming__date {
+	flex: 0 0 52px;
+	padding: 6px 0;
+	border-radius: 6px;
+	background: var(--sub-profond, #0b4f71);
+	color: #fff;
+	text-align: center;
+	line-height: 1.1;
+}
+
+.sub-upcoming__day {
+	display: block;
+	font-size: 1.35rem;
+	font-weight: 700;
+}
+
+.sub-upcoming__month {
+	display: block;
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.sub-upcoming__body {
+	display: block;
+}
+
+.sub-upcoming__name {
+	display: block;
+	font-weight: 600;
+}
+
+.sub-upcoming__meta {
+	display: block;
+	font-size: 0.88rem;
+	color: #5c6b73;
+}
+
+.sub-upcoming__empty {
+	padding: 16px 0;
+	color: #5c6b73;
+}
+
+.sub-upcoming__cta {
+	margin: 14px 0 0;
+}
+
+/* --- Connexion --- */
+
+.sub-login label {
+	display: block;
+	margin-bottom: 12px;
+	font-weight: 600;
+}
+
+.sub-login input[type="text"],
+.sub-login input[type="password"] {
+	display: block;
+	width: 100%;
+	margin-top: 4px;
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume, #c9d6dd);
+	border-radius: 8px;
+	font-size: 16px; /* sous 16 px, iOS zoome au focus */
+}
+
+.sub-login .login-remember label {
+	font-weight: 400;
+}
+
+.sub-login .login-remember input {
+	margin-right: 8px;
+}
+
+.sub-login .button-primary,
+.sub-login input[type="submit"] {
+	width: 100%;
+	min-height: 48px;
+	margin-top: 8px;
+	background: var(--sub-corail-fonce, #c43a22);
+	color: #fff;
+	border: 0;
+	border-radius: 12px;
+	font-size: 17px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.sub-login__lost {
+	margin: 16px 0 0;
+	text-align: center;
+	font-size: 0.9rem;
+}
+
+/* --- Grille tarifaire publique --- */
+
+.sub-pricing__season {
+	color: #5c6b73;
+}
+
+.sub-pricing__plans {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+	margin-bottom: 32px;
+}
+
+.sub-plan {
+	padding: 20px;
+	border: 1px solid var(--sub-brume, #c9d6dd);
+	border-radius: 12px;
+	background: #fff;
+}
+
+.sub-plan__title {
+	margin: 0 0 8px;
+	color: var(--sub-profond, #0b4f71);
+	font-size: 1.1rem;
+}
+
+.sub-plan__price {
+	margin: 0 0 10px;
+}
+
+.sub-plan__amount {
+	font-size: 2rem;
+	font-weight: 700;
+	color: var(--sub-profond, #0b4f71);
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-plan__unit {
+	display: block;
+	font-size: 0.85rem;
+	color: #5c6b73;
+}
+
+.sub-plan__desc,
+.sub-plan__note {
+	margin: 0 0 8px;
+	font-size: 0.92rem;
+}
+
+.sub-plan__note {
+	color: #5c6b73;
+}
+
+.sub-pricing__table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 8px;
+}
+
+.sub-pricing__table th,
+.sub-pricing__table td {
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--sub-ecume, #e8f1f5);
+	text-align: left;
+	vertical-align: top;
+}
+
+.sub-pricing__table thead th {
+	border-bottom-width: 2px;
+	font-size: 0.85rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: #5c6b73;
+}
+
+.sub-pricing__table tbody th {
+	font-weight: 600;
+	background: #fbfdfe;
+}
+
+.sub-pricing__amount {
+	text-align: right;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-pricing__scope {
+	display: block;
+	font-weight: 400;
+	font-size: 0.82rem;
+	color: #5c6b73;
+}
+
+
+
+
+
+.sub-pricing__cta {
+	margin-top: 28px;
+	padding: 20px;
+	border-radius: 12px;
+	background: var(--sub-ecume, #e8f1f5);
+}
+
+.sub-button--inline {
+	display: inline-block;
+	width: auto;
+	padding: 12px 28px;
+	text-decoration: none;
+	text-align: center;
+}
+
+.sub-pricing__amount--credit {
+	color: var(--sub-algue, #17795e);
+	font-weight: 600;
+}
+
+.sub-pricing__amount--credit {
+	color: var(--sub-algue, #17795e);
+	font-weight: 600;
+}
+
+/* --- Création de compte --- */
+
+.sub-signup label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.sub-signup input[type="text"],
+.sub-signup input[type="email"],
+.sub-signup input[type="password"] {
+	display: block;
+	width: 100%;
+	max-width: 420px;
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume, #c9d6dd);
+	border-radius: 8px;
+	font-size: 16px; /* sous 16 px, iOS zoome au focus */
+}
+
+.sub-signup .sub-check {
+	font-weight: 400;
+}
+
+.sub-signup .sub-button {
+	max-width: 420px;
+}
+
+/* --- Participants d'une sortie (vue sociale) --- */
+
+.sub-event__people {
+	margin-top: 14px;
+	border-top: 1px solid var(--sub-brume, #c9d6dd);
+	padding-top: 12px;
+}
+
+.sub-event__people summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: var(--sub-profond, #0b4f71);
+}
+
+.sub-people {
+	list-style: none;
+	margin: 12px 0 0;
+	padding: 0;
+}
+
+.sub-people__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--sub-ecume, #e8f1f5);
+}
+
+.sub-people__item:last-child {
+	border-bottom: 0;
+}
+
+.sub-people__item--self {
+	background: var(--sub-ecume, #e8f1f5);
+	border-radius: 8px;
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
+.sub-people__name {
+	font-weight: 600;
+}
+
+.sub-people__you {
+	font-weight: 400;
+	color: var(--sub-ardoise, #5a6e78);
+	font-size: 0.85rem;
+}
+
+.sub-people__level {
+	font-size: 0.8rem;
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--sub-profond, #0b4f71);
+	color: #fff;
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-people__wait {
+	font-size: 0.8rem;
+	color: #b26900;
+}
+
+.sub-people__note {
+	flex-basis: 100%;
+	color: var(--sub-ardoise, #5a6e78);
+	font-style: italic;
+	font-size: 0.92rem;
+}
+
+.sub-people__festive {
+	font-size: 0.85rem;
+	color: #b26900;
+	white-space: nowrap;
+}
+
+.sub-people__festive-count {
+	margin-left: 8px;
+	font-size: 0.85rem;
+	font-weight: 400;
+	color: #b26900;
+}
+
+/* --- Organiser une sortie --- */
+
+.sub-outing .sub-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 4px 24px;
+}
+
+.sub-outing .sub-input {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 14px;
+	/* Sans cela, un champ à large largeur intrinsèque — `datetime-local` en
+	   premier — élargit sa colonne au-delà de sa part et décale la voisine. */
+	min-width: 0;
+}
+
+.sub-outing .sub-input--wide {
+	grid-column: 1 / -1;
+}
+
+.sub-outing label {
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--sub-profond, #0b4f71);
+}
+
+.sub-outing input:not([type='hidden']),
+.sub-outing select,
+.sub-outing textarea {
+	/* `box-sizing` d'abord : c'est lui qui répare l'alignement. Les navigateurs
+	   posent `border-box` sur `select` mais `content-box` sur `input` et
+	   `textarea` — le remplissage et la bordure s'ajoutaient donc à la largeur
+	   étirée par le flex. Mesuré : les `input` dépassaient leur colonne de
+	   26 px (2 × 12 de remplissage + 2 × 1 de bordure) et le champ « Lieu »
+	   sortait carrément du fieldset ; côté hauteur, un `input` faisait 66 px
+	   quand le `select` d'à côté en faisait 47. */
+	box-sizing: border-box;
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume, #c9d6dd);
+	border-radius: 8px;
+	font-size: 17px;
+	font-family: inherit;
+}
+
+/* Hauteur imposée plutôt que minimale : à contenu égal, un `select` se calcule
+   2 px plus haut qu'un `input`, ce qui suffisait à désaligner leurs bases
+   quand les deux se suivent sur une ligne. 46 px reste au-dessus de la cible
+   tactile de 44 px. */
+.sub-outing input:not([type='hidden']),
+.sub-outing select {
+	height: 46px;
+}
+
+/* Un champ qui reçoit « 12 » n'a pas besoin de la moitié de la ligne. */
+.sub-outing input[type='number'] {
+	width: 7em;
+}
+
+/* Une case à cocher n'est pas un champ de saisie. Les règles ci-dessus —
+   largeur pleine, hauteur 46 px, remplissage, bordure — en faisaient un
+   rectangle vide de la largeur du formulaire, avec sa coche perdue au milieu.
+   On la ramène à sa taille, et son libellé passe à côté d'elle plutôt qu'au-
+   dessus : sur une case, la phrase est l'étiquette, pas un titre de champ. */
+.sub-outing input[type='checkbox'] {
+	width: 20px;
+	height: 20px;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 0;
+	/* La bordure de la règle générale se dessinait *autour* de la case native,
+	   qui a déjà la sienne : deux cadres concentriques. */
+	border: 0;
+	border-radius: 4px;
+	accent-color: var(--sub-profond, #0b4f71);
+}
+
+.sub-outing .sub-check {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	/* Cible tactile : la ligne entière est cliquable, pas les 20 px de la case. */
+	min-height: 44px;
+	font-weight: 400;
+	color: inherit;
+}
+
+.sub-outing textarea {
+	min-height: 120px;
+	resize: vertical;
+}
+
+.sub-outing input:focus-visible,
+.sub-outing select:focus-visible,
+.sub-outing textarea:focus-visible {
+	outline: 2px solid var(--sub-lien, #106a93);
+	outline-offset: 2px;
+}
+
+/* Poussée en bas de la boîte, qui est étirée à la hauteur de la ligne : les
+   aides de deux colonnes voisines se retrouvent ainsi sur la même ligne,
+   au lieu de flotter chacune juste sous son champ. */
+.sub-outing .sub-input__help {
+	margin-top: auto;
+	color: var(--sub-ardoise, #5a6e78);
+	font-size: 13px;
+	line-height: 1.35;
+}
+
+.sub-outing__submit .sub-button {
+	width: auto;
+	padding: 0 32px;
+}
+
+.sub-outing .sub-help,
+.sub-dashboard .sub-help {
+	color: var(--sub-ardoise, #5a6e78);
+	font-size: 15px;
+}
+
+/* --- Mes sorties organisées ---
+
+   Deux contraintes qui ne vont pas ensemble, et qu'il faut pourtant tenir :
+   la liste se lit sur un téléphone au bord de l'eau — donc en cartes — et elle
+   s'imprime en feuille d'émargement — donc en tableau, avec une colonne vide
+   pour les signatures. La bascule se fait sur le média, jamais sur un réglage. */
+
+.sub-organised {
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-lien: #106a93;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume: #c9d6dd;
+	--sub-corail-fonce: #c43a22;
+	--sub-sable: #f2c14e;
+	--sub-algue: #17795e;
+
+	color: var(--sub-abysse);
+	font-size: 17px;
+}
+
+.sub-organised__count {
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-organised__back {
+	margin-bottom: 12px;
+}
+
+.sub-organised__back a {
+	color: var(--sub-lien);
+}
+
+.sub-organised__actions {
+	margin-bottom: 16px;
+}
+
+.sub-organised__message {
+	border: 1px solid var(--sub-brume);
+	border-radius: 12px;
+	padding: 12px 16px;
+	margin-bottom: 24px;
+	background: #fff;
+}
+
+.sub-organised__message summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: var(--sub-profond);
+}
+
+.sub-organised__message .sub-outing {
+	margin-top: 16px;
+}
+
+.sub-organised__check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+}
+
+.sub-organised__check input {
+	width: auto;
+	min-height: 0;
+}
+
+.sub-organiser__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+}
+
+/* --- La feuille elle-même --- */
+
+.sub-roster__title {
+	font-size: 22px;
+	color: var(--sub-profond);
+	margin: 0 0 4px;
+}
+
+.sub-roster__meta {
+	color: var(--sub-ardoise);
+	margin: 0 0 16px;
+}
+
+.sub-roster {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 15px;
+}
+
+.sub-roster th,
+.sub-roster td {
+	text-align: left;
+	vertical-align: top;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--sub-brume);
+}
+
+.sub-roster thead th {
+	color: var(--sub-profond);
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.sub-roster__mail {
+	color: var(--sub-ardoise);
+	font-size: 14px;
+	word-break: break-word;
+}
+
+.sub-roster__minor {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--sub-sable);
+	color: var(--sub-abysse);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.sub-roster__doc {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 999px;
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.sub-roster__doc--ok { background: var(--sub-algue); color: #fff; }
+.sub-roster__doc--ko { background: var(--sub-corail-fonce); color: #fff; }
+
+.sub-roster__needs {
+	margin: 0;
+	padding-left: 18px;
+}
+
+.sub-roster__comment {
+	margin: 6px 0 0;
+	color: var(--sub-ardoise);
+	font-style: italic;
+}
+
+.sub-roster__empty,
+.sub-roster__legal {
+	color: var(--sub-ardoise);
+	font-size: 15px;
+}
+
+.sub-roster__legal {
+	margin-top: 16px;
+}
+
+.sub-roster td form {
+	margin: 0;
+}
+
+/* Colonne des signatures : elle n'a de sens que sur le papier. */
+.sub-roster__sign {
+	display: none;
+}
+
+@media screen and (max-width: 782px) {
+	/* Le tableau devient une pile de cartes : c'est la vue du bord de l'eau,
+	   où l'on cherche un numéro de téléphone, pas une comparaison de lignes. */
+	.sub-roster,
+	.sub-roster tbody,
+	.sub-roster tr,
+	.sub-roster td {
+		display: block;
+		width: auto;
+	}
+
+	.sub-roster thead {
+		display: none;
+	}
+
+	.sub-roster tr {
+		border: 1px solid var(--sub-brume);
+		border-radius: 10px;
+		margin-bottom: 12px;
+		padding: 8px 14px;
+		background: #fff;
+	}
+
+	.sub-roster td {
+		border-bottom: 0;
+		padding: 4px 0;
+	}
+
+	.sub-roster td::before {
+		content: attr(data-label) " ";
+		display: block;
+		color: var(--sub-profond);
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	/* Le numéro d'ordre n'apporte rien une fois les lignes empilées. */
+	.sub-roster td[data-label="#"] {
+		display: none;
+	}
+}
+
+@media print {
+	/* Ne pas dépendre du balisage du thème : on masque tout, puis on rend la
+	   feuille visible. Une règle qui nommerait `header`, `footer` ou telle
+	   classe de gabarit se périmerait au premier changement de thème.
+
+	   Le `:has()` n'est pas un ornement. Cette feuille est chargée par tout
+	   l'espace membre ; sans lui, imprimer l'agenda ou son adhésion sortirait
+	   une page blanche. Et là où `:has()` manque encore, la règle entière est
+	   ignorée : la feuille s'imprime avec l'habillage du site — moins bien,
+	   mais lisible. C'est le bon sens de dégradation. */
+	body:has(.sub-roster-sheet) * {
+		visibility: hidden;
+	}
+
+	body:has(.sub-roster-sheet) .sub-roster-sheet,
+	body:has(.sub-roster-sheet) .sub-roster-sheet * {
+		visibility: visible;
+	}
+
+	body:has(.sub-roster-sheet) .sub-roster-sheet {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+	}
+
+	.sub-noprint {
+		display: none !important;
+	}
+
+	.sub-roster__sign {
+		display: table-cell;
+		min-width: 150px;
+	}
+
+	.sub-roster th,
+	.sub-roster td {
+		border-bottom: 1px solid #333;
+	}
+
+	.sub-roster__doc {
+		background: none !important;
+		color: #000 !important;
+		padding: 0;
+	}
+
+	.sub-pill {
+		background: none !important;
+		color: #000 !important;
+		padding: 0;
+	}
+}
+
+/* Les trois champs sont empilés, pas côte à côte : on saisit un mot de passe
+   actuel puis deux fois le nouveau, c'est une suite, pas un tableau. Les mettre
+   en colonnes les serrait aussi sous la largeur où ils tiennent. */
+.sub-password .sub-grid {
+	display: grid;
+	/* La largeur se borne sur la grille, pas sur la piste : une piste
+	   `minmax(0, 380px)` se dimensionne sur son contenu, et le `width: 100%`
+	   des champs n'ayant alors rien à mesurer, la colonne tombait à zéro. */
+	grid-template-columns: minmax(0, 1fr);
+	max-width: 380px;
+	gap: 14px;
+}
+
+.sub-password .sub-input {
+	/* Le `p` du thème apporte ses propres marges : c'est `gap` qui espace. */
+	margin: 0;
+}
+
+/* Le panneau est hors du formulaire `.sub-profile`, donc hors de la portée où
+   les variables de couleur sont déclarées : sans valeur de repli, `var()` ne
+   résout pas et la déclaration entière saute — la bordure des champs
+   disparaissait purement et simplement. */
+.sub-password label {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--sub-profond, #0b4f71);
+	font-weight: 600;
+	font-size: 15px;
+}
+
+.sub-password input[type='password'] {
+	/* `box-sizing` d'abord, comme pour les sorties : en `content-box`, le
+	   remplissage et la bordure s'ajoutent au `width: 100%`. Mesuré : 24 px de
+	   débordement, assez pour que chaque champ morde sur le suivant. */
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 44px;
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume, #c9d6dd);
+	border-radius: 8px;
+	font: inherit;
+	background: #fff;
+}
+
+.sub-password input[type='password']:focus-visible {
+	outline: 2px solid var(--sub-profond, #0b4f71);
+	outline-offset: 1px;
+}

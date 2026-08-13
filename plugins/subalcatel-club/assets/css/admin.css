@@ -1,0 +1,655 @@
+/* Écrans du bureau — complète les styles de WordPress, sans les remplacer. */
+
+.sub-admin .sub-badge {
+	display: inline-block;
+	padding: 3px 12px;
+	border-radius: 999px;
+	font-size: 12px;
+	vertical-align: middle;
+	font-weight: 600;
+}
+
+.sub-admin .sub-tag {
+	display: inline-block;
+	background: #e8f1f5;
+	color: #0b4f71;
+	border-radius: 4px;
+	padding: 2px 8px;
+	font-size: 12px;
+	margin-left: 8px;
+}
+
+.sub-admin .sub-tag--grant {
+	background: #e6f4ef;
+	color: #17795e;
+}
+
+/* Cartes dépliables : une option ou une remise par carte. */
+
+.sub-admin .sub-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	margin-bottom: 10px;
+	padding: 0 16px;
+}
+
+.sub-admin .sub-card > summary {
+	cursor: pointer;
+	padding: 14px 0;
+	list-style: revert;
+}
+
+.sub-admin .sub-card > summary code {
+	margin-left: 8px;
+	color: #50575e;
+}
+
+.sub-admin .sub-card > summary em {
+	color: #c43a22;
+	margin-left: 8px;
+	font-size: 12px;
+}
+
+.sub-admin .sub-card--open {
+	padding: 16px;
+}
+
+.sub-admin .sub-card[open] {
+	border-color: #0b4f71;
+}
+
+/* Tableaux de lignes ajoutables. */
+
+.sub-admin .sub-repeat {
+	border-collapse: collapse;
+	margin-bottom: 8px;
+	max-width: 760px;
+}
+
+.sub-admin .sub-repeat th {
+	text-align: left;
+	font-size: 12px;
+	color: #50575e;
+	padding: 0 8px 4px 0;
+	font-weight: 600;
+}
+
+.sub-admin .sub-repeat td {
+	padding: 3px 8px 3px 0;
+	vertical-align: middle;
+}
+
+.sub-admin .sub-repeat input[type='text'] {
+	width: 100%;
+}
+
+.sub-admin .sub-repeat__remove {
+	color: #b32d2e;
+	text-decoration: none;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sub-admin .sub-repeat__add {
+	margin-bottom: 6px;
+}
+
+/* Formulaires en ligne dans les tableaux de liste. */
+
+.sub-admin .sub-inline-form {
+	display: contents;
+}
+
+.sub-admin .form-table th {
+	width: 200px;
+}
+
+/* Niveaux admis : grille compacte de cases à cocher. */
+.sub-admin .sub-levels {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 4px 12px;
+	max-width: 720px;
+}
+
+/* Feuille d'émargement : ce qui compte au bord de l'eau. */
+.sub-admin .sub-print-only {
+	display: none;
+}
+
+@media print {
+	#adminmenumain, #wpadminbar, #wpfooter, .sub-admin .button, .notice { display: none !important; }
+	.sub-admin .sub-print-only { display: table-cell; border-bottom: 1px solid #333; }
+	.sub-admin .sub-roster { width: 100%; }
+	#wpcontent { margin-left: 0 !important; padding-left: 0 !important; }
+}
+
+/* --- Onglets de la fiche membre --- */
+
+.sub-admin .sub-tabs {
+	margin: 20px 0 0;
+	padding-top: 0;
+}
+
+.sub-admin .sub-tabs__tab {
+	cursor: pointer;
+	font: inherit;
+	font-size: 14px;
+	line-height: 1.71428571;
+	min-height: 44px;
+}
+
+.sub-admin .sub-tabs__tab:focus-visible {
+	outline: 2px solid #0b4f71;
+	outline-offset: -2px;
+	box-shadow: none;
+}
+
+/* Onglets actifs : le titre ferait doublon avec le libellé de l'onglet. */
+.sub-admin .sub-tabs:not([hidden]) ~ .sub-panel .sub-panel__title {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   Responsive
+   --------------------------------------------------------------------------
+   WordPress rend ses formulaires utilisables sous 782 px, mais pas les
+   tableaux de données. Deux stratégies :
+
+   - `.sub-cards` : les lignes deviennent des cartes empilées. Réservé aux
+     écrans consultés en mobilité — au premier chef la liste du directeur de
+     plongée, lue au bord de l'eau.
+   - `.sub-scroll` : simple défilement horizontal, pour les écrans de
+     configuration qu'on n'ouvre pas sur un téléphone.
+   ========================================================================== */
+
+.sub-admin .sub-scroll {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 782px) {
+	/* --- Tableaux en cartes --- */
+
+	.sub-admin .sub-cards,
+	.sub-admin .sub-cards tbody,
+	.sub-admin .sub-cards tr,
+	.sub-admin .sub-cards td {
+		display: block;
+		width: auto;
+	}
+
+	.sub-admin .sub-cards thead {
+		display: none;
+	}
+
+	.sub-admin .sub-cards tr {
+		background: #fff;
+		border: 1px solid #c3c4c7;
+		border-radius: 8px;
+		margin-bottom: 12px;
+		padding: 12px 14px;
+	}
+
+	.sub-admin .sub-cards td {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 16px;
+		padding: 6px 0;
+		border: 0;
+		border-bottom: 1px solid #f0f0f1;
+		text-align: right;
+	}
+
+	.sub-admin .sub-cards td:last-child {
+		border-bottom: 0;
+	}
+
+	/* L'intitulé de colonne devient l'étiquette de la ligne. */
+	.sub-admin .sub-cards td::before {
+		content: attr(data-label);
+		font-weight: 600;
+		color: #50575e;
+		text-align: left;
+		flex: 0 0 40%;
+	}
+
+	.sub-admin .sub-cards td[data-label='#'] {
+		border-bottom: 2px solid #c3c4c7;
+		font-weight: 700;
+	}
+
+	/* --- Onglets : défilement plutôt que retour à la ligne --- */
+
+	.sub-admin .sub-tabs {
+		overflow-x: auto;
+		flex-wrap: nowrap;
+		white-space: nowrap;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.sub-admin .sub-tabs__tab {
+		flex: 0 0 auto;
+	}
+
+	/* --- Lignes ajoutables : une colonne par ligne --- */
+
+	.sub-admin .sub-repeat,
+	.sub-admin .sub-repeat tbody,
+	.sub-admin .sub-repeat tr,
+	.sub-admin .sub-repeat td {
+		display: block;
+		width: auto;
+	}
+
+	.sub-admin .sub-repeat thead {
+		display: none;
+	}
+
+	.sub-admin .sub-repeat tr {
+		border: 1px solid #dcdcde;
+		border-radius: 6px;
+		padding: 8px;
+		margin-bottom: 8px;
+	}
+
+	.sub-admin .sub-repeat input[type='text'],
+	.sub-admin .sub-repeat select {
+		width: 100%;
+	}
+
+	/* --- Confort tactile --- */
+
+	.sub-admin .button,
+	.sub-admin input,
+	.sub-admin select {
+		min-height: 44px;
+	}
+
+	.sub-admin .form-table th {
+		width: auto;
+		padding-bottom: 4px;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	/* Ligne de détail : elle prolonge la carte précédente plutôt que d'en
+	   ouvrir une nouvelle. */
+	.sub-admin .sub-cards tr.sub-cards__detail {
+		margin-top: -12px;
+		border-top: 0;
+		border-radius: 0 0 8px 8px;
+		background: #fbfbfb;
+	}
+
+	.sub-admin .sub-cards tr.sub-cards__detail td {
+		display: block;
+		text-align: left;
+	}
+
+	.sub-admin .sub-cards tr.sub-cards__detail td::before {
+		display: block;
+		margin-bottom: 4px;
+	}
+
+	/* Formulaires d'action dans les cartes : ils prennent la largeur. */
+	.sub-admin .sub-cards td form {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	/* Onglets d'écran (campagne, réglages) : WordPress les laisse déborder. */
+	.sub-admin .nav-tab-wrapper {
+		overflow-x: auto;
+		white-space: nowrap;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: 0;
+	}
+
+	.sub-admin .nav-tab {
+		float: none;
+		display: inline-block;
+	}
+}
+
+/* Variables disponibles dans un modèle de courriel. */
+.sub-admin .sub-variables {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 4px 20px;
+	font-size: 13px;
+	color: #50575e;
+}
+
+.sub-admin .sub-variables code {
+	color: #0b4f71;
+}
+
+.sub-admin .sub-tag--off {
+	background: #f0f0f1;
+	color: #82878c;
+}
+
+/* Besoins déclarés à l'inscription, sur la liste du directeur de plongée. */
+.sub-admin .sub-needs {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.sub-admin .sub-needs li {
+	margin: 0 0 2px;
+}
+
+.sub-admin .sub-needs__comment {
+	margin: 6px 0 0;
+	font-size: 12px;
+	font-style: italic;
+	color: #0b4f71;
+}
+
+/* --- Tableau de bord bureau --- */
+
+.sub-dashboard {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 16px;
+	margin: 20px 0 32px;
+}
+
+.sub-dash-card {
+	padding: 16px 18px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left-width: 4px;
+	border-radius: 4px;
+}
+
+.sub-dash-card--action { border-left-color: #2271b1; }
+.sub-dash-card--watch  { border-left-color: #b26900; }
+.sub-dash-card--alert  { border-left-color: #c43a22; }
+.sub-dash-card--info   { border-left-color: #6c7781; }
+
+.sub-dash-card h2 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 10px;
+	font-size: 1rem;
+}
+
+.sub-dash-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	border-radius: 11px;
+	background: #f0f0f1;
+	font-size: 0.78rem;
+	font-weight: 600;
+}
+
+.sub-dash-card--alert .sub-dash-count {
+	background: #c43a22;
+	color: #fff;
+}
+
+.sub-dash-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sub-dash-list li {
+	padding: 6px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sub-dash-list li:last-child {
+	border-bottom: 0;
+}
+
+.sub-dash-meta {
+	display: block;
+	color: #646970;
+	font-size: 0.85rem;
+}
+
+.sub-dash-empty {
+	margin: 0;
+	color: #646970;
+}
+
+.sub-dash-cta {
+	margin: 10px 0 0;
+}
+
+.sub-dash-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+	margin-bottom: 24px;
+}
+
+.sub-dash-stat {
+	padding: 14px 16px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	text-align: center;
+}
+
+.sub-dash-stat__value {
+	display: block;
+	font-size: 1.7rem;
+	font-weight: 700;
+	line-height: 1.1;
+	color: #1d2327;
+}
+
+.sub-dash-stat__label {
+	display: block;
+	margin-top: 4px;
+	color: #646970;
+	font-size: 0.82rem;
+}
+
+/* --- Courbes du tableau de bord ---------------------------------------- */
+
+.sub-charts {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+	gap: 16px;
+	margin: 12px 0 32px;
+}
+
+.sub-chart {
+	padding: 16px 18px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.sub-chart h3 {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	margin: 0 0 14px;
+	font-size: 0.95rem;
+}
+
+.sub-chart__sub {
+	color: #646970;
+	font-size: 0.82rem;
+	font-weight: 400;
+}
+
+.sub-chart-svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.sub-chart-note {
+	margin: 10px 0 0;
+	font-size: 0.85rem;
+	color: #50575e;
+}
+
+.sub-chart-note--alert {
+	color: #c43a22;
+}
+
+.sub-chart-empty {
+	margin: 0;
+	color: #646970;
+	font-size: 0.85rem;
+}
+
+.sub-delta--up   { color: #17795e; font-weight: 600; }
+.sub-delta--down { color: #c43a22; font-weight: 600; }
+
+/* Barres horizontales : sorties et étapes des dossiers.
+
+   Un tableau, et non des lignes en grille : sur des `li` séparés, chaque ligne
+   calcule ses propres colonnes, et une valeur plus longue que les autres —
+   « 7 inscrits » contre « 3/10 » — décale sa piste toute seule. Les colonnes
+   d'un tableau sont communes à toutes les lignes par construction, donc les
+   barres démarrent et finissent au même endroit. C'est d'ailleurs bien un
+   tableau : un libellé, une valeur, et un dessin entre les deux. */
+
+.sub-chart-bars {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+}
+
+.sub-chart-bars th,
+.sub-chart-bars td {
+	padding: 5px 0;
+	vertical-align: middle;
+}
+
+.sub-chart-bars th {
+	width: 42%;
+	padding-right: 12px;
+	font-weight: 400;
+	text-align: left;
+}
+
+/* Un libellé tronqué se lit de travers — « Commencés, jamais e… » n'est pas
+   une étape. On préfère une ligne qui grandit. */
+.sub-chart-bar__label {
+	overflow-wrap: anywhere;
+}
+
+.sub-chart-bar__meta {
+	display: block;
+	color: #646970;
+	font-size: 0.78rem;
+}
+
+.sub-chart-bar__track {
+	display: block;
+	height: 14px;
+	background: #f0f0f1;
+	border-radius: 7px;
+}
+
+.sub-chart-bar__fill {
+	display: block;
+	height: 100%;
+	min-width: 2px;
+	background: #2271b1;
+	border-radius: 7px;
+}
+
+/* La couleur double une valeur toujours écrite en clair à droite : elle
+   accélère la lecture, elle ne la porte jamais seule (WCAG 1.4.1). */
+.sub-chart-bar__fill--low     { background: #b26900; }
+.sub-chart-bar__fill--ok      { background: #2271b1; }
+.sub-chart-bar__fill--full    { background: #17795e; }
+.sub-chart-bar__fill--neutral { background: #8c8f94; }
+
+/* `width: 1%` : la colonne se réduit à son contenu, et la piste prend tout le
+   reste. Sans cela, les trois colonnes se partagent la largeur au prorata.
+
+   Le sélecteur est préfixé par la table : `.sub-chart-bars td` porte déjà un
+   `padding`, et à spécificité inférieure ce bloc n'écraserait rien. */
+.sub-chart-bars .sub-chart-bar__value {
+	width: 1%;
+	padding-left: 18px;
+	color: #1d2327;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.sub-chart-bar__waiting {
+	color: #b26900;
+}
+
+/* Colonnes verticales : échéancier des certificats. */
+
+.sub-chart-columns {
+	display: flex;
+	align-items: flex-end;
+	gap: 4px;
+	height: 170px;
+}
+
+.sub-chart-column {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-end;
+	height: 100%;
+}
+
+.sub-chart-column__value {
+	font-size: 0.78rem;
+	color: #50575e;
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-chart-column__bar {
+	display: block;
+	width: 100%;
+	min-height: 2px;
+	background: #2271b1;
+	border-radius: 2px 2px 0 0;
+}
+
+.sub-chart-column__label {
+	margin-top: 4px;
+	font-size: 0.72rem;
+	color: #646970;
+}
+
+@media (max-width: 782px) {
+	.sub-dashboard,
+	.sub-dash-stats,
+	.sub-charts {
+		grid-template-columns: 1fr;
+	}
+
+	.sub-chart-bars th {
+		width: 50%;
+	}
+}

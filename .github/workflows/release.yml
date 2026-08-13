@@ -1,0 +1,70 @@
+# Publie l'archive d'installation quand une balise de version est poussée.
+#
+#   git tag plugin-0.13.0 && git push origin plugin-0.13.0
+#   git tag theme-1.4.0   && git push origin theme-1.4.0
+#
+# Le préfixe désigne l'extension : un seul dépôt porte le plugin et le thème,
+# et c'est lui qui permet au site de savoir quelle release le concerne.
+#
+# L'archive est fabriquée par `build-packages.py`, le même script qu'en local :
+# c'est lui qui donne au zip le dossier racine attendu par WordPress et qui
+# refuse de construire si un identifiant traîne dans les fichiers. Le zip
+# « Source code » que GitHub joint tout seul ne convient pas — sa racine porte
+# le nom de la balise, et WordPress l'installerait comme une seconde extension.
+
+name: Publier une release
+
+on:
+  push:
+    tags:
+      - 'plugin-*'
+      - 'theme-*'
+
+permissions:
+  contents: write
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Déduire l'extension et la version de la balise
+        id: balise
+        run: |
+          BALISE="${GITHUB_REF_NAME}"
+          case "$BALISE" in
+            plugin-*) SLUG=subalcatel-club; VERSION="${BALISE#plugin-}" ;;
+            theme-*)  SLUG=subalcatel;      VERSION="${BALISE#theme-}"  ;;
+            *) echo "Balise non reconnue : $BALISE" >&2; exit 1 ;;
+          esac
+          echo "slug=$SLUG"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Construire les archives
+        run: python3 build-packages.py dist
+
+      - name: Vérifier que la balise correspond à la version déclarée
+        # Sans ce contrôle, une balise `plugin-0.13.0` posée sur un code encore
+        # en 0.12.0 produirait une release que les sites téléchargeraient en
+        # boucle : WordPress proposerait indéfiniment une mise à jour qui, une
+        # fois installée, resterait à l'ancienne version.
+        run: |
+          ARCHIVE="dist/${{ steps.balise.outputs.slug }}-${{ steps.balise.outputs.version }}.zip"
+          if [ ! -f "$ARCHIVE" ]; then
+            echo "Archive absente : $ARCHIVE" >&2
+            echo "La version déclarée dans l'en-tête ne correspond pas à la balise." >&2
+            ls -l dist >&2
+            exit 1
+          fi
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$ARCHIVE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

@@ -1,0 +1,39 @@
+# Liste blanche, et non liste noire.
+#
+# Ce dépôt est la racine `wp-content` d'un site de travail : à côté du code
+# vivent les médias des adhérents, les thèmes livrés avec WordPress et les
+# dossiers de travail du moteur. Une liste noire laisse passer ce qu'on a
+# oublié d'y écrire ; une liste blanche ne laisse passer que ce qu'on a nommé.
+#
+# La distinction n'est pas théorique : `uploads/` pèse 27 Mo de photos de
+# membres, et un commit reste dans l'historique même après suppression.
+
+# Tout est exclu par défaut.
+/*
+
+# Sauf ce qui constitue le code du club.
+!/.gitignore
+!/.github/
+!/build-packages.py
+!/README.md
+
+!/plugins/
+/plugins/*
+!/plugins/subalcatel-club/
+
+!/themes/
+/themes/*
+!/themes/subalcatel/
+
+# Et, à l'intérieur, ce qui n'a rien à y faire.
+dist/
+node_modules/
+vendor/
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*~
+.idea/
+.vscode/
+__pycache__/

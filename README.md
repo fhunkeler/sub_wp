@@ -23,19 +23,41 @@ Le script produit `dist/subalcatel-club-<version>.zip` et
 Il refuse de construire si un identifiant figure dans les fichiers, et exclut
 `tests/` de l'archive livrée.
 
+## Travailler sur le code
+
+`main` n'accepte pas de commit direct : le travail passe par une branche, puis
+par une pull request. C'est la fusion qui publie, et une version publiée ne se
+reprend pas.
+
+```
+git switch -c le-sujet-de-la-modification
+… éditer, commiter …
+git push -u origin HEAD
+```
+
+Après un premier clone, activer les garde-fous locaux :
+
+```
+git config core.hooksPath .githooks
+```
+
+Ils refusent un commit ou un push sur `main` avant qu'il ne parte. Ce ne sont
+que des garde-fous — `--no-verify` les contourne. L'interdiction qui tient est
+la règle posée sur GitHub, dans *Settings → Rules*.
+
 ## Publier une version
 
-La version se déclare dans l'en-tête — `subalcatel-club.php` pour l'extension,
-`style.css` pour le thème — puis la balise la reprend :
+Il n'y a pas de balise à poser à la main. **La version fait foi** : elle se
+déclare dans l'en-tête — `subalcatel-club.php` pour l'extension, `style.css`
+pour le thème — dans la branche, avec la modification qu'elle accompagne.
 
-```
-git tag plugin-0.13.0 && git push origin plugin-0.13.0
-git tag theme-1.4.0   && git push origin theme-1.4.0
-```
+À la fusion dans `main`, l'action lit les deux en-têtes et publie ce qui n'a pas
+encore de release : archive construite, balise posée, notes générées. Une fusion
+qui ne touche pas au numéro ne publie rien — sans quoi la moindre correction de
+faute de frappe enverrait une mise à jour à installer aux sites.
 
-L'action GitHub construit l'archive et l'attache à la release. Si la balise ne
-correspond pas à la version déclarée, la publication échoue plutôt que de livrer
-une archive que les sites téléchargeraient en boucle.
+Publier l'extension seule, ou le thème seul, revient donc à ne monter qu'un des
+deux numéros.
 
 ## Mises à jour des sites
 

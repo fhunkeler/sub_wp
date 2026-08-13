@@ -1,24 +1,30 @@
-# Publie l'archive d'installation quand une balise de version est poussée.
+# Publie les archives d'installation à la fusion d'une pull request.
 #
-#   git tag plugin-0.13.0 && git push origin plugin-0.13.0
-#   git tag theme-1.4.0   && git push origin theme-1.4.0
+# Le déclencheur est le push sur `main`, et non l'événement `pull_request` :
+# main n'accepte que des fusions, donc les deux coïncident — mais celui-ci
+# fonctionne quelle que soit la façon dont la demande est fusionnée (merge,
+# squash ou rebase), là où l'autre laisse passer des cas selon la stratégie.
 #
-# Le préfixe désigne l'extension : un seul dépôt porte le plugin et le thème,
-# et c'est lui qui permet au site de savoir quelle release le concerne.
+# **La version fait foi, pas la fusion.** Chaque exécution lit la version
+# déclarée dans l'en-tête, et ne publie que si aucune release ne la porte déjà.
+# Une fusion qui ne touche pas au numéro de version ne publie donc rien : sans
+# ce garde-fou, chaque correction de faute de frappe fabriquerait une release,
+# et les sites verraient une mise à jour à installer sans rien à y gagner.
+#
+# Monter une version, c'est donc éditer l'en-tête dans la branche :
+#   plugin → plugins/subalcatel-club/subalcatel-club.php   (« Version: »)
+#   thème  → themes/subalcatel/style.css                   (« Version: »)
 #
 # L'archive est fabriquée par `build-packages.py`, le même script qu'en local :
-# c'est lui qui donne au zip le dossier racine attendu par WordPress et qui
-# refuse de construire si un identifiant traîne dans les fichiers. Le zip
-# « Source code » que GitHub joint tout seul ne convient pas — sa racine porte
-# le nom de la balise, et WordPress l'installerait comme une seconde extension.
+# lui seul donne au zip le dossier racine attendu par WordPress, et refuse de
+# construire si un identifiant traîne dans les fichiers.
 
-name: Publier une release
+name: Publier les versions
 
 on:
   push:
-    tags:
-      - 'plugin-*'
-      - 'theme-*'
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -27,44 +33,73 @@ jobs:
   publier:
     runs-on: ubuntu-latest
 
+    strategy:
+      # Le thème ne doit pas rester en rade parce que l'extension a échoué.
+      fail-fast: false
+      matrix:
+        include:
+          - slug: subalcatel-club
+            prefixe: plugin
+            entete: plugins/subalcatel-club/subalcatel-club.php
+          - slug: subalcatel
+            prefixe: theme
+            entete: themes/subalcatel/style.css
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Déduire l'extension et la version de la balise
-        id: balise
+      - name: Lire la version déclarée
+        id: version
         run: |
-          BALISE="${GITHUB_REF_NAME}"
-          case "$BALISE" in
-            plugin-*) SLUG=subalcatel-club; VERSION="${BALISE#plugin-}" ;;
-            theme-*)  SLUG=subalcatel;      VERSION="${BALISE#theme-}"  ;;
-            *) echo "Balise non reconnue : $BALISE" >&2; exit 1 ;;
-          esac
-          echo "slug=$SLUG"       >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Un en-tête de plugin porte « * Version: », celui d'un thème
+          # « Version: » en début de ligne. Une seule expression pour les deux.
+          VERSION=$(sed -n 's/^[[:space:]]*\*\{0,1\}[[:space:]]*Version:[[:space:]]*\([0-9][^[:space:]]*\).*/\1/p' \
+                    "${{ matrix.entete }}" | head -1 | tr -d '\r')
 
-      - name: Construire les archives
-        run: python3 build-packages.py dist
-
-      - name: Vérifier que la balise correspond à la version déclarée
-        # Sans ce contrôle, une balise `plugin-0.13.0` posée sur un code encore
-        # en 0.12.0 produirait une release que les sites téléchargeraient en
-        # boucle : WordPress proposerait indéfiniment une mise à jour qui, une
-        # fois installée, resterait à l'ancienne version.
-        run: |
-          ARCHIVE="dist/${{ steps.balise.outputs.slug }}-${{ steps.balise.outputs.version }}.zip"
-          if [ ! -f "$ARCHIVE" ]; then
-            echo "Archive absente : $ARCHIVE" >&2
-            echo "La version déclarée dans l'en-tête ne correspond pas à la balise." >&2
-            ls -l dist >&2
+          if [ -z "$VERSION" ]; then
+            echo "Aucune version lisible dans ${{ matrix.entete }}" >&2
             exit 1
           fi
-          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
 
-      - name: Publier la release
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ matrix.prefixe }}-$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cette version est-elle déjà publiée ?
+        id: etat
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$ARCHIVE" \
+          if gh release view "${{ steps.version.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "publier=non" >> "$GITHUB_OUTPUT"
+            echo "${{ matrix.slug }} — ${{ steps.version.outputs.version }} déjà publiée, rien à faire." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "publier=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Construire les archives
+        if: steps.etat.outputs.publier == 'oui'
+        run: python3 build-packages.py dist
+
+      - name: Publier la release
+        if: steps.etat.outputs.publier == 'oui'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARCHIVE="dist/${{ matrix.slug }}-${{ steps.version.outputs.version }}.zip"
+
+          # Le script nomme l'archive d'après la version qu'il a lue dans
+          # l'en-tête. Si elle manque ici, c'est que la construction a produit
+          # autre chose que ce qu'on s'apprête à annoncer — on s'arrête.
+          if [ ! -f "$ARCHIVE" ]; then
+            echo "Archive absente : $ARCHIVE" >&2
+            ls -l dist >&2
+            exit 1
+          fi
+
+          gh release create "${{ steps.version.outputs.tag }}" "$ARCHIVE" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
+            --target "$GITHUB_SHA" \
+            --title "${{ matrix.slug }} ${{ steps.version.outputs.version }}" \
             --generate-notes
+
+          echo "${{ matrix.slug }} — ${{ steps.version.outputs.version }} publiée." >> "$GITHUB_STEP_SUMMARY"

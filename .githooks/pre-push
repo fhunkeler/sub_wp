@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Refuse un push direct vers main.
+#
+# Le pre-commit peut avoir été contourné, ou le commit venir d'un autre outil.
+# Ici passe tout ce qui remonte vers le dépôt : c'est la dernière barrière avant
+# que la publication ne se déclenche.
+
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+    case "$remote_ref" in
+        refs/heads/main) ;;
+        *) continue ;;
+    esac
+
+    # Suppression de branche : rien à empaqueter, mais rien à autoriser non plus.
+    [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+
+    cat >&2 <<'FIN'
+
+  main ne se pousse pas directement.
+
+  La fusion se fait par pull request sur GitHub — c'est elle qui déclenche la
+  construction et la publication des archives.
+
+      git push -u origin HEAD
+
+  pousse la branche courante et affiche le lien pour ouvrir la demande.
+
+FIN
+
+    exit 1
+done
+
+exit 0

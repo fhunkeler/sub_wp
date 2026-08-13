@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Refuse un commit posé directement sur main.
+#
+# Ce n'est qu'un garde-fou local : `--no-verify` le contourne, et un clone frais
+# ne l'active pas tant que `core.hooksPath` n'est pas réglé (voir le README).
+# L'interdiction qui tient vraiment est la règle posée sur GitHub, côté serveur.
+# Celui-ci sert à autre chose : arrêter la main avant le commit, quand corriger
+# coûte encore une seule commande.
+
+branche=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
+
+[ "$branche" = "main" ] || exit 0
+
+cat >&2 <<'FIN'
+
+  main n'accepte pas de commit direct.
+
+  Le travail passe par une branche, puis par une pull request : c'est la
+  fusion dans main qui déclenche la publication des archives, et une version
+  publiée ne se reprend pas.
+
+  Pour repartir sans rien perdre — les modifications sont encore là :
+
+      git switch -c le-sujet-de-la-modification
+
+  puis relancer le commit.
+
+FIN
+
+exit 1

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Membership\ApplicationService;
+use Subalcatel\Club\Membership\CampaignRepository;
 
 /**
  * Les statistiques de fond — celles qu'on lit avant une assemblée générale,
@@ -72,6 +73,16 @@ final class AnnualCharts
 
     /** Options détaillées dans le graphique des recettes. */
     private const TOP_OPTIONS = 8;
+
+    /**
+     * Nom de la question d'origine dans la campagne.
+     *
+     * C'est une donnée, pas du code : le bureau crée et renomme ses options
+     * depuis l'interface. Le graphique la cherche par ce nom et se tait
+     * poliment quand la campagne ne la pose pas, plutôt que d'inventer une
+     * répartition.
+     */
+    private const ORIGIN_OPTION = 'origine_adhesion';
 
     // --- Vie du club -------------------------------------------------------
 
@@ -430,6 +441,179 @@ final class AnnualCharts
                 'count'  => (int) $r['n'],
             ], $rows),
         ];
+    }
+
+    /**
+     * D'où viennent les adhésions, et ce que chaque origine rapporte.
+     *
+     * Le club vit d'un lien historique avec l'entreprise : la question
+     * « Origine de l'adhésion » (Nokia, CE Orange, extérieur) est posée à
+     * chaque dossier, et c'est elle qui déclenche la remise Nokia. Savoir
+     * quelle part de la recette tient à ce lien est une question de trésorerie
+     * avant d'être une question de sociologie — le jour où l'entreprise cesse
+     * de porter le club, le budget le sait avant tout le monde.
+     *
+     * **Deux angles morts, tous deux dits à l'écran** :
+     *
+     *  - les 86 dossiers repris du Joomla n'ont pas de réponse : l'import
+     *    écrit la ligne comptable, pas le formulaire qui l'a produite ;
+     *  - un choix à 0 € ne laisse aucune ligne dans le dossier
+     *    (`PricingEngine` les écarte du récapitulatif). L'origine ne se lit
+     *    donc pas dans les lignes, mais dans les réponses conservées avec le
+     *    dossier — c'est la seule source qui distingue « extérieur » de
+     *    « non renseigné ».
+     *
+     * @return array{campaign: ?string, asked: bool, rows: list<array{label: string, files: int, amount: float}>,
+     *               unknown: int, unknown_amount: float, known: int}
+     */
+    public static function membershipOrigin(): array
+    {
+        $empty = [
+            'campaign'       => null,
+            'asked'          => false,
+            'rows'           => [],
+            'unknown'        => 0,
+            'unknown_amount' => 0.0,
+            'known'          => 0,
+        ];
+
+        $campaign = self::latestCampaign();
+
+        if ($campaign === null) {
+            return $empty;
+        }
+
+        $labels = self::originLabels((int) $campaign['id']);
+
+        if ($labels === []) {
+            return array_merge($empty, ['campaign' => (string) $campaign['title']]);
+        }
+
+        global $wpdb;
+
+        $files = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, total_amount FROM {$wpdb->prefix}sub_applications
+             WHERE campaign_id = %d AND status NOT IN (%s, %s, %s)",
+            ...array_merge([(int) $campaign['id']], self::NOT_RECEIVED)
+        ), ARRAY_A) ?: [];
+
+        $answers = self::answersOf(array_map(static fn (array $r): int => (int) $r['id'], $files));
+
+        $counts   = [];
+        $amounts  = [];
+        $unknown  = 0;
+        $unpriced = 0.0;
+
+        foreach ($files as $file) {
+            $answer = $answers[(int) $file['id']][self::ORIGIN_OPTION] ?? null;
+            $value  = is_array($answer) ? (string) ($answer[0] ?? '') : (string) $answer;
+
+            if ($value === '' || !isset($labels[$value])) {
+                $unknown++;
+                $unpriced += (float) $file['total_amount'];
+                continue;
+            }
+
+            $counts[$value]  = ($counts[$value] ?? 0) + 1;
+            $amounts[$value] = ($amounts[$value] ?? 0.0) + (float) $file['total_amount'];
+        }
+
+        $rows = [];
+
+        foreach ($labels as $value => $label) {
+            // Une origine jamais choisie reste affichée : « personne ne vient
+            // plus du CE Orange » est une information, une ligne absente n'en
+            // est pas une.
+            $rows[] = [
+                'label'  => $label,
+                'files'  => $counts[$value] ?? 0,
+                'amount' => round($amounts[$value] ?? 0.0, 2),
+            ];
+        }
+
+        usort($rows, static fn (array $a, array $b): int => $b['amount'] <=> $a['amount']);
+
+        return [
+            'campaign'       => (string) $campaign['title'],
+            'asked'          => true,
+            'rows'           => $rows,
+            'unknown'        => $unknown,
+            'unknown_amount' => round($unpriced, 2),
+            'known'          => count($files) - $unknown,
+        ];
+    }
+
+    /**
+     * Choix de la question d'origine, dans l'ordre où le bureau les a saisis.
+     *
+     * Les libellés viennent de la campagne, jamais du code : renommer
+     * « Nokia » en « Nokia / ALE » depuis l'interface doit suffire.
+     *
+     * @return array<string, string> valeur => libellé
+     */
+    private static function originLabels(int $campaignId): array
+    {
+        foreach ((new CampaignRepository())->options($campaignId) as $option) {
+            if ($option->name !== self::ORIGIN_OPTION) {
+                continue;
+            }
+
+            $labels = [];
+
+            foreach ($option->choices as $choice) {
+                $labels[(string) $choice['value']] = (string) $choice['label'];
+            }
+
+            return $labels;
+        }
+
+        return [];
+    }
+
+    /**
+     * Réponses conservées avec les dossiers, en une requête.
+     *
+     * `ApplicationService::answers()` lit une option à la fois ; sur quatre-
+     * vingt-dix dossiers, cela ferait autant d'allers-retours pour un écran
+     * qu'on ouvre trois fois l'an. On lit donc la table directement, en
+     * n'acceptant que ce qui se désérialise en tableau.
+     *
+     * @param list<int> $applicationIds
+     * @return array<int, array<string, string|list<string>>>
+     */
+    private static function answersOf(array $applicationIds): array
+    {
+        global $wpdb;
+
+        if ($applicationIds === []) {
+            return [];
+        }
+
+        $names = array_map(
+            static fn (int $id): string => "sub_application_answers_{$id}",
+            $applicationIds
+        );
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT option_name, option_value FROM {$wpdb->options}
+             WHERE option_name IN (" . implode(',', array_fill(0, count($names), '%s')) . ")",
+            ...$names
+        ), ARRAY_A) ?: [];
+
+        $answers = [];
+
+        foreach ($rows as $row) {
+            $value = maybe_unserialize((string) $row['option_value']);
+
+            if (!is_array($value)) {
+                continue;
+            }
+
+            $id = (int) substr((string) $row['option_name'], strlen('sub_application_answers_'));
+            $answers[$id] = $value;
+        }
+
+        return $answers;
     }
 
     /**

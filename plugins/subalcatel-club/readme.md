@@ -1,7 +1,7 @@
 # subalcatel-club — extension métier du club
 
 Adhésions, événements et droits du club de plongée Sub Alcatel.
-Version **0.1.0** — jalon *démonstration*.
+Version **0.14.0** — jalon *démonstration*.
 
 ---
 
@@ -35,7 +35,7 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | **Club → Membres → Annuaire** | Liste, fiche, attribution des niveaux, historique des brevets |
 | **Club → Adhésions → Campagnes** | Liste, création et **duplication annuelle** |
 | **Configurer une campagne** | Formules, options et remises — tout se règle ici |
-| **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes et délais d'encaissement |
+| **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes, origine des adhésions et délais d'encaissement |
 
 ## Dérouler la démonstration
 
@@ -110,7 +110,8 @@ sera stabilisé.
 | Formules, options et remises configurables | Livré |
 | Journal d'audit | Livré |
 | Tableau de bord : 6 blocs actionnables et 4 courbes | Livré |
-| Statistiques annuelles : renouvellement, niveaux, âges, participation, recettes | Livré |
+| Statistiques annuelles : renouvellement, niveaux, âges, participation | Livré |
+| Statistiques financières : recettes, origine des adhésions, encaissements | Livré |
 | Sorties organisées : inscrits, message, désinscription, émargement — sans wp-admin | Livré |
 | Annonce d'une sortie aux membres concernés — case à cocher ou bouton, jamais automatique | Livré |
 | Documents personnels (certificat médical, licence) | **À faire** |

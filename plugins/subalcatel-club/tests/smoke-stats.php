@@ -317,6 +317,70 @@ $check('Les options sont classées par poids',
 $check('Chaque option porte son nombre de souscriptions',
     ($options['rows'][0]['count'] ?? 0) === 5);
 
+// --- 3 bis. Origine des adhésions --------------------------------------------
+
+$check('Sans question d’origine, le graphique s’abstient',
+    AnnualCharts::membershipOrigin()['asked'] === false,
+    'la question est une option de campagne, pas une constante du code');
+
+$wpdb->insert("{$wpdb->prefix}sub_options", [
+    'campaign_id' => $currentId,
+    'name'        => 'origine_adhesion',
+    'label'       => 'Origine de l’adhésion',
+    'input_type'  => 'single',
+    'is_required' => 1,
+    'choices'     => wp_json_encode([
+        ['value' => 'nokia', 'label' => 'Nokia', 'amount' => 0],
+        ['value' => 'ce_orange', 'label' => 'CE Orange', 'amount' => 0],
+        ['value' => 'exterieur', 'label' => 'Extérieur', 'amount' => 0],
+    ]),
+]);
+
+$originOptionId = (int) $wpdb->insert_id;
+
+// Les dossiers de la campagne en cours occupent les rangs 6 à 10 ; le dernier
+// est annulé. On renseigne trois origines, on en laisse une aberrante et un
+// dossier muet — les deux doivent tomber dans « non renseignée ».
+$answered = [
+    $applications[6]  => 'nokia',
+    $applications[7]  => 'nokia',
+    $applications[8]  => 'exterieur',
+    $applications[9]  => 'martien',
+];
+
+foreach ($answered as $applicationId => $origin) {
+    update_option("sub_application_answers_{$applicationId}", ['origine_adhesion' => $origin], false);
+}
+
+$origin = AnnualCharts::membershipOrigin();
+
+$filesOf = static function (array $data, string $label): int {
+    foreach ($data['rows'] as $row) {
+        if ($row['label'] === $label) {
+            return (int) $row['files'];
+        }
+    }
+
+    return -1;
+};
+
+$check('Les trois origines sont représentées', count($origin['rows']) === 3);
+$check('Nokia porte ses deux dossiers', $filesOf($origin, 'Nokia') === 2);
+$check('Une origine jamais choisie reste affichée', $filesOf($origin, 'CE Orange') === 0,
+    '« personne ne vient plus du CE Orange » est une information');
+$check('La recette suit l’origine',
+    abs($amountOf($origin, 'Nokia') - 288.00) < 0.01,
+    'deux dossiers à 144 € — ' . $amountOf($origin, 'Nokia') . ' €');
+$check('Le classement va du plus gros au plus petit',
+    $origin['rows'][0]['label'] === 'Nokia');
+$check('Une valeur inconnue ne crée pas une origine',
+    $filesOf($origin, 'martien') === -1 && $origin['unknown'] === 2,
+    'un dossier muet et une réponse aberrante, hors répartition');
+$check('La base de la répartition est dite', $origin['known'] === 3,
+    'sans elle, trois dossiers se lisent comme tout le club');
+$check('Le montant écarté est chiffré aussi',
+    abs($origin['unknown_amount'] - 288.00) < 0.01);
+
 $payments = [];
 
 $makePayment = static function (int $applicationId, int $delayDays) use ($wpdb, $day, &$payments): void {
@@ -372,6 +436,7 @@ foreach ([
     'Tranches d’âge',
     'Participation aux sorties',
     'Recettes par nature',
+    'Origine des adhésions',
     'Ce que pèsent les options',
     'Délai d’encaissement',
 ] as $title) {
@@ -418,6 +483,12 @@ foreach ($applications as $applicationId) {
     $wpdb->delete("{$wpdb->prefix}sub_application_lines", ['application_id' => $applicationId]);
     $wpdb->delete("{$wpdb->prefix}sub_payments", ['application_id' => $applicationId]);
     $wpdb->delete("{$wpdb->prefix}sub_applications", ['id' => $applicationId]);
+}
+
+$wpdb->delete("{$wpdb->prefix}sub_options", ['id' => $originOptionId]);
+
+foreach (array_keys($answered) as $applicationId) {
+    delete_option("sub_application_answers_{$applicationId}");
 }
 
 $wpdb->delete("{$wpdb->prefix}sub_campaigns", ['id' => $currentId]);

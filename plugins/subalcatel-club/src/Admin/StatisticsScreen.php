@@ -66,6 +66,7 @@ final class StatisticsScreen
 
         echo '<div class="sub-charts">';
         self::revenue();
+        self::membershipOrigin();
         self::optionRevenue();
         self::paymentDelay();
         echo '</div>';
@@ -246,6 +247,62 @@ final class StatisticsScreen
             $data['files'] > 1 ? 's' : '',
             AdminUi::euro($data['total'])
         ));
+
+        ChartUi::close();
+    }
+
+    private static function membershipOrigin(): void
+    {
+        $data = AnnualCharts::membershipOrigin();
+
+        ChartUi::open('Origine des adhésions', $data['campaign'] ?? '');
+
+        if (!$data['asked']) {
+            ChartUi::emptyState('Cette campagne ne pose pas de question d’origine.
+                Ajoutez l’option « Origine de l’adhésion » depuis la configuration de la
+                campagne pour savoir quelle part de la recette tient au lien avec
+                l’entreprise.');
+            ChartUi::close();
+
+            return;
+        }
+
+        if ($data['known'] === 0) {
+            ChartUi::emptyState('Aucun dossier de cette campagne ne renseigne son origine.
+                La répartition apparaîtra dès les premières adhésions déposées par le
+                formulaire.');
+            ChartUi::close();
+
+            return;
+        }
+
+        $peak = ChartUi::peak($data['rows'], 'amount');
+
+        ChartUi::bars(array_map(static fn (array $row): array => [
+            'label' => $row['label'],
+            'meta'  => sprintf('%d dossier%s', $row['files'], $row['files'] > 1 ? 's' : ''),
+            'value' => AdminUi::euro($row['amount']),
+            'ratio' => $row['amount'] / $peak,
+        ], $data['rows']));
+
+        ChartUi::note(sprintf(
+            'Réparti sur <strong>%d dossier%s</strong> qui renseignent leur origine.',
+            $data['known'],
+            $data['known'] > 1 ? 's' : ''
+        ));
+
+        // Les dossiers repris du Joomla n'ont pas de formulaire derrière eux.
+        // Les taire ferait lire les proportions ci-dessus comme celles du club
+        // entier, alors qu'elles ne portent parfois que sur une poignée.
+        if ($data['unknown'] > 0) {
+            ChartUi::note(sprintf(
+                '%d dossier%s sans origine connue (%s), repris ou saisis hors formulaire —
+                 hors répartition.',
+                $data['unknown'],
+                $data['unknown'] > 1 ? 's' : '',
+                AdminUi::euro($data['unknown_amount'])
+            ));
+        }
 
         ChartUi::close();
     }

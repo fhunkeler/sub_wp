@@ -56,10 +56,10 @@ final class SignupForm
         ob_start();
 
         if (isset($_GET['sub_error'])) {
-            printf(
-                '<div class="sub-notice sub-notice--error"><p>%s</p></div>',
-                esc_html(sanitize_text_field(wp_unslash((string) $_GET['sub_error'])))
-            );
+            echo Notice::feedback(
+                'error',
+                sanitize_text_field(wp_unslash((string) $_GET['sub_error']))
+            ); // déjà échappé
         }
         ?>
         <form class="sub-signup" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">

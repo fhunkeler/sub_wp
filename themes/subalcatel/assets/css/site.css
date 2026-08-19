@@ -24,6 +24,10 @@
 	--sub-sable: var(--wp--preset--color--sable);
 	--sub-algue: var(--wp--preset--color--algue);
 
+	/* Assez foncé pour que le contour d'un champ atteigne 3:1 sur blanc
+	   (WCAG 1.4.11) — la brume de la charte plafonne à 1,48. */
+	--sub-brume-fonce: var(--wp--custom--bordure--champ);
+
 	--sub-r-champ: 4px;
 	--sub-r-carte: 12px;
 	--sub-r-pastille: 999px;
@@ -131,6 +135,224 @@
 	line-height: 1.3;
 }
 
+/* Sous 600 px, l'en-tête porte déjà le logo, le titre, le bouton de menu et
+   les boutons de compte : la baseline ferait passer le tout sur trois lignes.
+   Elle est décorative, le titre du site porte l'information. */
+@media (max-width: 599px) {
+	.sub-baseline {
+		display: none;
+	}
+
+	/* Le bouton de menu se range à droite, contre « Connexion » : avec trois
+	   enfants et `space-between`, il flottait seul au milieu de l'en-tête.
+	   Sur l'élément <nav> seulement : core repose la classe sur la liste elle-même,
+	   et la marge automatique y empêchait les lignes de la superposition de
+	   s'étendre sur toute la largeur. */
+	.sub-header nav.wp-block-navigation {
+		margin-left: auto;
+	}
+
+	.sub-compte {
+		gap: 8px;
+	}
+}
+
+/* Jusqu'à 1247 px, l'en-tête ne tient pas ses deux boutons : sous 600 px la
+   navigation est repliée derrière son bouton de menu et ils passaient à la
+   ligne ; au-dessus elle est déployée et l'en-tête montait à trois lignes.
+   Le seuil suit la mise en page : l'en-tête s'aligne sur la largeur « large »
+   du thème, 1200 px, plus ses marges — soit 1248 px de fenêtre avant que les
+   sept entrées, le logo et les deux boutons tiennent sur une ligne. On n'en
+   garde donc qu'un en dessous.
+
+   C'est « Connexion » qui reste : « Nous rejoindre » figure dans la navigation
+   et ouvre le bandeau d'accueil, alors que l'espace membre n'a pas d'autre
+   porte — « Mon espace » ne s'affiche qu'une fois connecté. */
+@media (max-width: 1247px) {
+	.sub-compte .sub-btn--principal {
+		display: none;
+	}
+}
+
+/* Entre 600 et 1247 px, la navigation est déployée — le bloc Navigation ne se
+   replie derrière son bouton de menu qu'en dessous de 600 px — mais elle ne
+   tient pas sur la même ligne que le logo et le bouton de compte. Livrée à
+   `flex-wrap`, elle poussait le bouton sur une troisième ligne.
+
+   On lui donne donc franchement sa propre ligne, sous une première qui garde le
+   logo à gauche et le compte à droite. Deux lignes assumées valent mieux que
+   trois subies. */
+@media (min-width: 600px) and (max-width: 1247px) {
+	.sub-header .wp-block-navigation {
+		order: 1;
+		flex-basis: 100%;
+		justify-content: flex-start;
+	}
+}
+
+/* ------------------------------------------------------------------
+   3 bis. Menu mobile — superposition plein écran
+   ------------------------------------------------------------------
+
+   Le bloc core réutilise la justification du menu de bureau pour aligner la
+   superposition (`--navigation-layout-justification-setting`). Comme la barre
+   est justifiée à droite, les 20 entrées s'affichaient en drapeau à droite,
+   chacune commençant à une abscisse différente, avec les libellés de section
+   plus petits que leurs propres sous-entrées et une cible tactile limitée à la
+   largeur du texte. On repasse donc à une liste alignée à gauche, en lignes
+   pleine largeur, avec une hiérarchie visible et des cibles de 44 px.
+
+   Tous les sélecteurs sont volontairement longs : les règles de core portent
+   quatre classes, il en faut au moins autant pour les reprendre sans !important.
+   Ils ne s'appliquent qu'à `.is-menu-open`, donc jamais au menu de bureau. */
+
+/* Cibles tactiles de l'ouverture et de la fermeture : core ne dessine qu'une
+   icône de 24 px sans rembourrage. 24 + 2 × 10 = 44 px.
+   Par rembourrage et non par `width`/`height` + `display: flex` : core se sert
+   de `display` pour masquer le bouton d'ouverture au-delà de 600 px, à
+   spécificité égale — le redéclarer le faisait réapparaître sur ordinateur. */
+.sub-header .wp-block-navigation__responsive-container-open,
+.sub-header .wp-block-navigation__responsive-container-close {
+	padding: 10px;
+	border-radius: var(--sub-r-pastille);
+}
+
+.sub-header .wp-block-navigation__responsive-container-open:hover,
+.sub-header .wp-block-navigation__responsive-container-close:hover {
+	background: rgba(255, 255, 255, 0.09);
+}
+
+/* Le rembourrage ajouté ne doit pas décaler l'icône vers l'intérieur de
+   l'en-tête : on reprend les 10 px de chaque côté. */
+.sub-header .wp-block-navigation__responsive-container-open {
+	margin: -10px;
+}
+
+.sub-header .wp-block-navigation__responsive-container.is-menu-open,
+/* La liste porte `items-justified-right`, qui redéclare la variable pour elle et
+   ses descendants : la poser sur le conteneur seul ne suffit pas. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
+	/* La cause de l'alignement en drapeau. `stretch` fait porter chaque ligne
+	   sur toute la largeur : le texte part de la même marge, et la ligne
+	   entière devient cliquable. */
+	--navigation-layout-justification-setting: stretch;
+}
+
+/* La superposition devient un panneau en deux parties : une barre haute qui
+   porte la croix, et la liste qui défile seule dessous. Sans cela la croix
+   défile avec la liste — 1 000 px de menu pour 812 d'écran — et il faut remonter
+   jusqu'en haut pour fermer. On ne peut pas la fixer : core anime le conteneur
+   avec un `translateY` et `animation-fill-mode: forwards`, la transformation
+   reste donc en place, et un conteneur transformé devient le bloc conteneur de
+   ses descendants `fixed`, qui défilent alors avec lui. La répartition en
+   colonnes ne dépend, elle, d'aucun de ces effets de bord. Core pose déjà
+   `display: flex; flex-direction: column` sur le conteneur : il reste à
+   propager la hauteur jusqu'à la liste. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open {
+	overflow: hidden;
+	padding: 0;
+}
+
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-close,
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-dialog {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	/* Sans cela, un élément flexible refuse de descendre sous la hauteur de son
+	   contenu : le panneau déborderait au lieu de faire défiler la liste. */
+	min-height: 0;
+}
+
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-close {
+	position: static;
+	align-self: flex-end;
+	flex: none;
+	margin: 10px 12px;
+}
+
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content {
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+	overflow-y: auto;
+	/* Le défilement du menu ne doit pas entraîner celui de la page dessous. */
+	overscroll-behavior: contain;
+	padding: 0 0 32px;
+}
+
+/* Les séparateurs remplacent le blockGap de 4 px hérité de la barre. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__submenu-container {
+	gap: 0;
+}
+
+/* Ligne de menu : toute la largeur, 48 px de haut, texte à gauche.
+   Core impose `padding: 0` dans la superposition, d'où la longueur du
+   sélecteur. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content .wp-block-navigation-item__content {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 48px;
+	padding: 10px 20px;
+	border-radius: 0;
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--sub-blanc);
+}
+
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content .wp-block-navigation-item__content:active {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+/* Une entrée de premier niveau ouvre une section : trait de séparation au-dessus
+   de chacune, sauf la première. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container > .wp-block-navigation-item + .wp-block-navigation-item {
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Le libellé de section reste visible pendant le défilement de ses sous-entrées :
+   dans une liste de 20 lignes, c'est ce qui dit où l'on se trouve. Le fond opaque
+   est indispensable, la ligne passe au-dessus du contenu qui défile. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item.has-child > .wp-block-navigation-item__content {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--sub-abysse);
+}
+
+/* Sous-entrées : décalées et tenues par un filet vertical, plus légères que leur
+   parent. Core leur met 2 rem de rembourrage à gauche ET à droite, ce qui, en
+   drapeau à droite, décalait dans le mauvais sens. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content .wp-block-navigation__submenu-container {
+	min-width: 0;
+	margin: 0 0 8px 20px;
+	padding: 0;
+	border: 0;
+	border-left: 2px solid rgba(255, 255, 255, 0.16);
+}
+
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__submenu-container .wp-block-navigation-item__content {
+	min-height: 44px;
+	padding: 8px 20px 8px 18px;
+	font-size: 15px;
+	font-weight: 400;
+	/* Core impose `color: inherit !important` aux entrées de la superposition :
+	   le gris clair des liens d'en-tête n'arrive pas jusqu'ici, il faut le
+	   reposer. C'est lui qui distingue une sous-entrée de son parent en blanc. */
+	color: #dbe7ee;
+}
+
+/* Page courante : un filet à gauche se lit dans une liste, contrairement au
+   soulignement de la barre de bureau. */
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .current-menu-item > .wp-block-navigation-item__content,
+.sub-header .wp-block-navigation__responsive-container.is-menu-open .current_page_ancestor > .wp-block-navigation-item__content {
+	background: rgba(255, 255, 255, 0.07);
+	box-shadow: inset 3px 0 0 var(--sub-lagon);
+	color: var(--sub-blanc);
+}
+
 /* ------------------------------------------------------------------
    4. Bouton de compte (bloc subalcatel/compte)
    ------------------------------------------------------------------ */
@@ -206,7 +428,7 @@
 .sub-btn--sm {
 	padding: 8px 14px;
 	font-size: 14px;
-	min-height: 38px;
+	min-height: 44px;
 }
 
 /* ------------------------------------------------------------------
@@ -410,7 +632,9 @@
 	font-weight: 700;
 	letter-spacing: 0.13em;
 	text-transform: uppercase;
-	color: var(--sub-lagon);
+	/* Sur fond clair, le lagon tombe à 3,72:1 — sous le seuil, et ce texte de
+	   12,5 px ne bénéficie pas de la tolérance « grand texte ». */
+	color: var(--sub-lien);
 }
 
 .has-abysse-background-color .is-style-sub-surtitre,
@@ -617,12 +841,14 @@
 	width: 100%;
 	padding: 12px 14px;
 	min-height: 46px;
-	border: 1.5px solid var(--sub-brume);
+	border: 1.5px solid var(--sub-brume-fonce);
 	border-radius: var(--sub-r-champ);
 	background: var(--sub-blanc);
 	color: var(--sub-abysse);
 	font-family: inherit;
-	font-size: 15px;
+	/* 16 px, et pas un pixel de moins : sous ce seuil, Safari iOS zoome la page
+	   à la prise de focus et ne dézoome jamais. */
+	font-size: 16px;
 }
 
 :where(input, select, textarea):focus {
@@ -680,7 +906,12 @@ label {
 
 /* --- Repères de rédaction ---
    Posés par l'installateur de pages du plugin, à supprimer une fois la page
-   écrite. Volontairement voyants : un repère discret reste six mois en ligne. */
+   écrite. Volontairement voyants : un repère discret reste six mois en ligne.
+
+   Ne jamais réutiliser `.sub-todo` ailleurs : l'extension l'avait employée pour
+   la liste « À faire » du tableau de bord, qui s'affichait donc en encart de
+   brouillon, précédée de « À rédiger — », à chaque connexion d'un membre. Elle
+   utilise maintenant `.sub-actions`. */
 
 .sub-todo {
 	margin: 1rem 0;

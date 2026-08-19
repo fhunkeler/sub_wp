@@ -116,15 +116,19 @@ final class MembershipForm
 
                 </div>
 
-                <aside class="sub-summary" aria-live="polite">
+                <aside class="sub-summary">
                     <h3 class="sub-summary__title">Détail de votre cotisation</h3>
-                    <div class="sub-summary__lines" data-quote-lines>
-                        <p class="sub-summary__empty">Choisissez une formule pour voir le détail.</p>
+                    <?php // La région vivante s'arrête au chiffrage : posée sur l'aside entier,
+                          // elle faisait réannoncer « Soumettre mon dossier » à chaque option. ?>
+                    <div class="sub-summary__quote" aria-live="polite">
+                        <div class="sub-summary__lines" data-quote-lines>
+                            <p class="sub-summary__empty">Choisissez une formule pour voir le détail.</p>
+                        </div>
+                        <p class="sub-summary__total">
+                            <span>Total</span>
+                            <strong data-quote-total>—</strong>
+                        </p>
                     </div>
-                    <p class="sub-summary__total">
-                        <span>Total</span>
-                        <strong data-quote-total>—</strong>
-                    </p>
                     <button type="submit" class="sub-button">Soumettre mon dossier</button>
                     <p class="sub-summary__note">
                         Le montant est recalculé et vérifié à la soumission.
@@ -235,7 +239,7 @@ final class MembershipForm
             }
 
             return sprintf(
-                '<div class="sub-notice sub-notice--success"><strong>Dossier %s enregistré</strong>'
+                '<div class="sub-notice sub-notice--success" role="status"><strong>Dossier %s enregistré</strong>'
                 . '<p>Montant à régler : <strong>%s</strong>. Le bureau vous confirmera la réception '
                 . 'de votre règlement par chèque ou HelloAsso.</p></div>',
                 esc_html((string) $application['reference']),
@@ -245,7 +249,8 @@ final class MembershipForm
 
         if (isset($_GET['sub_error'])) {
             return sprintf(
-                '<div class="sub-notice sub-notice--error"><strong>Dossier non enregistré</strong><p>%s</p></div>',
+                '<div class="sub-notice sub-notice--error" role="alert" tabindex="-1" autofocus>'
+                . '<strong>Dossier non enregistré</strong><p>%s</p></div>',
                 esc_html(sanitize_text_field(wp_unslash((string) $_GET['sub_error'])))
             );
         }

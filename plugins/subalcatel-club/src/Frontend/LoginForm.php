@@ -36,7 +36,7 @@ final class LoginForm
     {
         if (is_user_logged_in()) {
             return sprintf(
-                '<div class="sub-notice sub-notice--success"><p>Vous êtes connecté. '
+                '<div class="sub-notice sub-notice--success" role="status"><p>Vous êtes connecté. '
                 . '<a href="%s">Aller à mon espace</a></p></div>',
                 esc_url(Pages::url(Pages::MEMBER_AREA) ?: home_url('/'))
             );
@@ -56,14 +56,11 @@ final class LoginForm
         if (isset($_GET['connexion'])) {
             $code = sanitize_key(wp_unslash((string) $_GET['connexion']));
 
-            printf(
-                '<div class="sub-notice sub-notice--error"><p>%s</p></div>',
-                esc_html(match ($code) {
-                    'vide'  => 'Renseignez votre identifiant et votre mot de passe.',
-                    default => 'Identifiant ou mot de passe incorrect. Réessayez, ou '
-                        . 'demandez un nouveau mot de passe.',
-                })
-            );
+            echo Notice::feedback('error', match ($code) {
+                'vide'  => 'Renseignez votre identifiant et votre mot de passe.',
+                default => 'Identifiant ou mot de passe incorrect. Réessayez, ou '
+                    . 'demandez un nouveau mot de passe.',
+            }); // déjà échappé
         }
 
         echo '<div class="sub-login">';

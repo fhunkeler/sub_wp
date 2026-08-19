@@ -102,15 +102,15 @@ final class MemberDashboard
             return;
         }
         ?>
-        <section class="sub-todo">
-            <h2 class="sub-todo__title">
+        <section class="sub-actions">
+            <h2 class="sub-actions__title">
                 <?php echo count($actions) === 1 ? 'Une chose à faire' : 'À faire'; ?>
             </h2>
 
             <?php foreach ($actions as $action) : ?>
-                <article class="sub-todo__item sub-todo__item--<?php echo esc_attr($action['level']); ?>">
-                    <p class="sub-todo__what"><?php echo esc_html($action['title']); ?></p>
-                    <p class="sub-todo__why"><?php echo esc_html($action['detail']); ?></p>
+                <article class="sub-actions__item sub-actions__item--<?php echo esc_attr($action['level']); ?>">
+                    <p class="sub-actions__what"><?php echo esc_html($action['title']); ?></p>
+                    <p class="sub-actions__why"><?php echo esc_html($action['detail']); ?></p>
                     <?php if ($action['url'] !== '') : ?>
                         <a class="sub-button sub-button--small" href="<?php echo esc_url($action['url']); ?>">
                             <?php echo esc_html($action['action']); ?>

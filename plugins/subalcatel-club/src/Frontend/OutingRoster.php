@@ -66,15 +66,7 @@ final class OutingRoster
 
         echo '<div class="sub-organised">';
 
-        foreach (['sub_done' => 'success', 'sub_error' => 'error'] as $key => $class) {
-            if (isset($_GET[$key])) {
-                printf(
-                    '<div class="sub-notice sub-notice--%s sub-noprint"><p>%s</p></div>',
-                    esc_attr($class),
-                    esc_html(sanitize_text_field(wp_unslash((string) $_GET[$key])))
-                );
-            }
-        }
+        echo Notice::fromQuery('sub-noprint'); // déjà échappé
 
         if ($eventId > 0) {
             self::renderRoster($eventId, $userId);

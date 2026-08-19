@@ -52,15 +52,7 @@ final class AgendaShortcode
 
         ob_start();
 
-        foreach (['sub_done' => 'success', 'sub_error' => 'error'] as $key => $class) {
-            if (isset($_GET[$key])) {
-                printf(
-                    '<div class="sub-notice sub-notice--%s"><p>%s</p></div>',
-                    esc_attr($class),
-                    esc_html(sanitize_text_field(wp_unslash((string) $_GET[$key])))
-                );
-            }
-        }
+        echo Notice::fromQuery(); // déjà échappé
 
         if ($events === []) {
             echo '<div class="sub-notice"><strong>Aucune sortie programmée</strong>'

@@ -53,10 +53,15 @@ final class ClubMenu
         // Le premier sous-menu porte le slug du parent, sinon WordPress
         // duplique l'entrée. C'est donc lui qui décide de l'écran d'accueil —
         // le tableau de bord, dont c'est le rôle d'orienter.
+        //
+        // Il ne s'appelle pas « Tableau de bord » pour autant : le menu « Club »
+        // est en position 3, soit juste sous le tableau de bord de WordPress.
+        // Deux entrées du même nom, l'une sous l'autre, ne se distinguent que
+        // par leur cible. « Vue d'ensemble » dit la même chose sans la collision.
         add_submenu_page(
             self::SLUG,
-            'Tableau de bord',
-            'Tableau de bord',
+            'Vue d’ensemble',
+            'Vue d’ensemble',
             'read',
             self::SLUG,
             [DashboardScreen::class, 'render']

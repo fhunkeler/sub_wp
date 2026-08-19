@@ -38,7 +38,7 @@ final class DashboardScreen
 
         $user = wp_get_current_user();
 
-        echo '<div class="wrap"><h1>Tableau de bord</h1>';
+        echo '<div class="wrap"><h1>Vue d’ensemble</h1>';
 
         printf(
             '<p class="description">Bonjour %s. Voici ce qui attend le bureau aujourd’hui.</p>',

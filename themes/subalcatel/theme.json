@@ -260,6 +260,9 @@
 				"carte": "12px",
 				"pastille": "999px"
 			},
+			"bordure": {
+				"champ": "#7E939F"
+			},
 			"lecture": "72ch"
 		}
 	},

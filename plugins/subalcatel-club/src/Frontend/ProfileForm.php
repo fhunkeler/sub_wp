@@ -52,15 +52,7 @@ final class ProfileForm
 
         ob_start();
 
-        foreach (['sub_done' => 'success', 'sub_error' => 'error'] as $key => $class) {
-            if (isset($_GET[$key])) {
-                printf(
-                    '<div class="sub-notice sub-notice--%s"><p>%s</p></div>',
-                    esc_attr($class),
-                    esc_html(sanitize_text_field(wp_unslash((string) $_GET[$key])))
-                );
-            }
-        }
+        echo Notice::fromQuery(); // déjà échappé
         ?>
         <form class="sub-profile" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <input type="hidden" name="action" value="sub_profile_save">

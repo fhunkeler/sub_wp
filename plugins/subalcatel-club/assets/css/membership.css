@@ -225,9 +225,17 @@
 
 /* --- Encarts --- */
 
+/* Un état ne se signale jamais par la seule couleur d'un liseré : les quatre
+   variantes ne se distinguaient que par 4 px de bordure sur un fond identique,
+   et une erreur de mot de passe avait donc l'allure d'un encart d'information.
+   Le fond et la couleur du texte changent avec l'état, comme dans les alertes
+   du thème (`.is-style-sub-alerte-*`), et un mot d'état ouvre le message —
+   voir Notice::render() côté PHP. */
+
 .sub-notice {
 	border-left: 4px solid #0b4f71;
-	background: #e8f1f5;
+	background: #e6f1f7;
+	color: #0d3b56;
 	padding: 16px 20px;
 	border-radius: 0 8px 8px 0;
 }
@@ -236,20 +244,41 @@
 	margin-bottom: 0;
 }
 
+/* Le mot d'état — « Erreur », « Enregistré » — porte l'information pour qui ne
+   perçoit pas les couleurs. */
+.sub-notice__etat {
+	font-weight: 700;
+}
+
 .sub-notice--success {
+	background: #e4f2ec;
 	border-left-color: #17795e;
+	color: #0d4433;
 }
 
 .sub-notice--error {
+	background: #fdeceb;
 	border-left-color: #c43a22;
+	color: #7a2413;
 }
 
-.sub-notice--warning {
+.sub-notice--warning,
+.sub-notice--waiting {
+	background: #fdf4e0;
 	border-left-color: #b26900;
+	color: #4a3a10;
 }
 
 .sub-notice--info {
+	background: #e6f1f7;
 	border-left-color: #0b4f71;
+	color: #0d3b56;
+}
+
+/* Les liens gardent leur contraste sur ces fonds teintés. */
+.sub-notice a {
+	color: inherit;
+	text-decoration: underline;
 }
 
 .sub-notice ul {
@@ -529,7 +558,7 @@
 	flex: 1 1 200px;
 	min-width: 0;
 	padding: 8px 12px;
-	border: 1px solid var(--sub-brume, #ccd6dd);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 4px;
 }
 
@@ -677,7 +706,7 @@
 .sub-profile select,
 .sub-profile textarea {
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font-size: 17px;
 	font-family: inherit;
@@ -906,7 +935,7 @@
 	width: 100%;
 	min-width: 0;
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font-size: 16px;
 	font-family: inherit;
@@ -936,7 +965,7 @@
 	min-width: 0;
 	min-height: 44px;
 	padding: 5px 12px 5px 5px;
-	border: 1px solid var(--sub-brume);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	background: #fff;
 }
@@ -1099,7 +1128,7 @@
 .sub-signup select,
 .sub-signup textarea {
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font-size: 16px;
 	font-family: inherit;
@@ -1162,19 +1191,23 @@
 	margin-bottom: 24px;
 }
 
-/* Ce qui demande une action passe avant tout le reste. */
-.sub-todo {
+/* Ce qui demande une action passe avant tout le reste.
+
+   Ne pas renommer cette classe en « sub-todo » : le thème réserve ce nom à ses
+   repères de rédaction (encart orange, préfixe « À rédiger — »), et la liste
+   d'actions du membre en héritait à chaque connexion. */
+.sub-actions {
 	margin-bottom: 32px;
 }
 
-.sub-todo__title,
+.sub-actions__title,
 .sub-block__title {
 	font-size: 20px;
 	color: var(--sub-profond);
 	margin: 0 0 12px;
 }
 
-.sub-todo__item {
+.sub-actions__item {
 	border: 1px solid var(--sub-brume);
 	border-left-width: 5px;
 	border-radius: 12px;
@@ -1183,17 +1216,17 @@
 	background: #fff;
 }
 
-.sub-todo__item--urgent  { border-left-color: var(--sub-corail-fonce); }
-.sub-todo__item--soon    { border-left-color: var(--sub-sable); }
-.sub-todo__item--waiting { border-left-color: var(--sub-brume); }
+.sub-actions__item--urgent  { border-left-color: var(--sub-corail-fonce); }
+.sub-actions__item--soon    { border-left-color: var(--sub-sable); }
+.sub-actions__item--waiting { border-left-color: var(--sub-brume); }
 
-.sub-todo__what {
+.sub-actions__what {
 	margin: 0;
 	font-weight: 600;
 	font-size: 18px;
 }
 
-.sub-todo__why {
+.sub-actions__why {
 	margin: 4px 0 12px;
 	color: var(--sub-ardoise);
 	font-size: 15px;
@@ -1255,7 +1288,10 @@
 .sub-pill--waiting { background: var(--sub-sable); color: var(--sub-abysse); }
 
 .sub-button--small {
-	min-height: 40px;
+	/* 44 px, comme toute cible tactile du site : ce sont les boutons
+	   « Déposer » et « Renouveler » du tableau de bord, donc les plus cliqués
+	   de l'espace membre. */
+	min-height: 44px;
 	font-size: 15px;
 	padding: 0 18px;
 	display: inline-flex;
@@ -1500,7 +1536,7 @@
 	width: 100%;
 	margin-top: 4px;
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume, #c9d6dd);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font-size: 16px; /* sous 16 px, iOS zoome au focus */
 }
@@ -1670,7 +1706,7 @@
 	width: 100%;
 	max-width: 420px;
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume, #c9d6dd);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font-size: 16px; /* sous 16 px, iOS zoome au focus */
 }
@@ -1808,7 +1844,7 @@
 	box-sizing: border-box;
 	width: 100%;
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume, #c9d6dd);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font-size: 17px;
 	font-family: inherit;
@@ -2188,7 +2224,7 @@
 	width: 100%;
 	min-height: 44px;
 	padding: 10px 12px;
-	border: 1px solid var(--sub-brume, #c9d6dd);
+	border: 1px solid var(--sub-brume-fonce, #7e939f);
 	border-radius: 8px;
 	font: inherit;
 	background: #fff;

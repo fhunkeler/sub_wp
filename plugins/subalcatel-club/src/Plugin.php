@@ -24,6 +24,7 @@ use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Documents\DocumentTypes;
 use Subalcatel\Club\Frontend\AgendaShortcode;
+use Subalcatel\Club\Frontend\Assets;
 use Subalcatel\Club\Events\IcalFeed;
 use Subalcatel\Club\Frontend\CalendarShortcode;
 use Subalcatel\Club\Frontend\ClubDocumentsList;
@@ -128,6 +129,7 @@ final class Plugin
         // laisser d'inscription, de document ni de dossier derrière lui.
         MemberPurge::register();
 
+        Assets::register();
         MembershipForm::register();
         QuoteEndpoint::register();
         AgendaShortcode::register();

@@ -1,0 +1,224 @@
+/**
+ * Écran de connexion natif de WordPress, aux couleurs du club.
+ *
+ * Cet écran n'est pas rendu par le thème : ni theme.json, ni site.css ne s'y
+ * appliquent. Il est pourtant le premier — et parfois le seul — que voient les
+ * membres dont le mot de passe a été réinitialisé. D'où cette feuille, qui
+ * reprend les mêmes valeurs que la charte, écrites en dur faute de pouvoir
+ * lire les variables générées par theme.json.
+ */
+
+:root {
+	--sub-abysse: #041e30;
+	--sub-profond: #0b4f71;
+	--sub-lien: #106a93;
+	--sub-lagon: #1b8fb5;
+	--sub-ecume: #e8f1f5;
+	--sub-ardoise: #5a6e78;
+	--sub-brume-fonce: #7e939f;
+	--sub-corail-fonce: #c43a22;
+	--sub-sable: #f2c14e;
+}
+
+body.login {
+	background: linear-gradient(168deg, #0a4869 0%, #062f48 48%, #041e30 100%);
+	background-attachment: fixed;
+	color: #dbe7ee;
+	font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Le logo du club remplace celui de WordPress — et le nom du club redevient
+   lisible : le cœur le rejette hors écran (`text-indent: -9999px`), ce qui
+   laissait un pictogramme seul au-dessus d'un formulaire. Sur un écran atteint
+   par courriel, on doit pouvoir vérifier d'un coup d'œil où l'on est. */
+.login h1 a {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-end;
+	background-image: url(../img/favicon.svg);
+	background-size: 68px 68px;
+	background-position: center top;
+	width: auto;
+	height: auto;
+	padding-top: 82px;
+	margin: 0 auto 22px;
+	overflow: visible;
+	text-indent: 0;
+	color: #fff;
+	font-family: Outfit, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	font-size: 21px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.login h1 a:hover {
+	color: var(--sub-sable);
+}
+
+.login form {
+	background: #fff;
+	border: 0;
+	border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(4, 30, 48, 0.28);
+	padding: 28px 26px 24px;
+}
+
+.login form .input,
+.login input[type="text"],
+.login input[type="password"],
+.login input[type="email"] {
+	background: #fff;
+	border: 1.5px solid var(--sub-brume-fonce);
+	border-radius: 4px;
+	color: var(--sub-abysse);
+	/* Sous 16 px, Safari iOS zoome la page à la prise de focus. */
+	font-size: 16px;
+	padding: 11px 13px;
+}
+
+.login form label,
+.login .login-remember label {
+	color: var(--sub-abysse);
+	font-size: 14.5px;
+}
+
+.login form .input:focus,
+.login input[type="checkbox"]:focus {
+	border-color: var(--sub-lagon);
+	box-shadow: none;
+}
+
+/* Le focus clavier reste visible partout — règle du projet. */
+.login :where(a, button, input, .button):focus-visible {
+	outline: 2px solid var(--sub-lagon);
+	outline-offset: 2px;
+}
+
+.login #backtoblog a:focus-visible,
+.login #nav a:focus-visible,
+.login .privacy-policy-link:focus-visible,
+.login .language-switcher :focus-visible {
+	outline-color: var(--sub-sable);
+}
+
+.wp-core-ui .button-primary {
+	background: var(--sub-corail-fonce);
+	border: 0;
+	border-radius: 12px;
+	box-shadow: none;
+	color: #fff;
+	font-size: 15px;
+	font-weight: 600;
+	min-height: 44px;
+	padding: 0 22px;
+	text-shadow: none;
+}
+
+.wp-core-ui .button-primary:hover,
+.wp-core-ui .button-primary:focus {
+	background: #a83019;
+	box-shadow: none;
+}
+
+/* Liens hors du panneau : ils sont sur le fond sombre. */
+.login #backtoblog a,
+.login #nav a,
+.login .privacy-policy-link {
+	color: #a8bfcd;
+}
+
+.login #backtoblog a:hover,
+.login #nav a:hover,
+.login .privacy-policy-link:hover {
+	color: #fff;
+}
+
+/* Dans le panneau blanc, on repasse au bleu de lien de la charte. */
+.login form a {
+	color: var(--sub-lien);
+}
+
+/* Messages : le fond change, jamais la seule bordure — une erreur ne doit pas
+   ressembler à une information. */
+.login .message,
+.login .notice,
+.login #login_error,
+.login .success {
+	border-left-width: 4px;
+	border-radius: 12px;
+	box-shadow: none;
+	padding: 14px 18px;
+}
+
+.login .message,
+.login .notice-info {
+	background: #e6f1f7;
+	border-left-color: var(--sub-lagon);
+	color: #0d3b56;
+}
+
+.login #login_error,
+.login .notice-error {
+	background: #fdeceb;
+	border-left-color: var(--sub-corail-fonce);
+	color: #7a2413;
+}
+
+.login .success,
+.login .notice-success {
+	background: #e4f2ec;
+	border-left-color: #17795e;
+	color: #0d4433;
+}
+
+.login .notice-warning {
+	background: #fdf4e0;
+	border-left-color: var(--sub-sable);
+	color: #4a3a10;
+}
+
+/* Indicateur de robustesse du mot de passe (écran de réinitialisation). */
+.login .pw-weak,
+.login #pass-strength-result {
+	border-radius: 4px;
+	font-size: 13.5px;
+}
+
+/* Bouton secondaire — « Modifier » du sélecteur de langue. Laissé au thème de
+   l'administration, il posait le bleu WordPress au milieu de la charte. */
+.wp-core-ui .button:not(.button-primary):not(.wp-hide-pw),
+.wp-core-ui .button-secondary {
+	background: transparent;
+	border: 1.5px solid #a8bfcd;
+	border-radius: 8px;
+	color: #dbe7ee;
+	min-height: 40px;
+}
+
+.wp-core-ui .button:not(.button-primary):not(.wp-hide-pw):hover,
+.wp-core-ui .button-secondary:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: #fff;
+	color: #fff;
+}
+
+/* Le bouton « afficher le mot de passe » vit à l'intérieur du champ : il ne
+   porte ni fond ni bordure, sous peine de couper le champ en deux. */
+.login .wp-hide-pw {
+	background: transparent;
+	border: 0;
+	color: var(--sub-profond);
+}
+
+.login .wp-hide-pw:hover {
+	color: var(--sub-lien);
+}
+
+.login .language-switcher {
+	margin-top: 18px;
+}
+
+.login .language-switcher label {
+	color: #a8bfcd;
+}

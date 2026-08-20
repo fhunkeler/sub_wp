@@ -44,10 +44,10 @@ final class DashboardCharts
 
     /** Étapes du dossier, dans l'ordre du parcours. */
     private const STAGES = [
-        ApplicationService::STATUS_DRAFT             => ['Commencés, jamais envoyés', '#c9d6dd', '#041e30'],
+        ApplicationService::STATUS_DRAFT             => ['Commencés, jamais envoyés', '#c4d3e3', '#142f52'],
         ApplicationService::STATUS_SUBMITTED         => ['Envoyés', '#6c7781', '#fff'],
-        ApplicationService::STATUS_AWAITING_PAYMENT  => ['En attente de règlement', '#f2c14e', '#041e30'],
-        ApplicationService::STATUS_PAYMENT_CONFIRMED => ['Réglés, à valider', '#0b4f71', '#fff'],
+        ApplicationService::STATUS_AWAITING_PAYMENT  => ['En attente de règlement', '#f2c14e', '#142f52'],
+        ApplicationService::STATUS_PAYMENT_CONFIRMED => ['Réglés, à valider', '#1d5480', '#fff'],
         ApplicationService::STATUS_ACTIVE            => ['Adhésions actives', '#17795e', '#fff'],
     ];
 
@@ -321,7 +321,7 @@ final class DashboardCharts
 
             <line x1="<?php echo round($x($today), 1); ?>" y1="<?php echo $top; ?>"
                   x2="<?php echo round($x($today), 1); ?>" y2="<?php echo $height - $bottom; ?>"
-                  stroke="#c43a22" stroke-width="1" stroke-dasharray="2 3" />
+                  stroke="#b82a1e" stroke-width="1" stroke-dasharray="2 3" />
 
             <polyline fill="none" stroke="#2271b1" stroke-width="2.5"
                       points="<?php echo esc_attr(self::polyline(

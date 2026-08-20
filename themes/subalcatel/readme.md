@@ -25,7 +25,7 @@ Ou : **Apparence → Thèmes → Sub Alcatel → Activer**.
 ## Après activation — 6 étapes
 
 1. ~~Déposer les polices~~ — **fait.** Outfit et Inter (variables, sous-ensemble latin, 78,6 Ko au total) sont dans `assets/fonts/`, avec leurs licences OFL. Rien à faire.
-2. **Déposer le logo** : Apparence → Éditeur → Styles → l'icône du site. Un SVG de travail est fourni dans `assets/img/logo.svg`, à remplacer par le logo vectorisé définitif.
+2. ~~Déposer le logo~~ — **fait.** Le poulpe casqué du club est intégré au thème : en-tête, pied de page, onglet du navigateur, écran de connexion et filigrane des vignettes. Rien à téléverser. Le jour où le bureau dépose son propre fichier (Apparence → Éditeur → Styles, ou Réglages → Général pour l'icône), celui du thème s'efface de lui-même.
 3. **Créer les pages** listées dans `design-arborescence.md` §4, avec les slugs indiqués. Les gabarits `page-tarifs`, `page-equipe`, `page-formations`, `page-agenda`, `page-contact`, `page-connexion` s'appliquent automatiquement aux pages dont le slug correspond.
 4. **Définir la page d'accueil** : Réglages → Lecture → page statique. Le gabarit `front-page` s'applique alors.
 5. **Vérifier les liens de navigation** : les menus de `parts/header.html` et `parts/footer.html` pointent vers les URL cibles. Tant que les pages n'existent pas, ces liens renvoient une 404 — c'est attendu.
@@ -43,10 +43,13 @@ subalcatel/
     fonts.php             @font-face conditionnels, avertissement si polices absentes
     assets.php            Chargement des styles, site et éditeur
     blocks.php            Styles de blocs, bloc « compte », masquage serveur de la barre membre
+    logo.php              Logo par défaut du bloc « Logo du site »
+    icone.php             Icône du site par défaut (onglet, iOS, PWA)
+    connexion.php         Habillage de wp-login.php aux couleurs du club
   assets/
     css/site.css          Composants que theme.json ne sait pas exprimer
     css/editor.css        Ajustements propres au canevas d'édition
-    img/                  Logos SVG de travail
+    img/                  Déclinaisons du logo et icônes du site (voir img/README.md)
     fonts/                Polices .woff2 (non versionnées — voir le README)
   parts/                  En-tête public, barre membre, pied de page
   templates/              16 gabarits
@@ -57,7 +60,8 @@ subalcatel/
 
 | Sujet | Comportement |
 |---|---|
-| Palette | 12 couleurs, choix libre désactivé (`"custom": false`) — un rédacteur ne peut pas inventer une couleur |
+| Palette | 14 couleurs relevées sur le logo du club, choix libre désactivé (`"custom": false`) — un rédacteur ne peut pas inventer une couleur |
+| Logo et icône | Fournis par le thème, sans téléversement ; un fichier déposé par le bureau reprend la main (`inc/logo.php`, `inc/icone.php`) |
 | Typographie | Outfit + Inter auto-hébergées, tailles limitées à l'échelle définie |
 | Espacements | Échelle de 4 px, saisie libre désactivée |
 | Commentaires | Désactivés partout, y compris sur les contenus importés |
@@ -76,15 +80,17 @@ subalcatel/
 ## Points de vigilance
 
 - **Cache de pages.** La barre membre et le bouton de compte varient selon l'état de connexion. Tout cache de page doit être configuré pour ne pas servir une version connectée à un visiteur — la plupart des plugins de cache ignorent par défaut les utilisateurs connectés, ce qui suffit, mais il faut le vérifier avant la mise en production.
-- **`screenshot.png` absent.** WordPress affiche une vignette grise dans la liste des thèmes. À produire (1200 × 900) une fois le logo définitif et une photo du club disponibles.
+- **`screenshot.png` absent.** WordPress affiche une vignette grise dans la liste des thèmes. À produire (1200 × 900) une fois qu'une photo du club est disponible — le logo, lui, ne manque plus.
 - **Textes d'exemple.** Les compositions contiennent des chiffres et des tarifs plausibles mais inventés (128 adhérents, 168 € la cotisation adulte). Ils doivent être remplacés par les valeurs réelles avant toute mise en ligne.
 
 ## Vérifications effectuées
 
-- `php -l` sur les 14 fichiers PHP : aucune erreur de syntaxe.
-- `theme.json` : JSON valide, version 3, 12 couleurs, 8 tailles, 8 gabarits personnalisés.
+- `php -l` sur les 15 fichiers PHP : aucune erreur de syntaxe.
+- `theme.json` : JSON valide, version 3, 14 couleurs, 8 tailles, 8 gabarits personnalisés.
 - Structure des blocs des 28 gabarits, parties et compositions : aucun bloc non fermé ni fermeture orpheline.
 - Références croisées : chaque `wp:template-part` et `wp:pattern` désigne un fichier existant.
 - Cohérence des tokens : chaque slug de couleur, dégradé, taille, famille et espacement employé dans le balisage ou la CSS existe dans `theme.json`.
+- Contrastes WCAG 2.1 AA : 22 paires réellement employées, plus les badges d'état de l'administration — toutes au-dessus du seuil (4,5:1 en texte, 3:1 pour le grand texte et les éléments non textuels). Le contrôle est rejoué par `tests/smoke-theme.php` de l'extension, qui lit la palette dans `theme.json` : une retouche de couleur qui casse un seuil fait échouer la suite.
+- Logo par défaut : rendu du bloc « Logo du site » sans pièce jointe, avec et sans lien, avec et sans largeur — texte alternatif correct dans chaque cas.
 
 **Non vérifié** : le rendu réel dans WordPress. Il demande de démarrer la pile Docker et d'installer le site — à faire avant tout arbitrage du bureau sur la base d'une capture d'écran.

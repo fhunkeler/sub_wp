@@ -413,5 +413,168 @@ $check('Le repli ne parle pas aux lecteurs d’écran',
 
 wp_delete_post($sansPhoto, true);
 
+// --- Logo et icône du site ---------------------------------------------------
+echo "\n--- Logo du club ---\n";
+
+foreach ([
+    'logo.png',
+    'logo-complet.png',
+    'logo-empreinte.png',
+    'favicon-32.png',
+    'favicon-180.png',
+    'favicon-192.png',
+    'favicon-270.png',
+    'favicon-512.png',
+] as $fichier) {
+    $check(sprintf('assets/img/%s présent', $fichier),
+        file_exists(get_theme_file_path("assets/img/{$fichier}")));
+}
+
+// Le bloc « Logo du site » ne rend rien sans pièce jointe : c'est inc/logo.php
+// qui pose celui du thème. Sans lui, l'en-tête affiche le titre tout seul.
+$logo = (new WP_Block([
+    'blockName'    => 'core/site-logo',
+    'attrs'        => ['width' => 40],
+    'innerBlocks'  => [],
+    'innerHTML'    => '',
+    'innerContent' => [],
+]))->render();
+
+$check('Un logo s’affiche sans téléversement',
+    str_contains($logo, 'assets/img/logo.png') || has_custom_logo(),
+    'sinon l’en-tête montre le titre sans sa marque');
+$check('Il porte un texte alternatif',
+    (bool) preg_match('/<img[^>]+alt="[^"]+"/', $logo),
+    'le lien qui l’enveloppe n’aurait aucun nom accessible');
+$check('Il respecte la largeur demandée par le bloc',
+    str_contains($logo, 'width="40"'));
+
+$check('L’icône du site est fournie par le thème',
+    str_contains(get_site_icon_url(192), 'favicon-192.png') || (int) get_option('site_icon') !== 0,
+    'sans elle, /favicon.ico renvoie au « W » de wordpress.org');
+
+// --- Contrastes de la palette ------------------------------------------------
+//
+// La palette est relevée sur le logo du club (voir design-arborescence.md §2.1).
+// Une teinte ajustée « à l'œil » pour mieux coller au dessin peut passer sous le
+// seuil sans que rien ne le signale : c'est arrivé à la baseline de l'en-tête,
+// tombée de 4,57 à 3,73:1 lors de la reprise. D'où ce contrôle, qui rejoue les
+// paires réellement employées.
+//
+// Seuils WCAG 2.1 AA : 4,5:1 pour le texte courant, 3:1 pour le grand texte
+// (≥ 24 px, ou ≥ 18,66 px en gras) et pour les éléments non textuels (1.4.11).
+echo "\n--- Contrastes (WCAG 2.1 AA) ---\n";
+
+$luminance = static function (string $hex): float {
+    $hex = ltrim($hex, '#');
+    $canal = static function (int $v): float {
+        $v /= 255;
+        return $v <= 0.04045 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+    };
+
+    return 0.2126 * $canal((int) hexdec(substr($hex, 0, 2)))
+         + 0.7152 * $canal((int) hexdec(substr($hex, 2, 2)))
+         + 0.0722 * $canal((int) hexdec(substr($hex, 4, 2)));
+};
+
+$ratio = static function (string $a, string $b) use ($luminance): float {
+    $la = $luminance($a);
+    $lb = $luminance($b);
+
+    return (max($la, $lb) + 0.05) / (min($la, $lb) + 0.05);
+};
+
+// Les couleurs sont lues dans theme.json, pas recopiées : une valeur changée
+// là-bas doit faire échouer ce test, pas passer inaperçue.
+$palette = [];
+
+foreach ($themeJson['settings']['color']['palette'] ?? [] as $couleur) {
+    $palette[(string) $couleur['slug']] = (string) $couleur['color'];
+}
+
+$check('La palette est lue depuis theme.json', count($palette) >= 14, count($palette) . ' couleurs');
+
+// Teintes claires qui n'existent que sur fond sombre : hors palette de
+// l'éditeur, où elles seraient posées sur du blanc. Voir site.css §3 et §12.
+$horsPalette = [
+    'nav'      => '#CFDDEC',
+    'baseline' => '#64BBDC',
+    'pied'     => '#B0C4DA',
+];
+
+$paires = [
+    // libellé,                          avant-plan,             arrière-plan,          seuil
+    ['Texte courant sur blanc',          $palette['abysse'],     '#FFFFFF',             4.5],
+    ['Liens sur blanc',                  $palette['lien'],       '#FFFFFF',             4.5],
+    ['Texte secondaire sur blanc',       $palette['ardoise'],    '#FFFFFF',             4.5],
+    ['Titres de section sur blanc',      $palette['profond'],    '#FFFFFF',             3.0],
+    ['Texte courant sur écume',          $palette['abysse'],     $palette['ecume'],     4.5],
+    ['Liens sur écume',                  $palette['lien'],       $palette['ecume'],     4.5],
+    ['Texte secondaire sur écume',       $palette['ardoise'],    $palette['ecume'],     4.5],
+    ['Titre du site sur l’en-tête',      $palette['blanc'],      $palette['abysse'],    4.5],
+    ['Navigation sur l’en-tête',         $horsPalette['nav'],    $palette['abysse'],    4.5],
+    ['Baseline sur l’en-tête',           $horsPalette['baseline'], $palette['abysse'],  4.5],
+    ['Pied de page',                     $horsPalette['pied'],   $palette['abysse'],    4.5],
+    ['Surtitre sur fond sombre',         $palette['sable'],      $palette['abysse'],    4.5],
+    ['Bouton d’action principale',       $palette['blanc'],      $palette['corail-fonce'], 4.5],
+    ['Badge « en attente »',             $palette['abysse'],     $palette['sable'],     4.5],
+    ['Badge « validé »',                 $palette['blanc'],      $palette['algue'],     4.5],
+    ['Badge « refusé »',                 $palette['blanc'],      $palette['alerte'],    4.5],
+    ['Champ obligatoire, texte',         $palette['alerte'],     $palette['blanc'],     4.5],
+    ['Contour de focus sur blanc',       $palette['lagon'],      '#FFFFFF',             3.0],
+    ['Contour de focus sur écume',       $palette['lagon'],      $palette['ecume'],     3.0],
+    ['Contour de focus sur sombre',      $palette['sable'],      $palette['abysse'],    3.0],
+    ['Bordure de champ sur blanc',       $themeJson['settings']['custom']['bordure']['champ'], '#FFFFFF', 3.0],
+    ['Onglet actif (indicateur)',        $palette['corail-fonce'], '#FFFFFF',           3.0],
+];
+
+foreach ($paires as [$libelle, $avant, $arriere, $seuil]) {
+    $mesure = $ratio($avant, $arriere);
+    $check(
+        $libelle,
+        $mesure >= $seuil,
+        sprintf('%s sur %s — %.2f:1 (seuil %.1f)', $avant, $arriere, $mesure, $seuil)
+    );
+}
+
+// Le bloc « Club » du tableau de bord de WordPress et les écrans
+// d'administration ne passent pas par theme.json : leurs teintes sont écrites
+// dans admin.css, hors de portée du contrôle ci-dessus. Elles y sont donc
+// reprises à la main — c'est du texte blanc sur pastille, et l'ambre y était
+// tombé à 4,27:1.
+$adminCss = [
+    ['Pastille « à traiter » (bloc du tableau de bord)', '#FFFFFF', '#2271B1', 4.5],
+    ['Pastille « alerte » (bloc du tableau de bord)',    '#FFFFFF', '#B82A1E', 4.5],
+    ['Pastille « à surveiller » (bloc du tableau de bord)', '#FFFFFF', '#A66000', 4.5],
+    ['Attente en ambre, sur blanc',                      '#A66000', '#FFFFFF', 4.5],
+    ['Compteur neutre du bloc',                          '#1D2327', '#F0F0F1', 4.5],
+];
+
+foreach ($adminCss as [$libelle, $avant, $arriere, $seuil]) {
+    $mesure = $ratio($avant, $arriere);
+    $check(
+        $libelle,
+        $mesure >= $seuil,
+        sprintf('%s sur %s — %.2f:1 (seuil %.1f)', $avant, $arriere, $mesure, $seuil)
+    );
+}
+
+$check('L’ambre d’admin.css est bien celui qui a été vérifié',
+    str_contains((string) file_get_contents(\Subalcatel\Club\PLUGIN_DIR . 'assets/css/admin.css'), '#a66000')
+    && !str_contains((string) file_get_contents(\Subalcatel\Club\PLUGIN_DIR . 'assets/css/admin.css'), '#b26900'),
+    'la valeur du test doit suivre celle de la feuille, pas s’en écarter');
+
+// Deux teintes de décor, jamais de lecture : si l'une d'elles atteint 4,5:1 sur
+// blanc, c'est qu'elle a été assombrie et qu'elle peut redevenir une couleur de
+// texte. Le contraire — les employer en texte — est le vrai piège, et c'est ce
+// que la charte interdit.
+foreach (['corail', 'lagon'] as $decor) {
+    $check(
+        sprintf('« %s » reste une couleur de décor', $decor),
+        $ratio($palette[$decor], '#FFFFFF') < 4.5,
+        sprintf('%.2f:1 sur blanc — à réserver aux surfaces et aux bordures', $ratio($palette[$decor], '#FFFFFF'))
+    );
+}
+
 printf("\n%s\n", $failures === 0 ? '✓ Tous les contrôles passent.' : "✗ {$failures} échec(s).");
 exit($failures === 0 ? 0 : 1);

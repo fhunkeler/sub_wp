@@ -27,6 +27,15 @@ final class DashboardScreen
     /** Fenêtre des adhésions arrivant à échéance, en jours. */
     private const EXPIRY_WINDOW = 30;
 
+    /**
+     * Longueur maximale d'une liste du tableau de bord.
+     *
+     * Une liste plus longue ne se lit plus, et son compteur cesse d'être exact :
+     * c'est pourquoi la constante est publique — le bloc du tableau de bord de
+     * WordPress a besoin de savoir à partir de quel nombre il doit écrire « + ».
+     */
+    public const LIST_LIMIT = 10;
+
     public static function render(): void
     {
         wp_enqueue_style(
@@ -111,7 +120,7 @@ final class DashboardScreen
             "SELECT a.id, a.reference, a.created_at, u.display_name
              FROM {$wpdb->prefix}sub_applications a
              LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
-             WHERE a.status = %s ORDER BY a.created_at ASC LIMIT 10",
+             WHERE a.status = %s ORDER BY a.created_at ASC LIMIT " . self::LIST_LIMIT,
             ApplicationService::STATUS_PAYMENT_CONFIRMED
         ), ARRAY_A) ?: [];
 
@@ -144,7 +153,7 @@ final class DashboardScreen
             "SELECT a.id, a.reference, a.total_amount, a.created_at, u.display_name
              FROM {$wpdb->prefix}sub_applications a
              LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
-             WHERE a.status IN (%s, %s) ORDER BY a.created_at ASC LIMIT 10",
+             WHERE a.status IN (%s, %s) ORDER BY a.created_at ASC LIMIT " . self::LIST_LIMIT,
             ApplicationService::STATUS_SUBMITTED,
             ApplicationService::STATUS_AWAITING_PAYMENT
         ), ARRAY_A) ?: [];
@@ -183,7 +192,7 @@ final class DashboardScreen
              FROM {$wpdb->prefix}sub_member_documents d
              LEFT JOIN {$wpdb->prefix}sub_document_types t ON t.slug = d.type_slug
              LEFT JOIN {$wpdb->users} u ON u.ID = d.user_id
-             WHERE d.status = %s ORDER BY d.uploaded_at ASC LIMIT 10",
+             WHERE d.status = %s ORDER BY d.uploaded_at ASC LIMIT " . self::LIST_LIMIT,
             DocumentService::STATUS_PENDING
         ), ARRAY_A) ?: [];
 
@@ -220,7 +229,7 @@ final class DashboardScreen
              FROM {$wpdb->prefix}sub_applications a
              LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
              WHERE a.status = %s AND a.valid_until BETWEEN %s AND %s
-             ORDER BY a.valid_until ASC LIMIT 10",
+             ORDER BY a.valid_until ASC LIMIT " . self::LIST_LIMIT,
             ApplicationService::STATUS_ACTIVE,
             $today,
             $deadline
@@ -245,7 +254,7 @@ final class DashboardScreen
      */
     private static function upcomingEvents(): ?array
     {
-        $events = (new EventService())->upcoming(8);
+        $events = (new EventService())->upcoming(self::LIST_LIMIT);
 
         return self::block(
             'Prochaines sorties',
@@ -299,6 +308,12 @@ final class DashboardScreen
                 'meta'  => sprintf('%d ans — aucun représentant légal', (int) LegalGuardian::ageOf($userId)),
                 'url'   => admin_url('admin.php?page=' . MembersScreen::SLUG),
             ];
+
+            // Même plafond que les autres listes : au-delà, on ne lit plus, et
+            // le compteur du bloc de WordPress annonce « 10 + » comme ailleurs.
+            if (count($items) >= self::LIST_LIMIT) {
+                break;
+            }
         }
 
         if ($items === []) {

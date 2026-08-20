@@ -493,7 +493,7 @@ final class EventsScreen
                             // Le DP voit la VALIDITÉ, jamais le document lui-même.
                             echo $person['medical_ok']
                                 ? '<span class="sub-badge" style="background:#17795e;color:#fff;">À jour</span>'
-                                : '<span class="sub-badge" style="background:#c43a22;color:#fff;">À vérifier</span>';
+                                : '<span class="sub-badge" style="background:#b82a1e;color:#fff;">À vérifier</span>';
                             ?>
                         </td>
                         <td data-label="État">

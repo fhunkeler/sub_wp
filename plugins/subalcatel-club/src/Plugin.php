@@ -8,6 +8,7 @@ use Subalcatel\Club\Admin\ApplicationsScreen;
 use Subalcatel\Club\Admin\CampaignEditor;
 use Subalcatel\Club\Admin\ClubMenu;
 use Subalcatel\Club\Admin\CampaignsScreen;
+use Subalcatel\Club\Admin\DashboardWidget;
 use Subalcatel\Club\Admin\DocumentsScreen;
 use Subalcatel\Club\Admin\EventsScreen;
 use Subalcatel\Club\Admin\ExportsScreen;
@@ -161,6 +162,10 @@ final class Plugin
         // écrans n'enregistrent plus ici que leurs actions de formulaire.
         // L'ordre de ces lignes n'a donc plus d'incidence sur le menu.
         ClubMenu::register();
+
+        // Le rappel sur le tableau de bord de WordPress : c'est là qu'arrive le
+        // bureau en se connectant, pas sur l'écran « Club ».
+        DashboardWidget::register();
 
         ApplicationsScreen::register();
         AccountsScreen::register();

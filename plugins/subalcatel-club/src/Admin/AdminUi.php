@@ -92,16 +92,20 @@ final class AdminUi
      *
      * C'est elle qui fait traiter une file d'attente : sans compteur, personne
      * n'ouvre un écran dont il ignore s'il contient quelque chose.
+     *
+     * `$label` sert aux compteurs qui ne sont pas exacts : une file plafonnée
+     * s'annonce « 10 + », faute de savoir dire combien au-delà.
      */
-    public static function countBubble(int $count): string
+    public static function countBubble(int $count, string $label = ''): string
     {
         if ($count <= 0) {
             return '';
         }
 
         return sprintf(
-            ' <span class="update-plugins count-%1$d"><span class="update-count">%1$d</span></span>',
-            $count
+            ' <span class="update-plugins count-%d"><span class="update-count">%s</span></span>',
+            $count,
+            esc_html($label !== '' ? $label : (string) $count)
         );
     }
 
@@ -165,18 +169,18 @@ final class AdminUi
     public static function statusBadge(string $status): string
     {
         $map = [
-            'draft'             => ['Brouillon', '#c9d6dd', '#041e30'],
-            'inactive'          => ['Inactive', '#5a6e78', '#fff'],
+            'draft'             => ['Brouillon', '#c4d3e3', '#142f52'],
+            'inactive'          => ['Inactive', '#566b84', '#fff'],
             'open'              => ['Ouverte', '#17795e', '#fff'],
-            'closed'            => ['Fermée', '#5a6e78', '#fff'],
-            'awaiting_payment'  => ['En attente de paiement', '#f2c14e', '#041e30'],
-            'payment_confirmed' => ['Paiement confirmé', '#0b4f71', '#fff'],
+            'closed'            => ['Fermée', '#566b84', '#fff'],
+            'awaiting_payment'  => ['En attente de paiement', '#f2c14e', '#142f52'],
+            'payment_confirmed' => ['Paiement confirmé', '#1d5480', '#fff'],
             'active'            => ['Active', '#17795e', '#fff'],
-            'refused'           => ['Refusée', '#c43a22', '#fff'],
-            'cancelled'         => ['Annulée', '#5a6e78', '#fff'],
+            'refused'           => ['Refusée', '#b82a1e', '#fff'],
+            'cancelled'         => ['Annulée', '#566b84', '#fff'],
         ];
 
-        [$label, $bg, $fg] = $map[$status] ?? [$status, '#c9d6dd', '#041e30'];
+        [$label, $bg, $fg] = $map[$status] ?? [$status, '#c4d3e3', '#142f52'];
 
         // Jamais la couleur seule : le libellé porte l'information (WCAG 1.4.1).
         return sprintf(

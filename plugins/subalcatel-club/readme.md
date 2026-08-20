@@ -1,7 +1,7 @@
 # subalcatel-club — extension métier du club
 
 Adhésions, événements et droits du club de plongée Sub Alcatel.
-Version **0.14.2** — jalon *démonstration*.
+Version **0.14.3** — jalon *démonstration*.
 
 ---
 
@@ -87,7 +87,7 @@ docker exec sub_demo_wp wp --allow-root eval-file wp-content/plugins/subalcatel-
 
 Une suite par domaine, dans `tests/` — `smoke-eligibility`, `smoke-pricing`,
 `smoke-application`, `smoke-events`, `smoke-outing`, `smoke-roster`,
-`smoke-charts`, `smoke-stats`… Elles nettoient leurs données et se lancent de
+`smoke-charts`, `smoke-stats`, `smoke-widget`… Elles nettoient leurs données et se lancent de
 la même façon.
 
 Ce sont des tests de fumée, pas des tests unitaires : ils vérifient que les
@@ -110,6 +110,7 @@ sera stabilisé.
 | Formules, options et remises configurables | Livré |
 | Journal d'audit | Livré |
 | Tableau de bord : 6 blocs actionnables et 4 courbes | Livré |
+| Bloc « Club » sur le tableau de bord de WordPress : compteurs et raccourcis | Livré |
 | Statistiques annuelles : renouvellement, niveaux, âges, participation | Livré |
 | Statistiques financières : recettes, origine des adhésions, encaissements | Livré |
 | Sorties organisées : inscrits, message, désinscription, émargement — sans wp-admin | Livré |

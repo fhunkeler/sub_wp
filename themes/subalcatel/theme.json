@@ -18,27 +18,32 @@
 			"palette": [
 				{
 					"slug": "abysse",
-					"color": "#041E30",
+					"color": "#142F52",
 					"name": "Abysse"
 				},
 				{
 					"slug": "profond",
-					"color": "#0B4F71",
+					"color": "#1D5480",
 					"name": "Bleu profond"
 				},
 				{
 					"slug": "lien",
-					"color": "#106A93",
+					"color": "#1D6493",
 					"name": "Bleu lien"
 				},
 				{
 					"slug": "lagon",
-					"color": "#1B8FB5",
+					"color": "#2E8FC0",
 					"name": "Lagon"
 				},
 				{
+					"slug": "poulpe",
+					"color": "#4A5487",
+					"name": "Encre de poulpe"
+				},
+				{
 					"slug": "ecume",
-					"color": "#E8F1F5",
+					"color": "#E9F4FA",
 					"name": "Écume"
 				},
 				{
@@ -48,23 +53,23 @@
 				},
 				{
 					"slug": "ardoise",
-					"color": "#5A6E78",
+					"color": "#566B84",
 					"name": "Ardoise"
 				},
 				{
 					"slug": "brume",
-					"color": "#C9D6DD",
+					"color": "#C4D3E3",
 					"name": "Brume"
 				},
 				{
 					"slug": "corail",
-					"color": "#E2452F",
-					"name": "Corail"
+					"color": "#F0801F",
+					"name": "Orange corail"
 				},
 				{
 					"slug": "corail-fonce",
-					"color": "#C43A22",
-					"name": "Corail foncé"
+					"color": "#C0561A",
+					"name": "Orange corail foncé"
 				},
 				{
 					"slug": "sable",
@@ -75,23 +80,28 @@
 					"slug": "algue",
 					"color": "#17795E",
 					"name": "Algue"
+				},
+				{
+					"slug": "alerte",
+					"color": "#B82A1E",
+					"name": "Rouge d’alerte"
 				}
 			],
 			"gradients": [
 				{
 					"slug": "abysses",
 					"name": "Abysses",
-					"gradient": "linear-gradient(168deg, #0A4869 0%, #062F48 48%, #041E30 100%)"
+					"gradient": "linear-gradient(168deg, #1D5480 0%, #1B3C63 48%, #142F52 100%)"
 				},
 				{
 					"slug": "lagon-profond",
 					"name": "Lagon vers profond",
-					"gradient": "linear-gradient(150deg, #1B8FB5 0%, #0B4F71 100%)"
+					"gradient": "linear-gradient(150deg, #2E8FC0 0%, #1D5480 100%)"
 				},
 				{
 					"slug": "voile-sombre",
 					"name": "Voile sombre (sur photo)",
-					"gradient": "linear-gradient(180deg, rgba(4,30,48,0.15) 0%, rgba(4,30,48,0.82) 100%)"
+					"gradient": "linear-gradient(180deg, rgba(20,47,82,0.15) 0%, rgba(20,47,82,0.82) 100%)"
 				}
 			]
 		},
@@ -239,12 +249,12 @@
 				{
 					"slug": "carte",
 					"name": "Carte",
-					"shadow": "0 1px 2px rgba(4,30,48,.08), 0 0 0 1px rgba(4,30,48,.05)"
+					"shadow": "0 1px 2px rgba(20,47,82,.08), 0 0 0 1px rgba(20,47,82,.05)"
 				},
 				{
 					"slug": "flottant",
 					"name": "Flottant",
-					"shadow": "0 8px 24px rgba(4,30,48,.12)"
+					"shadow": "0 8px 24px rgba(20,47,82,.12)"
 				}
 			]
 		},
@@ -261,7 +271,7 @@
 				"pastille": "999px"
 			},
 			"bordure": {
-				"champ": "#7E939F"
+				"champ": "#7A8CA6"
 			},
 			"lecture": "72ch"
 		}
@@ -387,12 +397,12 @@
 				},
 				":hover": {
 					"color": {
-						"background": "#A83019"
+						"background": "#9E4614"
 					}
 				},
 				":focus": {
 					"color": {
-						"background": "#A83019"
+						"background": "#9E4614"
 					}
 				}
 			},

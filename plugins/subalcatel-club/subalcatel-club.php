@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Sub Alcatel — Gestion du club
  * Description:  Adhésions, événements, documents et droits du club de plongée Sub Alcatel.
- * Version:      0.14.2
+ * Version:      0.14.3
  * Requires PHP: 8.1
  * Requires at least: 6.5
  * Author:       Sub Alcatel
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION     = '0.14.2';
+const VERSION     = '0.14.3';
 const PLUGIN_FILE = __FILE__;
 
 define(__NAMESPACE__ . '\PLUGIN_DIR', plugin_dir_path(__FILE__));

@@ -32,5 +32,6 @@ require_once SUBALCATEL_DIR . '/inc/setup.php';
 require_once SUBALCATEL_DIR . '/inc/fonts.php';
 require_once SUBALCATEL_DIR . '/inc/assets.php';
 require_once SUBALCATEL_DIR . '/inc/blocks.php';
+require_once SUBALCATEL_DIR . '/inc/logo.php';
 require_once SUBALCATEL_DIR . '/inc/icone.php';
 require_once SUBALCATEL_DIR . '/inc/connexion.php';

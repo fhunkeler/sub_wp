@@ -9,21 +9,22 @@
  */
 
 :root {
-	--sub-abysse: #041e30;
-	--sub-profond: #0b4f71;
-	--sub-lien: #106a93;
-	--sub-lagon: #1b8fb5;
-	--sub-ecume: #e8f1f5;
-	--sub-ardoise: #5a6e78;
-	--sub-brume-fonce: #7e939f;
-	--sub-corail-fonce: #c43a22;
+	--sub-abysse: #142f52;
+	--sub-profond: #1d5480;
+	--sub-lien: #1d6493;
+	--sub-lagon: #2e8fc0;
+	--sub-ecume: #e9f4fa;
+	--sub-ardoise: #566b84;
+	--sub-brume-fonce: #7a8ca6;
+	--sub-corail-fonce: #c0561a;
+	--sub-alerte: #b82a1e;
 	--sub-sable: #f2c14e;
 }
 
 body.login {
-	background: linear-gradient(168deg, #0a4869 0%, #062f48 48%, #041e30 100%);
+	background: linear-gradient(168deg, #1d5480 0%, #1b3c63 48%, #142f52 100%);
 	background-attachment: fixed;
-	color: #dbe7ee;
+	color: #cfddec;
 	font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -36,12 +37,12 @@ body.login {
 	flex-direction: column;
 	align-items: center;
 	justify-content: flex-end;
-	background-image: url(../img/favicon.svg);
-	background-size: 68px 68px;
+	background-image: url(../img/logo.png);
+	background-size: 72px 72px;
 	background-position: center top;
 	width: auto;
 	height: auto;
-	padding-top: 82px;
+	padding-top: 86px;
 	margin: 0 auto 22px;
 	overflow: visible;
 	text-indent: 0;
@@ -60,7 +61,7 @@ body.login {
 	background: #fff;
 	border: 0;
 	border-radius: 12px;
-	box-shadow: 0 8px 24px rgba(4, 30, 48, 0.28);
+	box-shadow: 0 8px 24px rgba(20, 47, 82, 0.28);
 	padding: 28px 26px 24px;
 }
 
@@ -117,7 +118,7 @@ body.login {
 
 .wp-core-ui .button-primary:hover,
 .wp-core-ui .button-primary:focus {
-	background: #a83019;
+	background: #9e4614;
 	box-shadow: none;
 }
 
@@ -125,7 +126,7 @@ body.login {
 .login #backtoblog a,
 .login #nav a,
 .login .privacy-policy-link {
-	color: #a8bfcd;
+	color: #b0c4da;
 }
 
 .login #backtoblog a:hover,
@@ -153,15 +154,15 @@ body.login {
 
 .login .message,
 .login .notice-info {
-	background: #e6f1f7;
+	background: #e4eff8;
 	border-left-color: var(--sub-lagon);
-	color: #0d3b56;
+	color: #153f63;
 }
 
 .login #login_error,
 .login .notice-error {
 	background: #fdeceb;
-	border-left-color: var(--sub-corail-fonce);
+	border-left-color: var(--sub-alerte);
 	color: #7a2413;
 }
 
@@ -190,9 +191,9 @@ body.login {
 .wp-core-ui .button:not(.button-primary):not(.wp-hide-pw),
 .wp-core-ui .button-secondary {
 	background: transparent;
-	border: 1.5px solid #a8bfcd;
+	border: 1.5px solid #b0c4da;
 	border-radius: 8px;
-	color: #dbe7ee;
+	color: #cfddec;
 	min-height: 40px;
 }
 
@@ -220,5 +221,5 @@ body.login {
 }
 
 .login .language-switcher label {
-	color: #a8bfcd;
+	color: #b0c4da;
 }

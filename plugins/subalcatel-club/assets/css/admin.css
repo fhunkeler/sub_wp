@@ -11,8 +11,8 @@
 
 .sub-admin .sub-tag {
 	display: inline-block;
-	background: #e8f1f5;
-	color: #0b4f71;
+	background: #e9f4fa;
+	color: #1d5480;
 	border-radius: 4px;
 	padding: 2px 8px;
 	font-size: 12px;
@@ -46,7 +46,7 @@
 }
 
 .sub-admin .sub-card > summary em {
-	color: #c43a22;
+	color: #b82a1e;
 	margin-left: 8px;
 	font-size: 12px;
 }
@@ -56,7 +56,7 @@
 }
 
 .sub-admin .sub-card[open] {
-	border-color: #0b4f71;
+	border-color: #1d5480;
 }
 
 /* Tableaux de lignes ajoutables. */
@@ -142,7 +142,7 @@
 }
 
 .sub-admin .sub-tabs__tab:focus-visible {
-	outline: 2px solid #0b4f71;
+	outline: 2px solid #1d5480;
 	outline-offset: -2px;
 	box-shadow: none;
 }
@@ -332,7 +332,7 @@
 }
 
 .sub-admin .sub-variables code {
-	color: #0b4f71;
+	color: #1d5480;
 }
 
 .sub-admin .sub-tag--off {
@@ -357,7 +357,7 @@
 	margin: 6px 0 0;
 	font-size: 12px;
 	font-style: italic;
-	color: #0b4f71;
+	color: #1d5480;
 }
 
 /* --- Tableau de bord bureau --- */
@@ -378,8 +378,8 @@
 }
 
 .sub-dash-card--action { border-left-color: #2271b1; }
-.sub-dash-card--watch  { border-left-color: #b26900; }
-.sub-dash-card--alert  { border-left-color: #c43a22; }
+.sub-dash-card--watch  { border-left-color: #a66000; }
+.sub-dash-card--alert  { border-left-color: #b82a1e; }
 .sub-dash-card--info   { border-left-color: #6c7781; }
 
 .sub-dash-card h2 {
@@ -404,7 +404,7 @@
 }
 
 .sub-dash-card--alert .sub-dash-count {
-	background: #c43a22;
+	background: #b82a1e;
 	color: #fff;
 }
 
@@ -512,7 +512,7 @@
 }
 
 .sub-chart-note--alert {
-	color: #c43a22;
+	color: #b82a1e;
 }
 
 .sub-chart-empty {
@@ -522,7 +522,7 @@
 }
 
 .sub-delta--up   { color: #17795e; font-weight: 600; }
-.sub-delta--down { color: #c43a22; font-weight: 600; }
+.sub-delta--down { color: #b82a1e; font-weight: 600; }
 
 /* Barres horizontales : sorties et étapes des dossiers.
 
@@ -581,7 +581,7 @@
 
 /* La couleur double une valeur toujours écrite en clair à droite : elle
    accélère la lecture, elle ne la porte jamais seule (WCAG 1.4.1). */
-.sub-chart-bar__fill--low     { background: #b26900; }
+.sub-chart-bar__fill--low     { background: #a66000; }
 .sub-chart-bar__fill--ok      { background: #2271b1; }
 .sub-chart-bar__fill--full    { background: #17795e; }
 .sub-chart-bar__fill--neutral { background: #8c8f94; }
@@ -601,7 +601,7 @@
 }
 
 .sub-chart-bar__waiting {
-	color: #b26900;
+	color: #a66000;
 }
 
 /* Colonnes verticales : échéancier des certificats. */
@@ -652,4 +652,86 @@
 	.sub-chart-bars th {
 		width: 50%;
 	}
+}
+
+/* --- Bloc « Club » du tableau de bord de WordPress ---------------------- *
+ *
+ * Le bloc vit dans une colonne étroite, à côté de ceux du cœur de WordPress :
+ * il en reprend donc les marges et la sobriété, sans grille ni carte. Ce qui le
+ * distingue tient à une pastille et à un filet de couleur, rien de plus.
+ */
+
+.sub-widget__rows {
+	margin: 0;
+	list-style: none;
+}
+
+.sub-widget__row {
+	margin: 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sub-widget__row:last-child {
+	border-bottom: 0;
+}
+
+.sub-widget__row a {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 0;
+	text-decoration: none;
+}
+
+.sub-widget__count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 34px;
+	padding: 2px 8px;
+	border-radius: 11px;
+	background: #f0f0f1;
+	color: #1d2327;
+	font-size: 0.82rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.sub-widget__row--action .sub-widget__count { background: #2271b1; color: #fff; }
+.sub-widget__row--alert  .sub-widget__count { background: #b82a1e; color: #fff; }
+.sub-widget__row--watch  .sub-widget__count { background: #a66000; color: #fff; }
+
+.sub-widget__label {
+	flex: 1;
+}
+
+.sub-widget__idle {
+	margin: 0;
+	color: #646970;
+}
+
+.sub-widget__stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 18px;
+	margin: 14px 0 0;
+	padding-top: 12px;
+	border-top: 1px solid #f0f0f1;
+	list-style: none;
+}
+
+.sub-widget__stats li {
+	margin: 0;
+	color: #646970;
+	font-size: 0.82rem;
+}
+
+.sub-widget__stats strong {
+	margin-right: 4px;
+	color: #1d2327;
+	font-size: 0.95rem;
+}
+
+.sub-widget__more {
+	margin: 12px 0 0;
 }

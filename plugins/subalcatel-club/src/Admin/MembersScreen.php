@@ -144,7 +144,7 @@ final class MembersScreen
                             <?php if (LegalGuardian::isMinor($user->ID)) : ?>
                                 <br><span class="sub-tag">mineur</span>
                                 <?php if (LegalGuardian::isIncomplete($user->ID)) : ?>
-                                    <br><small style="color:#c43a22;">représentant légal manquant</small>
+                                    <br><small style="color:#b82a1e;">représentant légal manquant</small>
                                 <?php endif; ?>
                             <?php endif; ?>
                         </td>
@@ -160,7 +160,7 @@ final class MembersScreen
                             <?php if ($documents->allowed) : ?>
                                 <span class="sub-badge" style="background:#17795e;color:#fff;">À jour</span>
                             <?php else : ?>
-                                <span class="sub-badge" style="background:#c43a22;color:#fff;">À vérifier</span>
+                                <span class="sub-badge" style="background:#b82a1e;color:#fff;">À vérifier</span>
                                 <br><small style="color:#50575e;"><?php echo esc_html($documents->shortLabel()); ?></small>
                             <?php endif; ?>
                         </td>

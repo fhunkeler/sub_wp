@@ -216,6 +216,49 @@ body.login {
 	color: var(--sub-lien);
 }
 
+/* Le mot de passe proposé doit tenir en entier dans le champ.
+ *
+ * Sur l'écran de réinitialisation, WordPress remplit `#pass1` par un mot de
+ * passe de **24 caractères** (`wp_ajax_generate_password`), affiché en clair et
+ * en chasse fixe. Le panneau du cœur fait 320 px : une fois retirés les marges
+ * du formulaire, les 13 px de retrait et les 40 px réservés au bouton
+ * « afficher », il reste 213 px de texte pour 230 px de mot de passe. Les deux
+ * derniers caractères sortent du champ.
+ *
+ * Rien ne le signale : pas de barre de défilement, pas de coupure visible. Le
+ * membre lit ce qu'on lui montre, l'enregistre — WordPress reçoit et stocke le
+ * mot de passe **entier**, celui-là — puis se voit refuser la connexion avec la
+ * version tronquée qu'il a recopiée. D'où l'impression que le champ n'a pas été
+ * transmis, alors qu'il l'a été trop complètement pour l'œil.
+ *
+ * On élargit donc le panneau sur ces deux écrans — `rp` à l'arrivée du lien,
+ * `resetpass` au retour d'erreur — plutôt que de réduire la police : sous
+ * 16 px, Safari iOS zoome à la prise de focus (voir plus haut). */
+body.login-action-rp #login,
+body.login-action-resetpass #login {
+	width: 400px;
+	max-width: calc(100vw - 32px);
+}
+
+/* Sur un téléphone, la largeur ne suffit plus : on reprend la place sur les
+   marges du formulaire, qui ne coûtent rien à la lisibilité. */
+@media (max-width: 440px) {
+	.login #resetpassform {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+}
+
+/* Sous 350 px de large, la place manque même sans les marges : on cède alors
+   sur la taille du texte, seul réglage qui reste. Le zoom de Safari iOS est un
+   désagrément ; un mot de passe coupé est une porte fermée. La police suit la
+   largeur pour que la règle vaille jusqu'aux plus petits écrans. */
+@media (max-width: 349px) {
+	.login #resetpassform .password-input {
+		font-size: 3.9vw;
+	}
+}
+
 .login .language-switcher {
 	margin-top: 18px;
 }

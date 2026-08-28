@@ -68,6 +68,7 @@ subalcatel/
 | Barre membre | Rendue côté serveur uniquement si l'utilisateur est connecté (`pre_render_block`), pas masquée en CSS |
 | Bouton de compte | Bloc dynamique `subalcatel/compte` : visiteur → « Nous rejoindre / Connexion » ; membre → avatar et déconnexion |
 | Vignettes des cartes | Taille dédiée `subalcatel-carte` (720 × 480) — un article sans image reçoit un aplat de la charte plutôt qu'un trou dans la grille |
+| Écran de réinitialisation | Panneau élargi à 400 px : le mot de passe de 24 caractères que WordPress propose déborde du champ du cœur, et sa fin, invisible, était recopiée fausse (`assets/css/login.css`) |
 | Accessibilité | Lien d'évitement, focus visible, cibles 44 px, `prefers-reduced-motion`, tableaux à défilement propre |
 | Impression | En-têtes et pieds masqués, URL des liens explicitées — le bureau imprime les listes d'inscrits |
 

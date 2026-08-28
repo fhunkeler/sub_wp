@@ -45,6 +45,29 @@ Ils refusent un commit ou un push sur `main` avant qu'il ne parte. Ce ne sont
 que des garde-fous — `--no-verify` les contourne. L'interdiction qui tient est
 la règle posée sur GitHub, dans *Settings → Rules*.
 
+## Contrôles d'une demande
+
+Chaque pull request déclenche `.github/workflows/controles.yml` :
+
+| Contrôle | Ce qu'il garde |
+|---|---|
+| Syntaxe et archives | `php -l` sur tous les fichiers, puis `build-packages.py` à blanc — c'est lui qui refuse d'empaqueter un identifiant, et il ne tournait jusqu'ici qu'à la publication |
+| Suites de fumée | Les 28 suites de `tests/`, sur un WordPress neuf installé comme le club installe les siens |
+| Numéro de version | Un rappel, **jamais bloquant**, quand le code livré bouge sans que son numéro suive |
+
+Le WordPress d'intégration est installé de zéro à chaque exécution : fuseau
+`Europe/Paris`, permaliens en `/%postname%/`, semaine du lundi, langue française.
+Ce n'est pas de la décoration — le fuseau décide des dates d'événements, les
+permaliens des adresses que le thème compare, et sans le pack `fr_FR` les
+courriels du club annoncent leurs échéances en anglais.
+
+Une base neuve à chaque fois vaut mieux qu'une base de travail : celle d'un poste
+de développement dérive avec les branches qu'on y a installées, et fait échouer
+des suites que le code ne casse pas.
+
+**Ces contrôles ne protègent `main` que s'ils sont déclarés requis** dans
+*Settings → Rules*. Un contrôle qu'on peut ignorer finit toujours ignoré.
+
 ## Publier une version
 
 Il n'y a pas de balise à poser à la main. **La version fait foi** : elle se

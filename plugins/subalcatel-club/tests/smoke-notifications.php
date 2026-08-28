@@ -96,12 +96,21 @@ $applicationId = $service->submit($member, $campaignId, 'plongee', [
     'niveau_prepare'         => 'aucun',
 ]);
 
+// Le montant attendu se lit sur le dossier, il ne se recopie pas. Le tarif du
+// plan vit dans `DemoSeeder` et bouge d'une saison à l'autre ; un chiffre écrit
+// ici en dur transforme chaque révision de la grille en test rouge, et le test
+// rouge qu'on finit par ignorer ne garde plus rien. Ce qu'on vérifie n'est pas
+// « 210 € » : c'est que le courriel porte le montant du dossier.
+$total   = (float) ($service->find($applicationId)['total_amount'] ?? 0.0);
+$attendu = number_format($total, 2, ',', ' ') . ' €';
+
 $mail = $lastMail();
 $check('Accusé de réception envoyé', $mail !== null && str_contains($mail['subject'], 'dossier d’adhésion'), $mail['subject'] ?? '');
-$check('Montant présent dans le corps', $mail !== null && str_contains($mail['message'], '210,00 €'));
+$check('Montant non nul sur le dossier', $total > 0.0, $attendu);
+$check('Montant présent dans le corps', $mail !== null && str_contains($mail['message'], $attendu), $attendu);
 $check('Prénom personnalisé', $mail !== null && str_contains($mail['message'], 'Camille'));
 
-$service->recordPayment($applicationId, 210.00, 'cheque', null, $treasurer);
+$service->recordPayment($applicationId, $total, 'cheque', null, $treasurer);
 $check('Confirmation de paiement envoyée', str_contains($lastMail()['subject'] ?? '', 'Paiement reçu'));
 
 $service->validateSecretariat($applicationId, $treasurer);

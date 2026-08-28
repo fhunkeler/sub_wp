@@ -26,6 +26,13 @@ $check = static function (string $label, bool $ok, string $note = '') use (&$fai
     printf("%s  %-58s %s\n", $ok ? ' OK ' : 'FAIL', $label, $note !== '' ? "→ {$note}" : '');
 };
 
+// Absent n'est pas cassé. La base héritée n'existe que le temps de la reprise :
+// sur un poste neuf comme en intégration continue, ne pas la trouver est l'état
+// normal, et l'annoncer en échec apprend à ignorer la couleur rouge.
+$skip = static function (string $label, string $note = ''): void {
+    printf("SKIP  %-58s %s\n", $label, $note !== '' ? "→ {$note}" : '');
+};
+
 // --- La base héritée est inaccessible en écriture ----------------------------
 echo "\n--- Étanchéité de la source héritée ---\n";
 
@@ -41,7 +48,13 @@ $source = new LegacySource(
     'jml_'
 );
 
-$check('La base héritée est joignable', $source->isReady());
+$joignable = $source->isReady();
+
+if ($joignable) {
+    $check('La base héritée est joignable', true);
+} else {
+    $skip('La base héritée est joignable', 'absente — les garde-fous ci-dessous se vérifient sans elle');
+}
 
 foreach ([
     'DELETE FROM jml_users',

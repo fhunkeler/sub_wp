@@ -32,9 +32,22 @@ final class LegacySource
 
         // Connexion distincte de celle de WordPress : la base héritée est une
         // pièce à conviction, pas une base de travail.
-        $this->db              = new \wpdb($user, $password, $name, $host);
+        $this->db = new \wpdb($user, $password, $name, $host);
         $this->db->suppress_errors(true);
-        $this->db->set_charset($this->db->dbh, 'utf8mb4');
+
+        // `wpdb` ne lève rien quand la connexion échoue : il pose `ready` à
+        // faux et laisse sa poignée à null. `set_charset()` la passe alors
+        // telle quelle à mysqli, et l'appel devient une erreur fatale.
+        //
+        // Or l'absence de la base héritée est un cas **normal** : elle n'existe
+        // que le temps de la reprise, et jamais sur un site en exploitation.
+        // Sans cette garde, construire la source depuis des réglages devenus
+        // caducs tuait la page — l'écran d'administration comme le test.
+        // Les requêtes, elles, sont déjà couvertes : `wpdb::query()` refuse de
+        // s'exécuter tant que `ready` est faux, et `isReady()` répond non.
+        if ($this->db->ready) {
+            $this->db->set_charset($this->db->dbh, 'utf8mb4');
+        }
     }
 
     /**

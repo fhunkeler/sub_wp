@@ -1,0 +1,223 @@
+# Contrôles d'une pull request, avant qu'elle ne devienne une version publiée.
+#
+# `release.yml` construit et publie **après** la fusion. Il n'y avait donc rien,
+# jusqu'ici, entre une branche et une release : le premier moment où le code
+# était exécuté par autre chose qu'un poste de développement était celui où il
+# partait chez les adhérents. Les hooks de `.githooks/` ne comblent pas ce trou —
+# ils vérifient sur quelle branche on commite, pas si le code tient debout, et
+# `--no-verify` les contourne.
+#
+# Trois contrôles, du moins cher au plus utile :
+#
+#   1. `code`    — syntaxe PHP, et archives constructibles sans fuite d'identifiant ;
+#   2. `fumee`   — les 28 suites du plugin, sur un WordPress neuf ;
+#   3. `version` — un rappel, sans valeur bloquante, quand le code livré bouge
+#                  sans que son numéro suive.
+#
+# Pour qu'ils protègent réellement `main`, il faut les déclarer requis dans
+# *Settings → Rules*. Un contrôle qu'on peut ignorer finit toujours ignoré.
+
+name: Contrôles de la demande
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Une branche poussée trois fois de suite n'occupe pas trois exécutions : seule
+# la dernière compte, les précédentes portent sur un code qui n'existe plus.
+concurrency:
+  group: controles-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  code:
+    name: Syntaxe et archives
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntaxe PHP
+        run: |
+          # `php -l` fichier par fichier plutôt qu'en lot : on veut le nom de
+          # celui qui casse, pas un code de retour anonyme.
+          erreurs=0
+
+          while IFS= read -r -d '' fichier; do
+            if ! sortie=$(php -l "$fichier" 2>&1); then
+              echo "::error file=${fichier}::${sortie}"
+              erreurs=$((erreurs + 1))
+            fi
+          done < <(find plugins themes -name '*.php' -print0)
+
+          echo "$(find plugins themes -name '*.php' | wc -l) fichiers analysés, ${erreurs} en erreur." \
+            >> "$GITHUB_STEP_SUMMARY"
+
+          exit $(( erreurs > 0 ))
+
+      - name: Archives constructibles, et sans identifiant
+        run: |
+          # Le script refuse de construire si un mot de passe de développement,
+          # une clé privée ou la clé des certificats médicaux figure dans les
+          # fichiers empaquetés. Il ne tournait qu'à la publication, c'est-à-dire
+          # après la fusion : la fuite était constatée, plus évitée.
+          python3 build-packages.py "$RUNNER_TEMP/dist"
+
+  fumee:
+    name: Suites de fumée
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: wp-content
+
+      # La base et `wp` tournent en conteneurs sur un réseau à eux, plutôt qu'en
+      # `services:` : le client `wp` est lui-même un conteneur, et il ne voit pas
+      # le `localhost` de la machine hôte où GitHub publie les services.
+      - name: Base de données
+        run: |
+          docker network create subalcatel
+          docker run -d --name db --network subalcatel \
+            -e MARIADB_ROOT_PASSWORD=root \
+            -e MARIADB_DATABASE=wordpress \
+            -e MARIADB_USER=wordpress \
+            -e MARIADB_PASSWORD=wordpress \
+            mariadb:10.6
+
+      - name: WordPress, avec ce dépôt pour wp-content
+        run: |
+          mkdir -p site prive
+          curl -sSL https://wordpress.org/latest.tar.gz | tar xz --strip-components=1 -C site
+
+          # L'archive apporte son propre `wp-content` (thèmes et extensions
+          # livrés avec le cœur) : il cède la place à celui qui est testé.
+          rm -rf site/wp-content
+          mv wp-content site/wp-content
+
+      - name: Installation
+        run: |
+          for _ in $(seq 1 60); do
+            docker exec db mariadb -uwordpress -pwordpress -e 'SELECT 1' wordpress >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          # `SUBALCATEL_DOC_KEY` est fabriquée ici et jetée avec la machine :
+          # elle ne chiffre que des documents de test, et n'a donc pas à être
+          # un secret du dépôt.
+          wp() {
+            docker run --rm --network subalcatel \
+              -v "$PWD/site:/var/www/html" -v "$PWD/prive:/var/prive" \
+              --user root -e WP_CLI_PHP_ARGS='-d memory_limit=512M' \
+              wordpress:cli-php8.3 wp --allow-root "$@"
+          }
+
+          wp config create --dbhost=db --dbname=wordpress --dbuser=wordpress \
+            --dbpass=wordpress --force --extra-php <<PHP
+          define( 'SUBALCATEL_PRIVATE_DIR', '/var/prive' );
+          define( 'SUBALCATEL_DOC_KEY', base64_decode('$(openssl rand -base64 32)') );
+          PHP
+
+          wp core install --url=http://localhost --title='Sub Alcatel' \
+            --admin_user=ci --admin_password=ci \
+            --admin_email=ci@example.invalid --skip-email
+
+          # La langue s'installe APRÈS que `wp-content` soit en place : le pack
+          # fr_FR se dépose dans `wp-content/languages/`, et serait emporté par
+          # un remplacement du dossier. Sans lui, `wp_date()` rend ses mois en
+          # anglais et les courriels du club cessent de correspondre.
+          wp language core install fr_FR --activate
+
+          # Les réglages que le club pose sur ses sites. Ils ne sont pas
+          # décoratifs : le fuseau décide des dates d'événements, les permaliens
+          # des adresses que le thème compare, la semaine du lundi de l'agenda.
+          wp option update timezone_string 'Europe/Paris'
+          wp option update date_format 'j F Y'
+          wp option update start_of_week 1
+          wp rewrite structure '/%postname%/'
+
+          wp plugin activate subalcatel-club
+          wp theme activate subalcatel
+
+      - name: Les 28 suites
+        run: |
+          wp() {
+            docker run --rm --network subalcatel \
+              -v "$PWD/site:/var/www/html" -v "$PWD/prive:/var/prive" \
+              --user root -e WP_CLI_PHP_ARGS='-d memory_limit=512M' \
+              wordpress:cli-php8.3 wp --allow-root "$@"
+          }
+
+          echecs=0
+
+          for fichier in site/wp-content/plugins/subalcatel-club/tests/smoke-*.php; do
+            suite=$(basename "$fichier")
+
+            if sortie=$(wp eval-file "wp-content/plugins/subalcatel-club/tests/$suite" 2>&1); then
+              echo "OK    $suite"
+              echo "- \`$suite\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echecs=$((echecs + 1))
+              echo "::group::ÉCHEC $suite"
+              echo "$sortie"
+              echo "::endgroup::"
+              echo "::error::$suite"
+              echo "- **\`$suite\` — en échec**" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+          echo "$echecs suite(s) en échec." >> "$GITHUB_STEP_SUMMARY"
+          exit $(( echecs > 0 ))
+
+  version:
+    name: Numéro de version
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Le code livré a-t-il changé sans son numéro ?
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          TETE: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Ce contrôle **n'échoue jamais**, et c'est délibéré. `release.yml` ne
+          # publie que si le numéro a bougé, précisément pour qu'une correction
+          # de faute de frappe n'envoie pas une mise à jour à installer aux
+          # sites : ne pas monter la version est donc un choix légitime.
+          #
+          # Ce qui ne l'est pas, c'est de le faire sans le savoir. Corriger un
+          # défaut, fusionner, et découvrir des semaines plus tard que les sites
+          # ne l'ont jamais reçu — voilà ce que ce rappel évite.
+          [ -n "$BASE" ] || exit 0
+
+          modifies=$(git diff --name-only "$BASE" "$TETE")
+
+          rappel() {
+            chemin="$1"; entete="$2"; quoi="$3"
+
+            # `tests/` sort de l'archive livrée : y toucher ne change rien pour
+            # les sites, et n'appelle donc aucun numéro.
+            touche=$(echo "$modifies" | grep "^${chemin}" | grep -v "^${chemin}tests/" || true)
+            [ -n "$touche" ] || return 0
+
+            if git diff "$BASE" "$TETE" -- "$entete" | grep -q '^+.*Version:'; then
+              echo "$quoi : version montée." >> "$GITHUB_STEP_SUMMARY"
+              return 0
+            fi
+
+            echo "::warning file=${entete}::${quoi} modifié sans montée de version — les sites ne verront pas cette modification."
+            {
+              echo "**$quoi** : code modifié, version inchangée."
+              echo ""
+              echo "Volontaire pour une retouche cosmétique ; à corriger dans \`$entete\` si la modification doit atteindre les sites."
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          rappel 'plugins/subalcatel-club/' 'plugins/subalcatel-club/subalcatel-club.php' 'Extension'
+          rappel 'themes/subalcatel/'      'themes/subalcatel/style.css'                 'Thème'

@@ -323,10 +323,13 @@ final class UserImporter
         }
 
         foreach ([
-            'sub_address'      => 'cb_adresse',
-            'sub_postal_code'  => 'cb_codepostal',
-            'sub_city'         => 'cb_ville',
-            'sub_licence'      => 'cb_numlicence',
+            'sub_address'        => 'cb_adresse',
+            'sub_postal_code'    => 'cb_codepostal',
+            'sub_city'           => 'cb_ville',
+            // La clé que lit `ProfileFields` — `sub_licence` tout court
+            // n'était relue nulle part : le numéro repris restait invisible,
+            // dans la fiche membre comme dans les exports.
+            'sub_licence_number' => 'cb_numlicence',
         ] as $meta => $column) {
             $value = Sanitizer::text($row[$column] ?? null, 190);
             if ($value !== '') {

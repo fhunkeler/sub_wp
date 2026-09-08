@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION     = '0.14.3';
+const VERSION     = '0.14.4';
 const PLUGIN_FILE = __FILE__;
 
 define(__NAMESPACE__ . '\PLUGIN_DIR', plugin_dir_path(__FILE__));

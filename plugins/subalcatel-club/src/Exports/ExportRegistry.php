@@ -27,6 +27,7 @@ final class ExportRegistry
         return [
             new MembersExport(),
             new FfessmExport(),
+            new MembershipDetailExport(),
             new MissingDocumentsExport(),
             new ExpiriesExport(),
             new PaymentsExport(),

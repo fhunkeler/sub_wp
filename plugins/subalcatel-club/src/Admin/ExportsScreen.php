@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Exports\ExportRegistry;
+use Subalcatel\Club\Exports\MembershipDetailExport;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -64,6 +65,8 @@ final class ExportsScreen
                         <td data-label="Télécharger">
                             <?php if ($export->key() === 'event-roster') : ?>
                                 <em>Depuis la liste des inscrits d’un événement.</em>
+                            <?php elseif ($export->key() === 'membership-detail') : ?>
+                                <?php self::renderSeasonForm(); ?>
                             <?php else : ?>
                                 <?php foreach ([
                                     ExportRegistry::FORMAT_CSV  => 'CSV',
@@ -91,6 +94,44 @@ final class ExportsScreen
 
             <?php self::renderLog(); ?>
         </div>
+        <?php
+    }
+
+    /**
+     * Le détail des adhésions se produit saison par saison.
+     *
+     * Les autres exports décrivent l'état du club aujourd'hui ; celui-ci
+     * décrit une campagne. Sans ce choix, l'ouverture de la saison suivante
+     * rendrait la précédente inaccessible — au moment précis où le trésorier
+     * en a besoin pour boucler l'exercice.
+     */
+    private static function renderSeasonForm(): void
+    {
+        $campaigns = MembershipDetailExport::campaigns();
+
+        if ($campaigns === []) {
+            echo '<em>Aucune saison enregistrée.</em>';
+
+            return;
+        }
+        ?>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_export">
+            <input type="hidden" name="export" value="membership-detail">
+            <?php wp_nonce_field('sub_export'); ?>
+
+            <label class="screen-reader-text" for="sub-export-campaign">Saison</label>
+            <select name="campaign_id" id="sub-export-campaign" style="margin-bottom:6px;">
+                <?php foreach ($campaigns as $id => $title) : ?>
+                    <option value="<?php echo (int) $id; ?>"><?php echo esc_html($title); ?></option>
+                <?php endforeach; ?>
+            </select><br>
+
+            <button name="format" value="<?php echo esc_attr(ExportRegistry::FORMAT_CSV); ?>"
+                    class="button button-primary">CSV</button>
+            <button name="format" value="<?php echo esc_attr(ExportRegistry::FORMAT_XLSX); ?>"
+                    class="button">Excel</button>
+        </form>
         <?php
     }
 
@@ -155,6 +196,10 @@ final class ExportsScreen
 
         if (isset($_POST['list']) || isset($_GET['list'])) {
             $args['list'] = sanitize_text_field(wp_unslash((string) ($_POST['list'] ?? $_GET['list'])));
+        }
+
+        if (isset($_POST['campaign_id']) || isset($_GET['campaign_id'])) {
+            $args['campaign_id'] = absint($_POST['campaign_id'] ?? $_GET['campaign_id']);
         }
 
         ExportRegistry::stream($key, $format, $args);

@@ -1254,6 +1254,12 @@
 	margin-bottom: 32px;
 }
 
+.sub-block__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+}
+
 .sub-list {
 	list-style: none;
 	margin: 0;

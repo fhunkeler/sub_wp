@@ -103,22 +103,44 @@ final class Roles
     private const VERSION_OPTION = 'subalcatel_club_roles_version';
 
     /**
-     * Rôles attribuables depuis le site.
+     * Les rôles du club : ceux qui font d'un compte une personne du club.
      *
      * La liste est fermée, et `administrator` n'y est pas : promouvoir un
      * administrateur technique reste un geste d'administration WordPress, fait
      * depuis wp-admin par quelqu'un qui y a déjà accès. C'est la contrepartie
      * directe de la reprise Joomla, où quatorze comptes cumulaient ce rôle.
      *
+     * Elle sert deux fois : à dire ce que le site sait attribuer, et à dire
+     * qui il compte parmi ses adhérents. Les deux coïncident, et doivent
+     * continuer de le faire depuis un seul endroit — un annuaire et un export
+     * qui divergent sur ce point finissent par se contredire devant le bureau.
+     *
+     * @var array<string, string> rôle => libellé
+     */
+    public const CLUB_ROLES = [
+        self::GUEST  => 'Invité du club',
+        self::MEMBER => 'Membre',
+        self::OFFICE => 'Membre du bureau',
+    ];
+
+    /**
+     * Rôles attribuables depuis le site.
+     *
      * @return array<string, string> rôle => libellé
      */
     public static function assignable(): array
     {
-        return [
-            self::GUEST  => 'Invité du club',
-            self::MEMBER => 'Membre',
-            self::OFFICE => 'Membre du bureau',
-        ];
+        return self::CLUB_ROLES;
+    }
+
+    /**
+     * Les rôles qui font d'un compte un adhérent, pour un `role__in`.
+     *
+     * @return list<string>
+     */
+    public static function clubRoles(): array
+    {
+        return array_keys(self::CLUB_ROLES);
     }
 
     /**
@@ -138,7 +160,28 @@ final class Roles
             return false;
         }
 
-        return array_diff($user->roles, array_keys(self::assignable())) === [];
+        return array_diff($user->roles, self::clubRoles()) === [];
+    }
+
+    /**
+     * Cette personne fait-elle partie du club ?
+     *
+     * À ne pas confondre avec {@see self::isClubAccount()}, qui répond à une
+     * autre question : « ce compte se modifie-t-il depuis le site ? ». Celle-ci
+     * est plus large — un adhérent qui est aussi administrateur technique reste
+     * un adhérent, et n'a pas à disparaître de l'annuaire — et sert partout où
+     * le site traite quelqu'un comme une personne du club : annuaire, listes de
+     * diffusion, exports.
+     *
+     * Un compte purement technique n'a aucun de ces rôles. Il n'a pas d'adhésion
+     * à suivre, pas de certificat à fournir, et n'a rien à faire dans une liste
+     * d'adhérents où il figurerait éternellement « pas à jour ».
+     */
+    public static function isMemberOfClub(int $userId): bool
+    {
+        $user = get_userdata($userId);
+
+        return $user !== false && array_intersect($user->roles, self::clubRoles()) !== [];
     }
 
     /**

@@ -89,8 +89,13 @@ final class MembersScreen
     {
         $search = sanitize_text_field(wp_unslash((string) ($_GET['s'] ?? '')));
 
+        // Les rôles du club, et eux seuls : `administrator` figurait ici, ce qui
+        // faisait entrer les comptes techniques dans l'annuaire. Ils y
+        // apparaissaient éternellement « adhésion pas à jour » — ils n'ont pas
+        // d'adhésion à être à jour. Un adhérent qui est aussi administrateur
+        // porte, lui, un rôle du club : il reste listé.
         $users = get_users([
-            'role__in' => ['sub_member', 'sub_office', 'sub_guest', 'administrator'],
+            'role__in' => Roles::clubRoles(),
             'search'   => $search !== '' ? '*' . $search . '*' : '',
             'orderby'  => 'display_name',
             'number'   => 200,

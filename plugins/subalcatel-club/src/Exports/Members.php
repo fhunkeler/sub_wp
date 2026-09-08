@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Exports;
 
+use Subalcatel\Club\Identity\Roles;
+
 /**
  * Aides partagées par les exports de membres.
  */
@@ -15,7 +17,7 @@ final class Members
     public static function all(): array
     {
         return get_users([
-            'role__in' => ['sub_member', 'sub_office', 'sub_guest'],
+            'role__in' => Roles::clubRoles(),
             'orderby'  => 'display_name',
             'number'   => 2000,
         ]);

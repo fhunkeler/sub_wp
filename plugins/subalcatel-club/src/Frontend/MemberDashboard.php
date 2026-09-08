@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Frontend;
 
+use Subalcatel\Club\Admin\ClubMenu;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Events\EventService;
+use Subalcatel\Club\Identity\DerivedCapabilities;
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
@@ -77,6 +80,7 @@ final class MemberDashboard
             <?php self::renderNextOutings($userId); ?>
             <?php self::renderOpenOutings($userId); ?>
             <?php self::renderOrganiser($userId); ?>
+            <?php self::renderOffice(); ?>
             <?php self::renderShortcuts(); ?>
         </div>
         <?php
@@ -358,6 +362,71 @@ final class MemberDashboard
             </p>
         </section>
         <?php
+    }
+
+    /**
+     * L'entrée du bureau, pour qui exerce une responsabilité au club.
+     *
+     * La barre d'administration de WordPress porte déjà ce lien, mais elle se
+     * masque depuis le profil, se réduit à peu de chose sur un téléphone, et
+     * personne ne pense à la chercher. Retenir « /wp-admin/ » n'est pas
+     * davantage une réponse : c'est une adresse que la moitié du bureau ne
+     * connaît pas, et qui n'a aucune raison de s'apprendre.
+     *
+     * Le critère n'est pas un rôle nommé : le trésorier, le secrétariat et le
+     * responsable des sorties ne partagent aucune capacité, et chacun doit
+     * trouver la porte. Voir {@see self::isOfficeMember()} pour ce qu'il
+     * écarte.
+     */
+    private static function renderOffice(): void
+    {
+        if (!self::isOfficeMember(get_current_user_id())) {
+            return;
+        }
+        ?>
+        <section class="sub-block">
+            <h2 class="sub-block__title">Vous êtes au bureau</h2>
+
+            <p class="sub-help">
+                Dossiers d’adhésion, annuaire, événements, exports : la gestion du club
+                se fait dans l’administration. Vous n’y trouverez que ce que vos
+                responsabilités permettent.
+            </p>
+
+            <p class="sub-block__links">
+                <a class="sub-button sub-button--small"
+                   href="<?php echo esc_url(admin_url('admin.php?page=' . ClubMenu::SLUG)); ?>">
+                    Administration du club
+                </a>
+            </p>
+        </section>
+        <?php
+    }
+
+    /**
+     * Cette personne exerce-t-elle une responsabilité au bureau ?
+     *
+     * Plus étroit que {@see ClubMenu::hasAnyClubCapability()}, et
+     * délibérément : un P3 autonome détient `sub_create_exploration_event`,
+     * non parce qu'il siège au bureau mais parce qu'il a le niveau. Lui
+     * annoncer « vous êtes au bureau » serait faux, et l'envoyer dans
+     * l'administration serait un détour — la rubrique « Vous encadrez » du
+     * même tableau de bord lui ouvre déjà sa sortie, en façade.
+     *
+     * On écarte donc les capacités que son niveau lui vaut, et on regarde ce
+     * qui reste.
+     */
+    private static function isOfficeMember(int $userId): bool
+    {
+        $derivees = DerivedCapabilities::forUser($userId);
+
+        foreach (array_keys(Roles::CAPABILITIES) as $capacite) {
+            if (!isset($derivees[$capacite]) && user_can($userId, $capacite)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

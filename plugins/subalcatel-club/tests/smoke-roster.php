@@ -294,6 +294,38 @@ if (Pages::exists(Pages::MY_OUTINGS)) {
     echo "     (page non installée : réinstallez le plan du site pour vérifier le lien)\n";
 }
 
+// --- L'entrée du bureau -------------------------------------------------------
+echo "\n--- Accès à l’administration depuis l’espace membre ---\n";
+
+$bureau = wp_insert_user([
+    'user_login'   => 'demo_' . wp_generate_password(8, false),
+    'user_email'   => wp_generate_password(8, false) . '@subalcatel.test',
+    'user_pass'    => wp_generate_password(),
+    'display_name' => 'Membre du bureau',
+    'role'         => Roles::OFFICE,
+]);
+
+$lienAdmin = admin_url('admin.php?page=' . \Subalcatel\Club\Admin\ClubMenu::SLUG);
+
+wp_set_current_user($bureau);
+$bureauVue = MemberDashboard::render();
+$check('Le bureau trouve l’administration sans connaître /wp-admin/',
+    str_contains($bureauVue, $lienAdmin));
+$check('Le bloc se nomme', str_contains($bureauVue, 'Vous êtes au bureau'));
+
+wp_set_current_user($curieux);
+$check('Un adhérent ordinaire ne le voit pas',
+    !str_contains(MemberDashboard::render(), $lienAdmin));
+
+// Le cas qui distingue ce bloc du menu d'administration : un P5 détient
+// `sub_create_exploration_event` par son niveau, pas par une fonction. Lui
+// annoncer « vous êtes au bureau » serait faux, et le détour par
+// l'administration inutile — « Vous encadrez » lui ouvre déjà sa sortie.
+wp_set_current_user($dp);
+$check('Un directeur de plongée non plus',
+    !str_contains(MemberDashboard::render(), $lienAdmin),
+    'sa capacité vient de son niveau, pas d’une fonction au bureau');
+
 // --- Nettoyage ---------------------------------------------------------------
 
 wp_set_current_user(0);
@@ -304,7 +336,7 @@ foreach ([$eventId, $autre] as $id) {
     $wpdb->delete("{$wpdb->prefix}sub_events", ['id' => $id]);
 }
 
-foreach ([$dp, $lea, $noe, $curieux, $autreDp] as $id) {
+foreach ([$dp, $lea, $noe, $curieux, $autreDp, $bureau] as $id) {
     sub_test_clean_documents($id);
     wp_delete_user($id);
 }

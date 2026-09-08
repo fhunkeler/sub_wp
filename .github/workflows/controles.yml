@@ -9,10 +9,22 @@
 #
 # Trois contrôles, du moins cher au plus utile :
 #
-#   1. `code`    — syntaxe PHP, et archives constructibles sans fuite d'identifiant ;
-#   2. `fumee`   — les 28 suites du plugin, sur un WordPress neuf ;
-#   3. `version` — un rappel, sans valeur bloquante, quand le code livré bouge
-#                  sans que son numéro suive.
+#   1. `code`       — syntaxe PHP, et archives constructibles sans fuite d'identifiant ;
+#   2. `fumee`      — les 28 suites du plugin, sur un WordPress neuf ;
+#   3. `convention` — les messages de commit, dont le numéro de la prochaine
+#                     version se déduit désormais.
+#
+# Le troisième remplace un rappel qui n'échouait jamais. Il n'a pas suffi :
+# deux fusions sont parties sans release, une troisième a publié une archive
+# sans rien dedans, et l'avertissement qui l'annonçait n'a été lu par personne.
+# Le numéro étant maintenant calculé par `version.py` à partir des messages,
+# un message hors convention n'est plus une négligence de forme — il rend le
+# calcul arbitraire.
+#
+# Seuls les commits sont contrôlés, pas le titre de la demande : `main`
+# n'accepte que des fusions, et le titre ne devient jamais un message de
+# commit. Le jour où l'on passerait au « squash », c'est lui qu'il faudrait
+# contrôler à leur place.
 #
 # Pour qu'ils protègent réellement `main`, il faut les déclarer requis dans
 # *Settings → Rules*. Un contrôle qu'on peut ignorer finit toujours ignoré.
@@ -172,8 +184,8 @@ jobs:
           echo "$echecs suite(s) en échec." >> "$GITHUB_STEP_SUMMARY"
           exit $(( echecs > 0 ))
 
-  version:
-    name: Numéro de version
+  convention:
+    name: Convention des messages
     runs-on: ubuntu-latest
 
     steps:
@@ -181,43 +193,46 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Le code livré a-t-il changé sans son numéro ?
+      - name: Les messages entrent-ils dans la convention ?
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           TETE: ${{ github.event.pull_request.head.sha }}
         run: |
-          # Ce contrôle **n'échoue jamais**, et c'est délibéré. `release.yml` ne
-          # publie que si le numéro a bougé, précisément pour qu'une correction
-          # de faute de frappe n'envoie pas une mise à jour à installer aux
-          # sites : ne pas monter la version est donc un choix légitime.
+          # Ce contrôle **échoue**, là où celui qu'il remplace se contentait
+          # d'avertir. L'avertissement ne coûtait rien à ignorer, et personne
+          # ne l'a lu : deux fusions sont parties sans release, une troisième
+          # a publié une archive vide.
           #
-          # Ce qui ne l'est pas, c'est de le faire sans le savoir. Corriger un
-          # défaut, fusionner, et découvrir des semaines plus tard que les sites
-          # ne l'ont jamais reçu — voilà ce que ce rappel évite.
+          # La rigueur se joue ici, à l'entrée. Elle ne peut pas se jouer à la
+          # publication : l'historique déjà écrit ne se réécrit pas, et un
+          # calcul qui refuserait de tourner dessus ne publierait plus rien.
           [ -n "$BASE" ] || exit 0
 
-          modifies=$(git diff --name-only "$BASE" "$TETE")
+          # Le résultat est mis de côté avant d'être relu : les étapes tournent
+          # sous `bash -eo pipefail`, et un `| tee` ferait sortir l'étape sur
+          # l'échec de python — avant d'avoir écrit le résumé qui dit pourquoi.
+          etat=0
+          python3 version.py --verifier "$BASE" "$TETE" > "$RUNNER_TEMP/convention.log" 2>&1 || etat=$?
 
-          rappel() {
-            chemin="$1"; entete="$2"; quoi="$3"
+          cat "$RUNNER_TEMP/convention.log"
 
-            # `tests/` sort de l'archive livrée : y toucher ne change rien pour
-            # les sites, et n'appelle donc aucun numéro.
-            touche=$(echo "$modifies" | grep "^${chemin}" | grep -v "^${chemin}tests/" || true)
-            [ -n "$touche" ] || return 0
+          {
+            echo '```'
+            cat "$RUNNER_TEMP/convention.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
-            if git diff "$BASE" "$TETE" -- "$entete" | grep -q '^+.*Version:'; then
-              echo "$quoi : version montée." >> "$GITHUB_STEP_SUMMARY"
-              return 0
-            fi
+          if [ "$etat" -ne 0 ]; then
+            echo "::error::Un ou plusieurs messages de commit sont hors convention."
+          fi
 
-            echo "::warning file=${entete}::${quoi} modifié sans montée de version — les sites ne verront pas cette modification."
-            {
-              echo "**$quoi** : code modifié, version inchangée."
-              echo ""
-              echo "Volontaire pour une retouche cosmétique ; à corriger dans \`$entete\` si la modification doit atteindre les sites."
-            } >> "$GITHUB_STEP_SUMMARY"
-          }
+          exit "$etat"
 
-          rappel 'plugins/subalcatel-club/' 'plugins/subalcatel-club/subalcatel-club.php' 'Extension'
-          rappel 'themes/subalcatel/'      'themes/subalcatel/style.css'                 'Thème'
+      - name: Ce que cette demande publiera
+        run: |
+          # Un rappel, sans valeur bloquante : voir d'avance le numéro que la
+          # fusion produira, plutôt que de le découvrir après.
+          for paquet in plugin theme; do
+            python3 version.py "$paquet" 2>&1 >/dev/null | sed 's/^/  /' \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+          done

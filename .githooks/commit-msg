@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Refuse un message de commit hors convention.
+#
+# Depuis que le numéro de version est calculé, le message de commit n'est plus
+# de la prose : il décide du palier de la prochaine release. `feat:` monte la
+# mineure, tout le reste le correctif, un `!` la majeure. Un sujet qui n'entre
+# dans aucune de ces cases rendrait le calcul arbitraire.
+#
+# La règle qui tient vraiment est le contrôle de la pull request, côté serveur —
+# celui-ci sert à autre chose : arrêter la main avant le commit, quand corriger
+# coûte encore un `--amend` et non un `rebase -i`.
+#
+# `version.py` porte la définition de la convention, et lui seul : l'avoir en
+# double ici finirait par la faire diverger de celle qui décide réellement du
+# numéro.
+
+racine=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+# Un dépôt sans le script — un sous-module, un ancien clone — ne doit pas se
+# retrouver incapable de commiter.
+[ -f "$racine/version.py" ] || exit 0
+
+# Une fusion, un `revert` ou un `squash` fabriquent leur message tout seuls :
+# les refuser interdirait des opérations que la convention n'a pas à juger.
+case "$2" in
+    merge|squash) exit 0 ;;
+esac
+
+python3 "$racine/version.py" --verifier-message "$1" || {
+    cat >&2 <<'FIN'
+
+  Le message est conservé : il est encore dans le fichier de rédaction.
+  Relancer avec un sujet corrigé.
+
+FIN
+    exit 1
+}
+
+exit 0

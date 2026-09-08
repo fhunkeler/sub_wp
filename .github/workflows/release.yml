@@ -5,19 +5,32 @@
 # fonctionne quelle que soit la façon dont la demande est fusionnée (merge,
 # squash ou rebase), là où l'autre laisse passer des cas selon la stratégie.
 #
-# **La version fait foi, pas la fusion.** Chaque exécution lit la version
-# déclarée dans l'en-tête, et ne publie que si aucune release ne la porte déjà.
-# Une fusion qui ne touche pas au numéro de version ne publie donc rien : sans
-# ce garde-fou, chaque correction de faute de frappe fabriquerait une release,
-# et les sites verraient une mise à jour à installer sans rien à y gagner.
+# **Le numéro n'est plus saisi, il est calculé.** `version.py` lit l'étiquette
+# de la dernière release, les commits qui ont touché l'archive depuis, et en
+# déduit le palier. Deux pannes symétriques l'ont rendu nécessaire :
 #
-# Monter une version, c'est donc éditer l'en-tête dans la branche :
-#   plugin → plugins/subalcatel-club/subalcatel-club.php   (« Version: »)
-#   thème  → themes/subalcatel/style.css                   (« Version: »)
+#   - une fusion a monté l'extension en 0.14.4 alors qu'elle n'ajoutait que des
+#     fichiers de `.github/`, absents de l'archive : une release proposée aux
+#     sites, sans rien dedans ;
+#   - deux fusions suivantes ont livré un export et un écran de plus sans
+#     qu'aucune release ne les emporte, le numéro ayant déjà été consommé.
 #
-# L'archive est fabriquée par `build-packages.py`, le même script qu'en local :
-# lui seul donne au zip le dossier racine attendu par WordPress, et refuse de
-# construire si un identifiant traîne dans les fichiers.
+# Les deux venaient de la même cause : le numéro était une intention posée dans
+# une branche, alors que « ce qui est réellement livré » ne se connaît que sur
+# `main`, au moment de construire l'archive.
+#
+# **Pourquoi le numéro est réécrit dans le dépôt**, et pas seulement injecté
+# dans l'archive : le site de démonstration tourne directement sur ce dépôt,
+# et la constante `VERSION` date le cache des feuilles de style et des scripts.
+# Un dépôt qui resterait en arrière servirait le nouveau code sous l'ancien
+# numéro.
+#
+# **Et pourquoi cette réécriture ne boucle pas** : le commit qu'elle produit
+# touche un fichier empaqueté, donc appellerait une publication à son tour.
+# L'étiquette est posée *sur ce commit-là*. L'exécution suivante, déclenchée
+# par ce même push, cherche les commits postérieurs à l'étiquette et n'en
+# trouve aucun. Elle s'arrête d'elle-même, sans marqueur spécial dans le
+# message.
 
 name: Publier les versions
 
@@ -29,77 +42,128 @@ on:
 permissions:
   contents: write
 
+# Deux fusions rapprochées écriraient toutes deux sur `main`, et la seconde
+# serait rejetée. Elles attendent leur tour — sans annuler la précédente, qui
+# a peut-être déjà publié.
+concurrency:
+  group: publier
+  cancel-in-progress: false
+
 jobs:
   publier:
     runs-on: ubuntu-latest
 
-    strategy:
-      # Le thème ne doit pas rester en rade parce que l'extension a échoué.
-      fail-fast: false
-      matrix:
-        include:
-          - slug: subalcatel-club
-            prefixe: plugin
-            entete: plugins/subalcatel-club/subalcatel-club.php
-          - slug: subalcatel
-            prefixe: theme
-            entete: themes/subalcatel/style.css
-
     steps:
+      # `fetch-depth: 0` et les étiquettes : le calcul lit tout l'historique
+      # depuis la dernière release. Un clone superficiel ne verrait ni les
+      # étiquettes, ni les commits à classer.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
-      - name: Lire la version déclarée
-        id: version
+      - name: Calculer les numéros
+        id: calcul
         run: |
-          # Un en-tête de plugin porte « * Version: », celui d'un thème
-          # « Version: » en début de ligne. Une seule expression pour les deux.
-          VERSION=$(sed -n 's/^[[:space:]]*\*\{0,1\}[[:space:]]*Version:[[:space:]]*\([0-9][^[:space:]]*\).*/\1/p' \
-                    "${{ matrix.entete }}" | head -1 | tr -d '\r')
+          publier=non
 
-          if [ -z "$VERSION" ]; then
-            echo "Aucune version lisible dans ${{ matrix.entete }}" >&2
-            exit 1
-          fi
+          for paquet in plugin theme; do
+            # La sortie standard porte les valeurs, l'erreur standard le récit :
+            # l'une se relit par un script, l'autre par une personne.
+            python3 version.py "$paquet" > "$RUNNER_TEMP/$paquet.env" 2> "$RUNNER_TEMP/$paquet.log"
 
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=${{ matrix.prefixe }}-$VERSION" >> "$GITHUB_OUTPUT"
+            cat "$RUNNER_TEMP/$paquet.log"
+            {
+              echo '```'
+              cat "$RUNNER_TEMP/$paquet.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Cette version est-elle déjà publiée ?
-        id: etat
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            # Un `if`, et non `grep … && publier=oui` : les étapes tournent
+            # sous `bash -e`, où une liste `&&` dont le dernier exécuté échoue
+            # vaut un échec. Le paquet sans rien à publier ferait sortir
+            # l'étape.
+            if grep -q '^publier=oui' "$RUNNER_TEMP/$paquet.env"; then
+              publier=oui
+            fi
+          done
+
+          echo "publier=$publier" >> "$GITHUB_OUTPUT"
+
+      - name: Poser les numéros et étiqueter
+        id: poser
+        if: steps.calcul.outputs.publier == 'oui'
         run: |
-          if gh release view "${{ steps.version.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "publier=non" >> "$GITHUB_OUTPUT"
-            echo "${{ matrix.slug }} — ${{ steps.version.outputs.version }} déjà publiée, rien à faire." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "publier=oui" >> "$GITHUB_OUTPUT"
-          fi
+          lire() { grep -m1 "^$2=" "$RUNNER_TEMP/$1.env" | cut -d= -f2- || true; }
+
+          resume=""
+
+          for paquet in plugin theme; do
+            [ "$(lire "$paquet" publier)" = "oui" ] || continue
+
+            version=$(lire "$paquet" version)
+            python3 version.py "$paquet" --poser "$version"
+
+            case "$paquet" in
+              plugin) resume="${resume:+$resume, }extension en $version" ;;
+              theme)  resume="${resume:+$resume, }thème en $version" ;;
+            esac
+          done
+
+          # Le premier caractère en majuscule, comme les messages voisins.
+          resume="$(printf '%s' "${resume:0:1}" | tr '[:lower:]' '[:upper:]')${resume:1}"
+
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add plugins themes
+          git commit -m "$resume" -m \
+            "Numéro calculé par la publication, à partir des commits depuis la dernière release."
+          git push origin HEAD:main
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Construire les archives
-        if: steps.etat.outputs.publier == 'oui'
+        if: steps.calcul.outputs.publier == 'oui'
         run: python3 build-packages.py dist
 
-      - name: Publier la release
-        if: steps.etat.outputs.publier == 'oui'
+      - name: Publier les releases
+        if: steps.calcul.outputs.publier == 'oui'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ARCHIVE="dist/${{ matrix.slug }}-${{ steps.version.outputs.version }}.zip"
+          lire() { grep -m1 "^$2=" "$RUNNER_TEMP/$1.env" | cut -d= -f2- || true; }
 
-          # Le script nomme l'archive d'après la version qu'il a lue dans
-          # l'en-tête. Si elle manque ici, c'est que la construction a produit
-          # autre chose que ce qu'on s'apprête à annoncer — on s'arrête.
-          if [ ! -f "$ARCHIVE" ]; then
-            echo "Archive absente : $ARCHIVE" >&2
-            ls -l dist >&2
-            exit 1
-          fi
+          for paquet in plugin theme; do
+            [ "$(lire "$paquet" publier)" = "oui" ] || continue
 
-          gh release create "${{ steps.version.outputs.tag }}" "$ARCHIVE" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "${{ matrix.slug }} ${{ steps.version.outputs.version }}" \
-            --generate-notes
+            version=$(lire "$paquet" version)
+            etiquette=$(lire "$paquet" etiquette)
 
-          echo "${{ matrix.slug }} — ${{ steps.version.outputs.version }} publiée." >> "$GITHUB_STEP_SUMMARY"
+            case "$paquet" in
+              plugin) slug=subalcatel-club ;;
+              theme)  slug=subalcatel ;;
+            esac
+
+            ARCHIVE="dist/$slug-$version.zip"
+
+            # Le script nomme l'archive d'après la version qu'il a lue dans
+            # l'en-tête. Si elle manque ici, c'est que la construction a produit
+            # autre chose que ce qu'on s'apprête à annoncer — on s'arrête.
+            if [ ! -f "$ARCHIVE" ]; then
+              echo "Archive absente : $ARCHIVE" >&2
+              ls -l dist >&2
+              exit 1
+            fi
+
+            # L'étiquette se pose sur le commit qui porte le numéro, et non sur
+            # celui qui a déclenché l'exécution : c'est ce décalage d'un commit
+            # qui empêche la publication de se rappeler elle-même sans fin.
+            gh release create "$etiquette" "$ARCHIVE" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "${{ steps.poser.outputs.sha }}" \
+              --title "$slug $version" \
+              --generate-notes
+
+            echo "$slug — $version publiée." >> "$GITHUB_STEP_SUMMARY"
+          done

@@ -16,6 +16,7 @@
 !/.github/
 !/.githooks/
 !/build-packages.py
+!/version.py
 !/README.md
 
 !/plugins/

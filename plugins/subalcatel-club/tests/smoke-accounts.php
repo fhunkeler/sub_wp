@@ -182,10 +182,43 @@ $check('Un compte sans marquage est considéré validé',
     $policy->hasApprovedAccount($legacy)->allowed,
     'sinon la reprise du Joomla bloquerait 330 adhérents d’un coup');
 
+// --- Comptes techniques -------------------------------------------------------
+echo "\n--- Un compte technique n’est pas un adhérent ---\n";
+
+// Un administrateur sans rôle du club : le compte de dépannage, celui qui
+// existe sur tous les sites. Il n’a pas d’adhésion à suivre, pas de certificat
+// à fournir, et figurait pourtant dans l’annuaire, éternellement « pas à jour ».
+$technique = $makeUser('administrator');
+
+$check('L’administrateur technique n’est pas du club', !Roles::isMemberOfClub($technique));
+$check('Il ne sort pas de l’annuaire',
+    !in_array($technique, wp_list_pluck(\Subalcatel\Club\Exports\Members::all(), 'ID'), true));
+
+// Il possède toutes les capacités — c’est le but, il dépanne le bureau — et se
+// retrouvait par là dans la liste de diffusion du bureau.
+$check('Il a bien la capacité du bureau', user_can($technique, 'sub_manage_memberships'),
+    'ce n’est pas la capacité qui doit l’exclure');
+$check('Et n’est pourtant pas dans la liste « Bureau »',
+    !in_array($technique, \Subalcatel\Club\Communication\MailingLists::members('bureau'), true));
+
+// Le cas inverse, qui doit continuer de passer : une personne du club qui est
+// aussi administratrice reste une adhérente.
+$mixte = $makeUser(Roles::MEMBER);
+(new WP_User($mixte))->add_role('administrator');
+
+$check('Un adhérent administrateur reste du club', Roles::isMemberOfClub($mixte));
+$check('Et reste dans l’annuaire',
+    in_array($mixte, wp_list_pluck(\Subalcatel\Club\Exports\Members::all(), 'ID'), true),
+    'le rôle technique s’ajoute au sien, il ne l’efface pas');
+
+$check('Son compte ne se modifie pas depuis le site pour autant',
+    !Roles::isClubAccount($mixte),
+    'deux questions distinctes : appartenir au club, et être modifiable ici');
+
 // --- Nettoyage ----------------------------------------------------------------
 require_once ABSPATH . 'wp-admin/includes/user.php';
 
-foreach ([$office, $newcomer, $rejected, $plainMember, $another, $legacy] as $id) {
+foreach ([$office, $newcomer, $rejected, $plainMember, $another, $legacy, $technique, $mixte] as $id) {
     $wpdb->delete("{$wpdb->prefix}sub_notification_log", ['recipient_id' => $id]);
     $wpdb->delete("{$wpdb->prefix}sub_applications", ['user_id' => $id]);
     wp_delete_user($id);

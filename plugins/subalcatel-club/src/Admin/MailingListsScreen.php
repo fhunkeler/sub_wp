@@ -8,6 +8,7 @@ use RuntimeException;
 use Subalcatel\Club\Communication\CustomGroups;
 use Subalcatel\Club\Communication\MailingLists;
 use Subalcatel\Club\Exports\ExportRegistry;
+use Subalcatel\Club\Identity\Roles;
 
 /**
  * Écran « Listes de diffusion ».
@@ -155,7 +156,13 @@ final class MailingListsScreen
         }
 
         $current = CustomGroups::members($slug);
-        $users   = get_users(['orderby' => 'display_name', 'number' => 500]);
+        // Un groupe de diffusion se compose d'adhérents : proposer les comptes
+        // techniques reviendrait à pouvoir écrire au robot du site.
+        $users   = get_users([
+            'role__in' => Roles::clubRoles(),
+            'orderby'  => 'display_name',
+            'number'   => 500,
+        ]);
         ?>
         <h2><?php echo esc_html((string) $group['label']); ?></h2>
         <p>

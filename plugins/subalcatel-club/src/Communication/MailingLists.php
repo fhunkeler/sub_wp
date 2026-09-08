@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Communication;
 
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Identity\Roles;
 
 /**
  * Listes de diffusion, calculées et jamais tenues à la main.
@@ -234,7 +235,11 @@ final class MailingLists
     {
         $ids = [];
 
-        foreach (get_users(['fields' => 'ID']) as $userId) {
+        // Restreint aux rôles du club, et pas seulement à la capacité :
+        // l'administrateur technique les possède toutes — c'est le but, il
+        // dépanne le bureau — et se retrouvait donc dans la liste « Bureau ».
+        // Un compte de dépannage n'a pas à recevoir le courrier du club.
+        foreach (get_users(['role__in' => Roles::clubRoles(), 'fields' => 'ID']) as $userId) {
             if (user_can((int) $userId, $capability)) {
                 $ids[] = (int) $userId;
             }

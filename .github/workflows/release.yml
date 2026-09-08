@@ -117,9 +117,19 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
           git add plugins themes
-          git commit -m "$resume" -m \
-            "Numéro calculé par la publication, à partir des commits depuis la dernière release."
-          git push origin HEAD:main
+
+          # Le cas où quelqu'un a monté le numéro à la main dans sa branche, et
+          # est tombé juste : les en-têtes portent déjà ce que le calcul a
+          # trouvé, il n'y a rien à commiter. `git commit` échouerait, et avec
+          # lui la publication — pour un dépôt pourtant en bon état.
+          if git diff --cached --quiet; then
+            echo "Les en-têtes portaient déjà ces numéros — rien à commiter." \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            git commit -m "$resume" -m \
+              "Numéro calculé par la publication, à partir des commits depuis la dernière release."
+            git push origin HEAD:main
+          fi
 
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 

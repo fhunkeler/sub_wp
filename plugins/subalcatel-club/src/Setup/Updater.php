@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Setup;
 
+use const Subalcatel\Club\PLUGIN_FILE;
 use const Subalcatel\Club\VERSION;
 
 /**
@@ -54,6 +55,9 @@ final class Updater
 
     private const CACHE = 'subalcatel_releases';
 
+    /** Page d'affichage des notes du thème, ouverte dans la fenêtre modale. */
+    private const ACTION_NOTES = 'sub_notes_de_version';
+
     /**
      * GitHub limite l'API anonyme à 60 requêtes par heure **et par adresse IP**.
      * Sur un hébergement mutualisé, cette adresse est partagée avec des
@@ -73,6 +77,12 @@ final class Updater
         add_filter('auto_update_theme', [self::class, 'refuserAutomatiqueTheme'], 10, 2);
 
         add_filter('http_request_args', [self::class, 'authentifier'], 10, 2);
+
+        // « Afficher les détails de la version » : WordPress interroge
+        // wordpress.org, où cette extension n'existe pas, et la fenêtre reste
+        // vide. Ces deux-là servent les notes du dépôt à sa place.
+        add_filter('plugins_api', [self::class, 'ficheExtension'], 10, 3);
+        add_action('admin_post_' . self::ACTION_NOTES, [self::class, 'afficherNotesTheme']);
 
         // Purge du cache sur clic de « Vérifier à nouveau » : sans cela, le
         // bureau croit le bouton cassé pendant six heures.
@@ -136,7 +146,10 @@ final class Updater
             'id'      => 'https://github.com/' . self::DEPOT,
             'theme'   => self::THEME_SLUG,
             'version' => $release['version'],
-            'url'     => $release['url'],
+            // WordPress place cette adresse dans une iframe. Celle de GitHub y
+            // reste blanche — le site refuse d'être encadré, et c'est très bien
+            // ainsi. On sert donc les notes nous-mêmes.
+            'url'     => self::urlNotesTheme(),
             'package' => $release['package'],
         ];
     }
@@ -163,6 +176,119 @@ final class Updater
         return $feuille === self::THEME_SLUG
             ? (bool) apply_filters('subalcatel_auto_update_theme', false)
             : $choix;
+    }
+
+    /**
+     * Fiche de l'extension pour « Afficher les détails de la version ».
+     *
+     * WordPress construit ce lien dès que l'offre porte un `slug`, et le mène à
+     * `plugin-information`, qui interroge wordpress.org. Cette extension n'y est
+     * pas publiée : la fenêtre s'ouvrait sur une erreur, et les notes de version
+     * n'étaient lisibles que sur GitHub — c'est-à-dire par personne au bureau.
+     *
+     * Le filtre court-circuite l'appel et rend la fiche du dépôt. `external`
+     * retire le lien « Page de l'extension sur WordPress.org », qui ne mènerait
+     * nulle part.
+     *
+     * @param object|array<string,mixed>|false $resultat
+     * @param object $arguments
+     * @return object|array<string,mixed>|false
+     */
+    public static function ficheExtension(mixed $resultat, string $action, mixed $arguments): mixed
+    {
+        if ($action !== 'plugin_information') {
+            return $resultat;
+        }
+
+        $slug = is_object($arguments) ? ($arguments->slug ?? '') : ($arguments['slug'] ?? '');
+
+        if ($slug !== self::PLUGIN_SLUG) {
+            return $resultat;
+        }
+
+        $release = self::derniere(self::PLUGIN_SLUG);
+
+        if ($release === null) {
+            return $resultat;
+        }
+
+        // Nom, socle et version de PHP se lisent dans l'en-tête de l'extension :
+        // les recopier ici les ferait diverger au premier relèvement.
+        $entete = get_file_data(PLUGIN_FILE, [
+            'Name'        => 'Plugin Name',
+            'Author'      => 'Author',
+            'RequiresWP'  => 'Requires at least',
+            'RequiresPHP' => 'Requires PHP',
+        ]);
+
+        return (object) [
+            'name'          => $entete['Name'],
+            'slug'          => self::PLUGIN_SLUG,
+            'version'       => $release['version'],
+            'author'        => $entete['Author'],
+            'homepage'      => 'https://github.com/' . self::DEPOT,
+            'download_link' => $release['package'],
+            'last_updated'  => $release['date'],
+            'requires'      => $entete['RequiresWP'],
+            'requires_php'  => $entete['RequiresPHP'],
+            'external'      => true,
+            'sections'      => [
+                'changelog' => self::notesEnHtml($release),
+            ],
+        ];
+    }
+
+    /**
+     * Notes de version du thème, dans la fenêtre modale.
+     *
+     * Le thème n'a pas d'équivalent de `plugins_api` : WordPress encadre
+     * directement l'adresse portée par l'offre. D'où cette page, minuscule, qui
+     * rend le même contenu que la fiche de l'extension.
+     */
+    public static function afficherNotesTheme(): void
+    {
+        if (!current_user_can('update_themes')) {
+            wp_die('Droit de mise à jour des thèmes requis.', 403);
+        }
+
+        $release = self::derniere(self::THEME_SLUG);
+
+        iframe_header('Notes de version');
+
+        printf(
+            '<div class="wrap" style="margin:16px 24px;"><h2>%s</h2>%s</div>',
+            esc_html($release === null ? 'Notes de version' : 'Thème Sub Alcatel ' . $release['version']),
+            $release === null
+                ? '<p>Aucune version publiée n’a pu être lue.</p>'
+                : wp_kses_post(self::notesEnHtml($release))
+        );
+
+        iframe_footer();
+        exit;
+    }
+
+    private static function urlNotesTheme(): string
+    {
+        return add_query_arg(['action' => self::ACTION_NOTES], admin_url('admin-post.php'));
+    }
+
+    /**
+     * @param array{version:string,url:string,notes:string} $release
+     */
+    private static function notesEnHtml(array $release): string
+    {
+        $notes = ReleaseNotes::toHtml($release['notes']);
+
+        // Une release publiée sans notes reste une release : mieux vaut le
+        // renvoi au dépôt qu'une fenêtre vide, qui ressemble à une panne.
+        if (trim($notes) === '') {
+            $notes = sprintf(
+                '<p>Cette version n’est accompagnée d’aucune note. <a href="%s">Voir la release sur GitHub</a>.</p>',
+                esc_url($release['url'])
+            );
+        }
+
+        return $notes;
     }
 
     /**
@@ -218,10 +344,23 @@ final class Updater
     // -- Interrogation du dépôt -----------------------------------------------
 
     /**
+     * Version publiée la plus haute, quelle que soit celle installée.
+     *
+     * La fiche s'ouvre aussi quand rien n'est à mettre à jour — depuis la liste
+     * des extensions, par exemple. Comparer à l'installée n'y rendrait rien.
+     *
+     * @return array{slug:string,version:string,package:string,url:string,notes:string,date:string}|null
+     */
+    private static function derniere(string $slug): ?array
+    {
+        return self::plusRecente($slug, '0.0.0');
+    }
+
+    /**
      * Version publiée la plus haute pour une extension, si elle dépasse celle
      * installée.
      *
-     * @return array{version:string,package:string,url:string}|null
+     * @return array{slug:string,version:string,package:string,url:string,notes:string,date:string}|null
      */
     private static function plusRecente(string $slug, string $installee): ?array
     {
@@ -250,7 +389,7 @@ final class Updater
      * Un seul appel réseau sert le plugin et le thème : ils partagent le dépôt,
      * donc la liste.
      *
-     * @return list<array{slug:string,version:string,package:string,url:string}>
+     * @return list<array{slug:string,version:string,package:string,url:string,notes:string,date:string}>
      */
     private static function releases(): array
     {
@@ -286,7 +425,7 @@ final class Updater
 
     /**
      * @param array<int,mixed> $brut
-     * @return list<array{slug:string,version:string,package:string,url:string}>
+     * @return list<array{slug:string,version:string,package:string,url:string,notes:string,date:string}>
      */
     private static function interpreter(array $brut): array
     {
@@ -340,6 +479,8 @@ final class Updater
                 'version' => $version,
                 'package' => $paquet,
                 'url'     => (string) ($release['html_url'] ?? 'https://github.com/' . self::DEPOT),
+                'notes'   => (string) ($release['body'] ?? ''),
+                'date'    => (string) ($release['published_at'] ?? ''),
             ];
         }
 

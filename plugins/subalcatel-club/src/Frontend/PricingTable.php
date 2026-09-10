@@ -173,7 +173,9 @@ final class PricingTable
                             <?php if ($index === 0) : ?>
                                 <th scope="row" rowspan="<?php echo count($rows); ?>">
                                     <?php echo esc_html($option->label); ?>
-                                    <?php if ($option->isRequired) : ?>
+                                    <?php if ($option->isAutomatic()) : ?>
+                                        <span class="sub-tag">ajoutée d’office</span>
+                                    <?php elseif ($option->isRequired) : ?>
                                         <span class="sub-tag">obligatoire</span>
                                     <?php endif; ?>
                                     <?php $scope = self::scopeOf($option, $plans, $options); ?>
@@ -215,7 +217,7 @@ final class PricingTable
         <div class="sub-pricing__cta">
             <p>
                 <strong>Le montant exact dépend de votre situation.</strong>
-                Des remises peuvent s’appliquer — comité d’entreprise, tarif jeune. Le
+                Des remises peuvent s’appliquer, selon l’origine de votre adhésion. Le
                 formulaire d’adhésion affiche le détail du calcul au fur et à mesure,
                 avant tout engagement.
             </p>

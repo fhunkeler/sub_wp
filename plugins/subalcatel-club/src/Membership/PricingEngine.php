@@ -36,7 +36,8 @@ final class PricingEngine
         array $options,
         array $rules,
     ): Quote {
-        $lines = [];
+        $answers = self::resolveAnswers($plan, $answers, $options);
+        $lines   = [];
 
         // 1. Prix de base du plan.
         $lines[] = new QuoteLine(
@@ -107,5 +108,39 @@ final class PricingEngine
         }
 
         return new Quote($lines);
+    }
+
+    /**
+     * Réponses réellement retenues pour un plan donné.
+     *
+     * Trois choses s'y règlent d'un coup, avant tout calcul : une option
+     * automatique se répond elle-même, une case décochée vaut « non », et une
+     * option étrangère au plan choisi voit sa réponse écartée — c'est ce qui
+     * empêche de facturer, ou de faire apparaître, une option forgée depuis le
+     * navigateur.
+     *
+     * @param array<string, string|list<string>> $answers
+     * @param list<Option> $options
+     * @return array<string, string|list<string>>
+     */
+    public static function resolveAnswers(Plan $plan, array $answers, array $options): array
+    {
+        $resolved = $answers;
+
+        foreach ($options as $option) {
+            $value = $option->appliesToPlan($plan->slug)
+                ? $option->answerFrom($answers[$option->name] ?? null)
+                : null;
+
+            if ($value === null || $value === '' || $value === []) {
+                unset($resolved[$option->name]);
+
+                continue;
+            }
+
+            $resolved[$option->name] = $value;
+        }
+
+        return $resolved;
     }
 }

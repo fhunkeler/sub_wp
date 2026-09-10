@@ -112,6 +112,35 @@
 			});
 	}
 
+	/**
+	 * Deux fois la même adresse ne fait pas deux adresses : le jour où la boîte
+	 * principale ne répond plus, la seconde ne répond pas davantage. Le serveur
+	 * l'écarte de toute façon — l'avertissement évite juste de le découvrir
+	 * après coup.
+	 */
+	function watchSecondaryEmail() {
+		const primary = form.querySelector('[data-primary-email]');
+		const secondary = form.querySelector('[data-secondary-email]');
+		const warning = form.querySelector('[data-secondary-email-warning]');
+
+		if (!primary || !secondary || !warning) {
+			return;
+		}
+
+		function check() {
+			const value = secondary.value.trim().toLowerCase();
+			const same = value !== '' && value === primary.value.trim().toLowerCase();
+
+			warning.hidden = !same;
+			secondary.closest('.sub-input').classList.toggle('sub-input--warning', same);
+		}
+
+		primary.addEventListener('input', check);
+		secondary.addEventListener('input', check);
+		check();
+	}
+
 	form.addEventListener('change', refresh);
+	watchSecondaryEmail();
 	refresh();
 })();

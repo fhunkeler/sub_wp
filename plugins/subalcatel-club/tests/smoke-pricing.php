@@ -55,7 +55,6 @@ $scenario(
     'plongee',
     [
         'origine_adhesion'       => 'exterieur',
-        'jeune'                  => 'non',
         'assurance_individuelle' => 'aucune',
         'niveau_prepare'         => 'aucun',
     ],
@@ -71,16 +70,16 @@ $scenario(
 //
 //    210 (plan) + 29 (assurance) + 16 (carte) + 36 (bloc) + 90 (détendeur)
 //      = 381,00, puis -108,00 → 273,00 €
+//
+//    La carte de niveau n'est plus demandée : préparer un P2 suffit à la devoir.
 // ---------------------------------------------------------------------------
 $scenario(
     'Nokia, prépare le P2, prêt bloc + détendeur',
     'plongee',
     [
         'origine_adhesion'       => 'nokia',
-        'jeune'                  => 'non',
         'assurance_individuelle' => 'loisir2',
         'niveau_prepare'         => 'p2',
-        'carte_niveau'           => 'oui',
         'pret_bloc'              => 'oui',
         'pret_detendeur'         => 'oui',
         'pret_gilet'             => 'non',
@@ -97,7 +96,6 @@ $scenario(
     'plongee',
     [
         'origine_adhesion'       => 'nokia',
-        'jeune'                  => 'non',
         'assurance_individuelle' => 'aucune',
         'niveau_prepare'         => 'aucun',
     ],
@@ -105,7 +103,7 @@ $scenario(
 );
 
 // ---------------------------------------------------------------------------
-// 4. Visibilité conditionnelle : « prêt ordinateur » n'existe pas pour un
+// 4. Visibilité conditionnelle : la carte de niveau n'existe pas pour un
 //    adhérent qui ne prépare aucun niveau. Une réponse forgée est ignorée.
 // ---------------------------------------------------------------------------
 $scenario(
@@ -113,11 +111,9 @@ $scenario(
     'plongee',
     [
         'origine_adhesion'       => 'exterieur',
-        'jeune'                  => 'non',
         'assurance_individuelle' => 'aucune',
         'niveau_prepare'         => 'aucun',
-        'pret_ordinateur'        => 'oui',   // masquée : ne doit rien facturer
-        'carte_niveau'           => 'oui',   // masquée aussi
+        'carte_niveau'           => 'oui',   // masquée : ne doit rien facturer
     ],
     210.00
 );
@@ -130,7 +126,6 @@ $scenario(
     'nap',
     [
         'origine_adhesion'       => 'nokia',
-        'jeune'                  => 'non',
         'assurance_individuelle' => 'aucune',
         'piscine'                => 'oui',
     ],
@@ -145,7 +140,6 @@ $scenario(
     'plongee',
     [
         'origine_adhesion'       => 'exterieur',
-        'jeune'                  => 'non',
         'assurance_individuelle' => 'aucune',
         'niveau_prepare'         => 'aucun',
         'piscine'                => 'oui',   // réservée à NAP
@@ -154,24 +148,107 @@ $scenario(
 );
 
 // ---------------------------------------------------------------------------
-// 7. Jeune avec licence déjà détenue : la moins-value est masquée pour un
-//    jeune, elle ne doit pas s'appliquer. 210 + 18 = 228,00 €
+// 7. Le bureau a retiré les prêts et le niveau préparé de la nage avec palmes :
+//    on n'y plonge pas. Une réponse forgée ne les y ramène pas.
 // ---------------------------------------------------------------------------
 $scenario(
-    'Jeune — la moins-value licence reste masquée',
-    'plongee',
+    'Nage avec palmes — les prêts de plongée ne s’y facturent pas',
+    'nap',
     [
         'origine_adhesion'       => 'exterieur',
-        'jeune'                  => 'oui',
         'assurance_individuelle' => 'aucune',
-        'niveau_prepare'         => 'aucun',
-        'moins_value_licence'    => 'oui',   // masquée pour un jeune
+        'niveau_prepare'         => 'p2',
+        'pret_bloc'              => 'oui',
+        'pret_detendeur'         => 'oui',
+        'pret_gilet'             => 'oui',
     ],
-    228.00
+    120.00
 );
 
 // ---------------------------------------------------------------------------
-// 8. Grille publique : elle lit la campagne configurée, sans recopie.
+// 8. La licence déjà détenue se pose en case à cocher : décochée, rien n'est
+//    posté, et la déduction ne s'applique pas.
+// ---------------------------------------------------------------------------
+$scenario(
+    'Licence déjà détenue — case décochée, aucune déduction',
+    'plongee',
+    [
+        'origine_adhesion'       => 'exterieur',
+        'assurance_individuelle' => 'aucune',
+        'niveau_prepare'         => 'aucun',
+    ],
+    210.00
+);
+
+$scenario(
+    'Licence déjà détenue — case cochée, 49 € déduits',
+    'plongee',
+    [
+        'origine_adhesion'       => 'exterieur',
+        'assurance_individuelle' => 'aucune',
+        'moins_value_licence'    => 'oui',
+        'niveau_prepare'         => 'aucun',
+    ],
+    161.00
+);
+
+// ---------------------------------------------------------------------------
+// 9. La carte de niveau s'ajoute d'office — sauf pour le N4 et le MF1, que la
+//    fédération délivre elle-même.
+// ---------------------------------------------------------------------------
+$scenario(
+    'N3 préparé — la carte de niveau s’ajoute sans être demandée',
+    'plongee',
+    [
+        'origine_adhesion'       => 'exterieur',
+        'assurance_individuelle' => 'aucune',
+        'niveau_prepare'         => 'n3',
+    ],
+    226.00
+);
+
+$scenario(
+    'N4 préparé — pas de carte de niveau',
+    'plongee',
+    [
+        'origine_adhesion'       => 'exterieur',
+        'assurance_individuelle' => 'aucune',
+        'niveau_prepare'         => 'n4',
+    ],
+    210.00
+);
+
+// ---------------------------------------------------------------------------
+// 10. Le bloc de l'encadrant : gratuit contre dix encadrements dans la saison.
+//     La remise Nokia sur le prêt de bloc ne peut donc rien retrancher — un
+//     prêt à zéro euro ne génère pas de crédit.
+// ---------------------------------------------------------------------------
+$scenario(
+    'Bloc de l’encadrant — rien à payer',
+    'plongee',
+    [
+        'origine_adhesion'       => 'exterieur',
+        'assurance_individuelle' => 'aucune',
+        'niveau_prepare'         => 'aucun',
+        'pret_bloc'              => 'encadrant',
+    ],
+    210.00
+);
+
+$scenario(
+    'Bloc de l’encadrant chez Nokia — seul le forfait s’applique',
+    'plongee',
+    [
+        'origine_adhesion'       => 'nokia',
+        'assurance_individuelle' => 'aucune',
+        'niveau_prepare'         => 'aucun',
+        'pret_bloc'              => 'encadrant',
+    ],
+    152.00
+);
+
+// ---------------------------------------------------------------------------
+// 11. Grille publique : elle lit la campagne configurée, sans recopie.
 //
 //    La campagne de test a fait son office ; on la retire avant d'interroger
 //    la page publique, qui doit présenter celle du club.

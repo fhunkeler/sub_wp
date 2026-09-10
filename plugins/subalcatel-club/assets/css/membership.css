@@ -128,6 +128,95 @@
 	white-space: nowrap;
 }
 
+/* Choix imposé : la carte de niveau s'ajoute d'office, il n'y a rien à cocher. */
+.sub-membership .sub-choice--fixed {
+	cursor: default;
+	margin: 0;
+	color: var(--sub-ardoise);
+}
+
+.sub-membership .sub-choice--fixed:hover {
+	background: none;
+}
+
+/* Aussi posée par la grille tarifaire, qui n'hérite pas des mêmes variables. */
+.sub-tag {
+	display: inline-block;
+	margin-left: 8px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--sub-ecume, #e9f4fa);
+	color: var(--sub-ardoise, #566b84);
+	font-size: 13px;
+	font-weight: 500;
+	vertical-align: middle;
+}
+
+/* --- Coordonnées demandées avec le dossier --- */
+
+.sub-membership .sub-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 4px 24px;
+}
+
+.sub-membership .sub-input {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 14px;
+}
+
+.sub-membership .sub-input--wide {
+	grid-column: 1 / -1;
+}
+
+.sub-membership .sub-input label {
+	font-weight: 600;
+	font-size: 15px;
+	color: var(--sub-profond);
+}
+
+.sub-membership .sub-input input,
+.sub-membership .sub-input textarea {
+	padding: 10px 12px;
+	border: 1px solid var(--sub-brume-fonce, #7a8ca6);
+	border-radius: 8px;
+	font-size: 17px;
+	font-family: inherit;
+	min-height: 44px;
+}
+
+.sub-membership .sub-input input:focus-visible,
+.sub-membership .sub-input textarea:focus-visible {
+	outline: 2px solid var(--sub-lien);
+	outline-offset: 2px;
+}
+
+.sub-membership .sub-input__help {
+	color: var(--sub-ardoise);
+	font-size: 13px;
+}
+
+/* --- Ce qui bloque le dossier, désigné là où ça se corrige --- */
+
+.sub-membership .sub-input__error,
+.sub-membership .sub-field__error {
+	color: var(--sub-alerte);
+	font-size: 13px;
+	margin: 0 0 8px;
+}
+
+.sub-membership .sub-input--error input,
+.sub-membership .sub-input--error textarea,
+.sub-membership .sub-input--warning input {
+	border-color: var(--sub-alerte);
+}
+
+.sub-membership .sub-field--error {
+	border-color: var(--sub-alerte);
+}
+
 /* --- Récapitulatif --- */
 
 .sub-summary {

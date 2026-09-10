@@ -41,9 +41,15 @@ final class ApplicationService
      * Soumet un dossier : recalcule le prix, fige les lignes, ouvre les droits.
      *
      * @param array<string, string|list<string>> $answers
+     * @param string $paymentMethod Mode de règlement choisi par l'adhérent.
      */
-    public function submit(int $userId, int $campaignId, string $planSlug, array $answers): int
-    {
+    public function submit(
+        int $userId,
+        int $campaignId,
+        string $planSlug,
+        array $answers,
+        string $paymentMethod,
+    ): int {
         global $wpdb;
 
         // Première porte : le bureau doit avoir validé le compte. Laisser un
@@ -64,11 +70,22 @@ final class ApplicationService
         $options  = $this->campaigns->options($campaignId);
         $rules    = $this->campaigns->discountRules($campaignId);
 
-        $missing = $this->missingRequired($plan, $options, $answers);
+        if (!PaymentMethods::isOffered($paymentMethod)) {
+            throw new RuntimeException('Choisissez un mode de règlement.');
+        }
+
+        // Options automatiques appliquées, cases décochées ramenées à « non »,
+        // réponses étrangères au plan écartées : ce qui suit — contrôle des
+        // obligatoires, calcul, archivage — travaille sur le même jeu.
+        $answers = PricingEngine::resolveAnswers($plan, $answers, $options);
+
+        // L'état civil et les coordonnées valent réponse obligatoire : sans eux,
+        // le dossier ne produit pas de licence, et le bureau court après.
+        $missing = ApplicantIdentity::missing($userId)
+            + $this->missingRequired($plan, $options, $answers);
+
         if ($missing !== []) {
-            throw new RuntimeException(
-                'Réponses manquantes : ' . implode(', ', $missing) . '.'
-            );
+            throw new IncompleteApplication($missing);
         }
 
         // Le prix qui fait foi est recalculé ici, jamais celui posté par le
@@ -76,15 +93,16 @@ final class ApplicationService
         $quote = $this->pricing->calculate($plan, $answers, $options, $rules);
 
         $wpdb->insert("{$this->prefix}applications", [
-            'reference'    => $this->nextReference(),
-            'user_id'      => $userId,
-            'campaign_id'  => $campaignId,
-            'plan_id'      => $plan->id,
-            'status'       => self::STATUS_AWAITING_PAYMENT,
-            'total_amount' => $quote->total(),
-            'valid_from'   => $campaign['valid_from'],
-            'valid_until'  => $campaign['valid_until'],
-            'submitted_at' => current_time('mysql'),
+            'reference'      => $this->nextReference(),
+            'user_id'        => $userId,
+            'campaign_id'    => $campaignId,
+            'plan_id'        => $plan->id,
+            'status'         => self::STATUS_AWAITING_PAYMENT,
+            'total_amount'   => $quote->total(),
+            'payment_method' => $paymentMethod,
+            'valid_from'     => $campaign['valid_from'],
+            'valid_until'    => $campaign['valid_until'],
+            'submitted_at'   => current_time('mysql'),
         ]);
 
         $applicationId = (int) $wpdb->insert_id;
@@ -113,9 +131,11 @@ final class ApplicationService
         ], $userId);
 
         Mailer::toUser(EmailTemplates::MEMBERSHIP_SUBMITTED, $userId, [
-            'reference' => $this->find($applicationId)['reference'] ?? '',
-            'montant'   => number_format($quote->total(), 2, ',', ' ') . ' €',
-            'formule'   => $plan->title,
+            'reference'  => $this->find($applicationId)['reference'] ?? '',
+            'montant'    => number_format($quote->total(), 2, ',', ' ') . ' €',
+            'formule'    => $plan->title,
+            'reglement'  => PaymentMethods::label($paymentMethod),
+            'consignes'  => PaymentMethods::instructions($paymentMethod),
         ], ['entity_type' => 'application', 'entity_id' => $applicationId]);
 
         return $applicationId;
@@ -144,6 +164,10 @@ final class ApplicationService
         $application = $this->find($applicationId);
         if ($application === null) {
             throw new RuntimeException('Dossier introuvable.');
+        }
+
+        if (!PaymentMethods::isOffered($method)) {
+            throw new RuntimeException('Mode de règlement inconnu.');
         }
 
         $wpdb->insert("{$this->prefix}payments", [
@@ -263,12 +287,9 @@ final class ApplicationService
                 continue;
             }
 
-            foreach ($option->resolve($answer) as [, $amount]) {
-                // Un choix « Non » vaut 0 € et n'ouvre aucun droit.
-                if ($amount > 0) {
-                    $grants = array_merge($grants, $option->grants);
-                }
-            }
+            // C'est le choix retenu qui dit s'il ouvre un droit : « non » n'ouvre
+            // rien, et le bloc de l'encadrant en ouvre un sans rien coûter.
+            $grants = array_merge($grants, $option->grantsFor($answer));
         }
 
         return array_values(array_unique($grants));
@@ -277,7 +298,7 @@ final class ApplicationService
     /**
      * @param list<Option> $options
      * @param array<string, string|list<string>> $answers
-     * @return list<string>
+     * @return array<string, string> nom technique => libellé
      */
     private function missingRequired(Plan $plan, array $options, array $answers): array
     {
@@ -289,8 +310,9 @@ final class ApplicationService
             }
 
             $answer = $answers[$option->name] ?? null;
+
             if ($answer === null || $answer === '' || $answer === []) {
-                $missing[] = $option->label;
+                $missing[$option->name] = $option->label;
             }
         }
 

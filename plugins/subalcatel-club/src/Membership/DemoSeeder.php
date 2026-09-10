@@ -66,7 +66,18 @@ final class DemoSeeder
             ]);
         }
 
-        // --- Options ---------------------------------------------------------
+        self::seedOptions($campaignId);
+
+        return $campaignId;
+    }
+
+    /**
+     * Options et remises de la campagne — la configuration, et rien d'autre.
+     */
+    private static function seedOptions(int $campaignId): void
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
 
         $option = static function (array $data) use ($wpdb, $p, $campaignId): void {
             $wpdb->insert("{$p}options", [
@@ -104,17 +115,6 @@ final class DemoSeeder
         ]);
 
         $option([
-            'name'     => 'jeune',
-            'label'    => 'Tarif jeune (moins de 16 ans)',
-            'required' => 1,
-            'ordering' => 20,
-            'choices'  => [
-                ['value' => 'non', 'label' => 'Non', 'amount' => 0.0],
-                ['value' => 'oui', 'label' => 'Oui', 'amount' => 18.00],
-            ],
-        ]);
-
-        $option([
             'name'     => 'assurance_individuelle',
             'label'    => 'Assurance individuelle complémentaire',
             'help'     => 'Souscrite via la licence FFESSM.',
@@ -128,71 +128,97 @@ final class DemoSeeder
             ],
         ]);
 
+        // Une case à cocher, pas deux boutons : la réponse est « non » pour la
+        // quasi-totalité des dossiers, et la question ne se pose vraiment qu'à
+        // qui détient déjà une licence prise ailleurs.
         $option([
-            'name'             => 'moins_value_licence',
-            'label'            => 'Licence FFESSM déjà détenue',
-            'ordering'         => 40,
-            'condition_option' => 'jeune',
-            'condition_values' => ['non'],
-            'choices'          => $yesNo(-49.00),
+            'name'       => 'moins_value_licence',
+            'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
+            'help'       => 'Cochez seulement si vous en détenez déjà une : sa part est alors déduite.',
+            'input_type' => Option::INPUT_CHECK,
+            'ordering'   => 40,
+            'choices'    => $yesNo(-49.00, 'Oui, j’ai déjà une licence valide', 'Non'),
         ]);
 
         $option([
             'name'     => 'niveau_prepare',
             'label'    => 'Niveau préparé cette saison',
             'ordering' => 50,
+            'plans'    => ['plongee'],
             'choices'  => [
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
                 ['value' => 'pe12',  'label' => 'PE12',  'amount' => 0.0],
                 ['value' => 'pa20',  'label' => 'PA20',  'amount' => 0.0],
                 ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
+                ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
+                ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
+                ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
             ],
         ]);
 
+        // Due dès qu'un niveau est préparé, et sans choix à faire : le club la
+        // commande de toute façon. N4 et MF1 en sont dispensés — ces brevets
+        // sont délivrés par la fédération, pas par le club.
         $option([
             'name'             => 'carte_niveau',
             'label'            => 'Carte de niveau',
+            'help'             => 'Ajoutée d’office : la carte est commandée avec votre passage de niveau.',
+            'input_type'       => Option::INPUT_AUTO,
             'ordering'         => 60,
+            'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40'],
-            'choices'          => $yesNo(16.00),
+            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40', 'n3'],
+            'choices'          => [
+                ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
+            ],
         ]);
 
         // Prêts de matériel : chacun ouvre un droit d'emprunt, consommé par le
         // module Emprunts en phase 8.
+        // Les trois prêts sont des questions obligatoires du dossier plongée : ne
+        // pas répondre laissait le bureau ignorer si le matériel était à sortir.
+        // Elles ne concernent pas la nage avec palmes, qui ne plonge pas.
         $option([
             'name'     => 'pret_bloc',
             'label'    => 'Prêt d’un bloc',
+            'required' => 1,
             'ordering' => 70,
-            'choices'  => $yesNo(36.00),
+            'plans'    => ['plongee'],
+            'choices'  => [
+                ['value' => 'oui', 'label' => 'Oui', 'amount' => 36.00],
+                // Le club prête le bloc à qui encadre : dix encadrements dans la
+                // saison valent le prix du prêt. L'engagement est pris ici, et le
+                // droit d'emprunt s'ouvre malgré le montant nul.
+                [
+                    'value'  => 'encadrant',
+                    'label'  => 'Oui — encadrant, je m’engage à encadrer au moins 10 fois dans la saison',
+                    'amount' => 0.0,
+                    'grants' => true,
+                ],
+                ['value' => 'non', 'label' => 'Non', 'amount' => 0.0],
+            ],
             'grants'   => ['bloc'],
         ]);
 
         $option([
             'name'     => 'pret_detendeur',
             'label'    => 'Prêt d’un détendeur',
+            'required' => 1,
             'ordering' => 80,
+            'plans'    => ['plongee'],
             'choices'  => $yesNo(90.00),
             'grants'   => ['detendeur'],
         ]);
 
         $option([
             'name'     => 'pret_gilet',
-            'label'    => 'Prêt d’un gilet',
+            'label'    => 'Prêt d’un gilet (stab)',
+            'required' => 1,
             'ordering' => 90,
+            'plans'    => ['plongee'],
             'choices'  => $yesNo(20.00),
             'grants'   => ['gilet'],
-        ]);
-
-        $option([
-            'name'             => 'pret_ordinateur',
-            'label'            => 'Prêt d’un ordinateur',
-            'ordering'         => 100,
-            'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pa20', 'p2', 'pe40'],
-            'choices'          => $yesNo(40.00),
-            'grants'           => ['ordinateur'],
         ]);
 
         $option([
@@ -237,7 +263,30 @@ final class DemoSeeder
             'plans'            => wp_json_encode(['nap']),
             'ordering'         => 20,
         ]);
+    }
 
-        return $campaignId;
+    /**
+     * Réécrit les options et les remises d'une campagne existante.
+     *
+     * Sert à rejouer sur une base déjà peuplée un changement de règles décidé
+     * après coup — le bureau a retiré le tarif jeune et le prêt d'ordinateur en
+     * septembre 2026, sur une démonstration dont la campagne existait déjà, et
+     * `run()` ne touche jamais à ce qui existe.
+     *
+     * Ne concerne QUE la configuration : la campagne, ses formules et les
+     * dossiers déjà déposés restent en place, lignes figées comprises. Sur une
+     * campagne où le bureau a retouché ses options depuis l'écran d'admin, cet
+     * appel efface ces retouches — d'où l'outil dédié, et pas un appel
+     * automatique.
+     */
+    public static function resetOptions(int $campaignId): void
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $wpdb->delete("{$p}options", ['campaign_id' => $campaignId]);
+        $wpdb->delete("{$p}discount_rules", ['campaign_id' => $campaignId]);
+
+        self::seedOptions($campaignId);
     }
 }

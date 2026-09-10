@@ -8,6 +8,7 @@ use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\Option;
+use Subalcatel\Club\Membership\PaymentMethods;
 
 /**
  * Le détail d'un dossier d'adhésion, colonne par colonne, pour le bureau.
@@ -27,18 +28,6 @@ use Subalcatel\Club\Membership\Option;
  */
 final class MembershipDetailExport extends Export
 {
-    /**
-     * Modes de paiement connus, comme dans {@see PaymentsExport}.
-     *
-     * @var array<string, string>
-     */
-    private const PAYMENT_METHODS = [
-        'cheque'    => 'Chèque',
-        'helloasso' => 'HelloAsso',
-        'virement'  => 'Virement',
-        'especes'   => 'Espèces',
-    ];
-
     /**
      * Statuts qui constituent une adhésion réelle : au moins soumise, jamais
      * refusée ni annulée. Un brouillon n'a pas de réponses figées à montrer.
@@ -243,7 +232,7 @@ final class MembershipDetailExport extends Export
             $this->answerLabel($optionsByName, $answers, 'pret_detendeur'),
             $this->answerLabel($optionsByName, $answers, 'carte_niveau'),
             $supplementTardif !== 0.0 ? round($supplementTardif, 2) : '',
-            self::PAYMENT_METHODS[$this->latestPaymentMethod($applicationId)] ?? '',
+            PaymentMethods::label($this->latestPaymentMethod($applicationId)),
             round((float) $application['total_amount'], 2),
         ];
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Exports;
 
+use Subalcatel\Club\Membership\PaymentMethods;
+
 /**
  * Registre des règlements, pour la trésorerie.
  *
@@ -57,14 +59,7 @@ final class PaymentsExport extends Export
             ARRAY_A
         ) ?: [];
 
-        $modes = [
-            'cheque'    => 'Chèque',
-            'helloasso' => 'HelloAsso',
-            'virement'  => 'Virement',
-            'especes'   => 'Espèces',
-        ];
-
-        return array_map(static function (array $row) use ($modes): array {
+        return array_map(static function (array $row): array {
             $recorder = $row['recorded_by'] ? get_userdata((int) $row['recorded_by']) : null;
 
             return [
@@ -74,7 +69,7 @@ final class PaymentsExport extends Export
                 (string) ($row['plan_title'] ?? ''),
                 // Montant numérique : le tableur doit pouvoir en faire la somme.
                 round((float) $row['amount'], 2),
-                $modes[$row['method']] ?? (string) $row['method'],
+                PaymentMethods::label((string) $row['method']),
                 (string) ($row['reference'] ?? ''),
                 $recorder?->display_name ?? '',
             ];

@@ -64,16 +64,16 @@ $email  = get_userdata($member)->user_email;
 sub_test_make_compliant($member);
 
 $applications = new ApplicationService();
+sub_test_complete_identity($member);
+
 $applicationId = $applications->submit($member, $campaignId, 'plongee', [
     'origine_adhesion'       => 'exterieur',
-    'jeune'                  => 'non',
     'assurance_individuelle' => 'loisir1',
     'niveau_prepare'         => 'aucun',
-    'carte_niveau'           => 'non',
     'pret_bloc'              => 'non',
     'pret_detendeur'         => 'non',
     'pret_gilet'             => 'non',
-]);
+], 'cheque');
 
 Mailer::toUser(EmailTemplates::DOCUMENT_VALIDATED, $member, ['document' => 'certificat médical']);
 

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\PaymentMethods;
 
 /**
  * Adhésions : les dossiers, et les campagnes qui en fixent les tarifs.
@@ -95,13 +96,14 @@ final class ApplicationsScreen
                         <th>Membre</th>
                         <th style="width:130px;">Formule</th>
                         <th style="width:100px;">Montant</th>
+                        <th style="width:130px;">Règlement annoncé</th>
                         <th style="width:170px;">État</th>
                         <th style="width:320px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php if ($rows === []) : ?>
-                    <tr><td colspan="6">Aucun dossier pour l’instant.</td></tr>
+                    <tr><td colspan="7">Aucun dossier pour l’instant.</td></tr>
                 <?php endif; ?>
 
                 <?php foreach ($rows as $row) : ?>
@@ -122,11 +124,17 @@ final class ApplicationsScreen
                         <td data-label="Montant" style="font-variant-numeric:tabular-nums;">
                             <?php echo esc_html(number_format((float) $row['total_amount'], 2, ',', ' ')); ?> €
                         </td>
+                        <td data-label="Règlement annoncé">
+                            <?php
+                            $announced = (string) ($row['payment_method'] ?? '');
+                            echo esc_html($announced === '' ? '—' : PaymentMethods::label($announced));
+                            ?>
+                        </td>
                         <td data-label="État"><?php echo AdminUi::statusBadge((string) $row['status']); ?></td>
                         <td data-label="Action"><?php self::renderActions($row); ?></td>
                     </tr>
                     <tr class="sub-cards__detail">
-                        <td colspan="6" data-label="Détail" style="background:#fbfbfb;">
+                        <td colspan="7" data-label="Détail" style="background:#fbfbfb;">
                             <?php self::renderLines($service, (int) $row['id']); ?>
                         </td>
                     </tr>
@@ -155,11 +163,15 @@ final class ApplicationsScreen
                 <input type="hidden" name="action" value="sub_record_payment">
                 <input type="hidden" name="application_id" value="<?php echo esc_attr((string) $id); ?>">
                 <?php wp_nonce_field('sub_record_payment_' . $id); ?>
+                <?php // Présélectionné sur ce que l'adhérent a annoncé : la trésorerie
+                      // n'a plus qu'à confirmer, et l'écart se voit s'il y en a un. ?>
                 <select name="method">
-                    <option value="cheque">Chèque</option>
-                    <option value="helloasso">HelloAsso</option>
-                    <option value="virement">Virement</option>
-                    <option value="especes">Espèces</option>
+                    <?php foreach (PaymentMethods::offered() as $value => $label) : ?>
+                        <option value="<?php echo esc_attr($value); ?>"
+                                <?php selected($value, (string) ($row['payment_method'] ?? '')); ?>>
+                            <?php echo esc_html($label); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
                 <input type="text" name="reference" placeholder="Référence" style="width:110px;">
                 <button class="button button-primary">Paiement reçu</button>

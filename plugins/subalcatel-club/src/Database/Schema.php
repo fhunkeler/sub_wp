@@ -16,7 +16,7 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 9;
+    private const VERSION        = 10;
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -158,6 +158,7 @@ final class Schema
             plan_id bigint(20) unsigned NOT NULL,
             status varchar(30) NOT NULL default 'draft',
             total_amount decimal(10,2) NOT NULL default 0.00,
+            payment_method varchar(30) NOT NULL default '',
             valid_from date default NULL,
             valid_until date default NULL,
             submitted_at datetime default NULL,

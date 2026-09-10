@@ -130,11 +130,19 @@ final class EmailTemplates
                 'body'        => "Bonjour {prenom},\n\n"
                     . "Nous avons bien reçu votre dossier d’adhésion {reference}.\n\n"
                     . "Montant à régler : {montant}.\n"
-                    . "Formule : {formule}.\n\n"
-                    . "Le règlement se fait par chèque ou via HelloAsso. Votre adhésion sera "
-                    . "active dès que le bureau aura confirmé le paiement et vérifié vos pièces.\n\n"
+                    . "Formule : {formule}.\n"
+                    . "Mode de règlement choisi : {reglement}.\n\n"
+                    . "{consignes}\n\n"
+                    . "Votre adhésion sera active dès que le bureau aura confirmé le paiement "
+                    . "et vérifié vos pièces.\n\n"
                     . "— {club}",
-                'variables'   => ['reference' => 'Référence du dossier', 'montant' => 'Montant total', 'formule' => 'Formule choisie'],
+                'variables'   => [
+                    'reference' => 'Référence du dossier',
+                    'montant'   => 'Montant total',
+                    'formule'   => 'Formule choisie',
+                    'reglement' => 'Mode de règlement choisi par l’adhérent',
+                    'consignes' => 'Ce qu’il reste à faire pour régler, selon ce mode',
+                ],
             ],
             [
                 'code'        => self::MEMBERSHIP_PAID,
@@ -365,7 +373,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 2;
+    private const VERSION        = 3;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void
@@ -381,8 +389,12 @@ final class EmailTemplates
     /**
      * Insère les modèles manquants.
      *
-     * Les modèles existants ne sont jamais réécrits : le bureau a pu les
-     * retoucher, et une mise à jour ne doit pas effacer son travail.
+     * Le texte des modèles existants n'est jamais réécrit : le bureau a pu les
+     * retoucher, et une mise à jour ne doit pas effacer son travail. Ce qui est
+     * rafraîchi, c'est la documentation qui les entoure — libellé, description
+     * et surtout liste des variables disponibles. Elle vient du code, elle n'est
+     * pas modifiable dans l'écran, et une variable ajoutée par une version
+     * resterait sinon introuvable pour qui veut s'en servir.
      */
     public static function seed(): void
     {
@@ -395,6 +407,12 @@ final class EmailTemplates
             );
 
             if ($exists) {
+                $wpdb->update($table, [
+                    'label'       => $template['label'],
+                    'description' => $template['description'],
+                    'variables'   => wp_json_encode($template['variables'] ?? []),
+                ], ['id' => (int) $exists]);
+
                 continue;
             }
 

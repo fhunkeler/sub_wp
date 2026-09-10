@@ -166,17 +166,17 @@ $napMember = is_wp_error($napMember) ? 0 : $napMember;
 // suite de tarification, complété par la moins-value licence :
 //   210 (plan) + 29 (assurance) + 16 (carte) + 36 (bloc) + 90 (détendeur)
 //     - 49 (moins-value licence) - 108 (remise Nokia) = 224,00 €
+sub_test_complete_identity($diver);
+
 $diveApplicationId = $bureauService->submit($diver, $bureauCampaignId, 'plongee', [
     'origine_adhesion'       => 'nokia',
-    'jeune'                  => 'non',
     'assurance_individuelle' => 'loisir2',
     'moins_value_licence'    => 'oui',
     'niveau_prepare'         => 'p2',
-    'carte_niveau'           => 'oui',
     'pret_bloc'              => 'oui',
     'pret_detendeur'         => 'oui',
     'pret_gilet'             => 'non',
-]);
+], 'helloasso');
 $bureauService->recordPayment($diveApplicationId, 224.00, 'helloasso', '2026-09-22', $office);
 $bureauService->validateSecretariat($diveApplicationId, $office);
 
@@ -184,22 +184,27 @@ $bureauService->validateSecretariat($diveApplicationId, $office);
 // le repli de la date sur la soumission, et l'inclusion d'un dossier « paiement
 // confirmé », pas seulement « actif ».
 //   120 (plan) + 60 (piscine) = 180,00 €, aucune remise (origine extérieure)
+sub_test_complete_identity($napMember);
+
 $napApplicationId = $bureauService->submit($napMember, $bureauCampaignId, 'nap', [
     'origine_adhesion'       => 'exterieur',
-    'jeune'                  => 'non',
     'assurance_individuelle' => 'aucune',
     'piscine'                => 'oui',
-]);
+], 'cheque');
 $bureauService->recordPayment($napApplicationId, 180.00, 'cheque', '2026-09-11', $office);
 
 // Un troisième dossier, refusé : ne doit jamais figurer dans l'export.
 $refusedMember = $makeUser('sub_member');
+sub_test_complete_identity($refusedMember);
+
 $refusedApplicationId = $bureauService->submit($refusedMember, $bureauCampaignId, 'plongee', [
     'origine_adhesion'       => 'exterieur',
-    'jeune'                  => 'non',
     'assurance_individuelle' => 'aucune',
     'niveau_prepare'         => 'aucun',
-]);
+    'pret_bloc'              => 'non',
+    'pret_detendeur'         => 'non',
+    'pret_gilet'             => 'non',
+], 'ce_orange');
 $bureauService->refuse($refusedApplicationId, $office, 'Dossier incomplet');
 
 $bureau = ExportRegistry::find('membership-detail');

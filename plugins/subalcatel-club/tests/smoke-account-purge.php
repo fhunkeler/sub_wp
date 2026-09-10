@@ -118,16 +118,16 @@ $wpdb->update(
 
 // Un dossier d'adhésion réglé : pièce comptable, elle doit survivre.
 $applications  = new ApplicationService();
+sub_test_complete_identity($leaving);
+
 $applicationId = $applications->submit($leaving, $campaignId, 'plongee', [
     'origine_adhesion'       => 'exterieur',
-    'jeune'                  => 'non',
     'assurance_individuelle' => 'loisir1',
     'niveau_prepare'         => 'aucun',
-    'carte_niveau'           => 'non',
     'pret_bloc'              => 'non',
     'pret_detendeur'         => 'non',
     'pret_gilet'             => 'non',
-]);
+], 'cheque');
 
 $treasurer = wp_insert_user([
     'user_login' => 'purge_' . wp_generate_password(8, false),

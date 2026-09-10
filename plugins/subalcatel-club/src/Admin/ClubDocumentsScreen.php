@@ -69,7 +69,10 @@ final class ClubDocumentsScreen
                     count($suspects)
                 );
 
-                echo '<table class="widefat striped" style="margin-top:12px;max-width:760px;">'
+                // Les colonnes portent des clés de fichier et des signatures : des
+                // chaînes longues et insécables. Sur téléphone, on fait défiler le
+                // tableau plutôt que la page.
+                echo '<div class="sub-scroll"><table class="widefat striped" style="margin-top:12px;max-width:760px;">'
                     . '<thead><tr><th>Identifiant</th><th>Fichier stocké</th><th>Signature trouvée</th></tr></thead><tbody>';
 
                 foreach ($suspects as $s) {
@@ -81,7 +84,7 @@ final class ClubDocumentsScreen
                     );
                 }
 
-                echo '</tbody></table>';
+                echo '</tbody></table></div>';
             }
         }
 

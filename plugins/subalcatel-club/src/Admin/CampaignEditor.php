@@ -112,7 +112,7 @@ final class CampaignEditor
             Une formule est un tarif de base. Les options viennent s’y ajouter.
         </p>
 
-        <table class="wp-list-table widefat fixed striped">
+        <table class="wp-list-table widefat fixed striped sub-cards">
             <thead>
                 <tr>
                     <th>Nom</th>
@@ -130,7 +130,7 @@ final class CampaignEditor
             <?php foreach ($plans as $plan) : ?>
                 <?php $formId = 'sub-plan-' . $plan->id; ?>
                 <tr>
-                    <td>
+                    <td data-label="Nom">
                         <?php
                         // Un <form> ne peut pas traverser plusieurs <td> : le
                         // parseur HTML le referme. On déclare donc un formulaire
@@ -148,17 +148,20 @@ final class CampaignEditor
                         <input type="text" form="<?php echo esc_attr($formId); ?>" name="title"
                                value="<?php echo esc_attr($plan->title); ?>" class="regular-text" required>
                     </td>
-                    <td><code><?php echo esc_html($plan->slug); ?></code></td>
-                    <td>
-                        <input type="text" form="<?php echo esc_attr($formId); ?>" name="base_price"
-                               value="<?php echo esc_attr(number_format($plan->basePrice, 2, ',', '')); ?>"
-                               class="small-text" inputmode="decimal"> €
+                    <td data-label="Identifiant"><code><?php echo esc_html($plan->slug); ?></code></td>
+                    <td data-label="Prix de base">
+                        <span class="sub-amount">
+                            <input type="text" form="<?php echo esc_attr($formId); ?>" name="base_price"
+                                   value="<?php echo esc_attr(number_format($plan->basePrice, 2, ',', '')); ?>"
+                                   class="small-text" inputmode="decimal">
+                            <span class="sub-amount__unit">€</span>
+                        </span>
                     </td>
-                    <td>
+                    <td data-label="Ordre">
                         <input type="number" form="<?php echo esc_attr($formId); ?>" name="ordering"
                                value="<?php echo esc_attr((string) $plan->ordering); ?>" class="small-text">
                     </td>
-                    <td>
+                    <td data-label="Actions">
                         <button class="button button-primary" form="<?php echo esc_attr($formId); ?>">Enregistrer</button>
                         <?php AdminUi::actionButton(
                             'sub_plan_delete',
@@ -337,13 +340,18 @@ final class CampaignEditor
                             ];
                             foreach ($choices as $choice) : ?>
                                 <tr>
-                                    <td><input type="text" name="choice_value[]" value="<?php echo esc_attr((string) $choice['value']); ?>"></td>
-                                    <td><input type="text" name="choice_label[]" value="<?php echo esc_attr((string) $choice['label']); ?>" class="regular-text"></td>
-                                    <td><input type="text" name="choice_amount[]" inputmode="decimal" class="small-text"
-                                               value="<?php echo esc_attr(number_format((float) $choice['amount'], 2, ',', '')); ?>"> €</td>
+                                    <td data-label="Identifiant"><input type="text" name="choice_value[]" value="<?php echo esc_attr((string) $choice['value']); ?>"></td>
+                                    <td data-label="Ce que voit l’adhérent"><input type="text" name="choice_label[]" value="<?php echo esc_attr((string) $choice['label']); ?>" class="regular-text"></td>
+                                    <td data-label="Montant">
+                                        <span class="sub-amount">
+                                            <input type="text" name="choice_amount[]" inputmode="decimal" class="small-text"
+                                                   value="<?php echo esc_attr(number_format((float) $choice['amount'], 2, ',', '')); ?>">
+                                            <span class="sub-amount__unit">€</span>
+                                        </span>
+                                    </td>
                                     <?php // Une liste plutôt qu'une case : une case décochée ne poste
                                           // rien, et les réponses se décaleraient les unes sur les autres. ?>
-                                    <td>
+                                    <td data-label="Ouvre le droit">
                                         <select name="choice_grants[]">
                                             <option value="auto" <?php selected(!array_key_exists('grants', $choice)); ?>>
                                                 selon le montant
@@ -355,7 +363,7 @@ final class CampaignEditor
                                             </option>
                                         </select>
                                     </td>
-                                    <td><button type="button" class="button-link sub-repeat__remove" aria-label="Retirer">✕</button></td>
+                                    <td class="sub-repeat__actions"><button type="button" class="button-link sub-repeat__remove" aria-label="Retirer">✕</button></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
@@ -375,20 +383,22 @@ final class CampaignEditor
                 <tr>
                     <th scope="row">N’afficher que si…</th>
                     <td>
-                        <select name="condition_option">
-                            <option value="">— toujours affichée —</option>
-                            <?php foreach ($allOptions as $other) : ?>
-                                <?php if ($option !== null && $other->name === $option->name) { continue; } ?>
-                                <option value="<?php echo esc_attr($other->name); ?>"
-                                        <?php selected($option?->conditionOption, $other->name); ?>>
-                                    <?php echo esc_html($other->label); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        vaut
-                        <input type="text" name="condition_values" class="regular-text"
-                               value="<?php echo esc_attr(implode(', ', $option?->conditionValues ?? [])); ?>"
-                               placeholder="nokia, ce_orange">
+                        <div class="sub-condition">
+                            <select name="condition_option">
+                                <option value="">— toujours affichée —</option>
+                                <?php foreach ($allOptions as $other) : ?>
+                                    <?php if ($option !== null && $other->name === $option->name) { continue; } ?>
+                                    <option value="<?php echo esc_attr($other->name); ?>"
+                                            <?php selected($option?->conditionOption, $other->name); ?>>
+                                        <?php echo esc_html($other->label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="sub-condition__op">vaut</span>
+                            <input type="text" name="condition_values" class="regular-text"
+                                   value="<?php echo esc_attr(implode(', ', $option?->conditionValues ?? [])); ?>"
+                                   placeholder="nokia, ce_orange">
+                        </div>
                         <p class="description">Identifiants des réponses, séparés par des virgules.</p>
                     </td>
                 </tr>
@@ -512,19 +522,21 @@ final class CampaignEditor
                 <tr>
                     <th scope="row">S’applique si…</th>
                     <td>
-                        <select name="condition_option" required>
-                            <option value="">— choisir une option —</option>
-                            <?php foreach ($options as $o) : ?>
-                                <option value="<?php echo esc_attr($o->name); ?>"
-                                        <?php selected($rule?->conditionOption, $o->name); ?>>
-                                    <?php echo esc_html($o->label); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        vaut
-                        <input type="text" name="condition_values" class="regular-text" required
-                               value="<?php echo esc_attr(implode(', ', $rule?->conditionValues ?? [])); ?>"
-                               placeholder="nokia">
+                        <div class="sub-condition">
+                            <select name="condition_option" required>
+                                <option value="">— choisir une option —</option>
+                                <?php foreach ($options as $o) : ?>
+                                    <option value="<?php echo esc_attr($o->name); ?>"
+                                            <?php selected($rule?->conditionOption, $o->name); ?>>
+                                        <?php echo esc_html($o->label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="sub-condition__op">vaut</span>
+                            <input type="text" name="condition_values" class="regular-text" required
+                                   value="<?php echo esc_attr(implode(', ', $rule?->conditionValues ?? [])); ?>"
+                                   placeholder="nokia">
+                        </div>
                     </td>
                 </tr>
                 <tr>
@@ -555,7 +567,7 @@ final class CampaignEditor
                             }
                             foreach ($reductions as $red) : ?>
                                 <tr>
-                                    <td>
+                                    <td data-label="Option">
                                         <select name="red_option[]">
                                             <option value="">—</option>
                                             <?php foreach ($options as $o) : ?>
@@ -566,15 +578,15 @@ final class CampaignEditor
                                             <?php endforeach; ?>
                                         </select>
                                     </td>
-                                    <td>
+                                    <td data-label="Type">
                                         <select name="red_mode[]">
                                             <option value="percent" <?php selected($red['mode'], 'percent'); ?>>Pourcentage</option>
                                             <option value="amount" <?php selected($red['mode'], 'amount'); ?>>Montant fixe</option>
                                         </select>
                                     </td>
-                                    <td><input type="text" name="red_value[]" class="small-text" inputmode="decimal"
+                                    <td data-label="Valeur"><input type="text" name="red_value[]" class="small-text" inputmode="decimal"
                                                value="<?php echo esc_attr(number_format((float) $red['value'], 2, ',', '')); ?>"></td>
-                                    <td><button type="button" class="button-link sub-repeat__remove" aria-label="Retirer">✕</button></td>
+                                    <td class="sub-repeat__actions"><button type="button" class="button-link sub-repeat__remove" aria-label="Retirer">✕</button></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>

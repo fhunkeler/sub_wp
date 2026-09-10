@@ -136,6 +136,11 @@ Les sites qui font tourner ce code voient les nouvelles versions apparaître dan
 s'installe tout seul** : le bureau clique. Voir `src/Setup/Updater.php` pour le
 détail, et pour les deux filtres qui permettent d'en décider autrement.
 
+« Afficher les détails de la version » ouvre les notes de la release, servies par
+le dépôt et non par wordpress.org — où ces paquets n'existent pas. Ce sont donc
+les notes générées à la publication qui s'affichent : **le corps de la release
+est ce que le bureau lira**, et il se relit depuis GitHub après coup si besoin.
+
 Dépôt privé — ajouter dans `wp-config.php` un jeton à portée `contents: read`
 sur ce seul dépôt :
 

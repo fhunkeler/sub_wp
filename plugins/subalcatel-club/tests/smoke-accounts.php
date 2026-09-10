@@ -87,7 +87,7 @@ $check('Et c’est le compte qui est invoqué, pas l’adhésion',
     'le motif le plus actionnable en premier');
 
 try {
-    (new ApplicationService())->submit($newcomer, $campaignId, 'plongee', []);
+    (new ApplicationService())->submit($newcomer, $campaignId, 'plongee', [], 'cheque');
     $check('Aucune demande d’adhésion', false);
 } catch (RuntimeException $e) {
     $check('Aucune demande d’adhésion', true, $e->getMessage());

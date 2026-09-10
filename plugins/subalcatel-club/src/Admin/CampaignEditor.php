@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\Option;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -278,6 +279,30 @@ final class CampaignEditor
                     </td>
                 </tr>
                 <tr>
+                    <th scope="row">Comment la question se pose</th>
+                    <td>
+                        <select name="input_type">
+                            <option value="<?php echo esc_attr(Option::INPUT_SINGLE); ?>"
+                                    <?php selected($option?->inputType ?? Option::INPUT_SINGLE, Option::INPUT_SINGLE); ?>>
+                                Un choix parmi plusieurs
+                            </option>
+                            <option value="<?php echo esc_attr(Option::INPUT_CHECK); ?>"
+                                    <?php selected($option?->inputType ?? '', Option::INPUT_CHECK); ?>>
+                                Une case à cocher — cochée, c’est la 1re réponse ; sinon la 2e
+                            </option>
+                            <option value="<?php echo esc_attr(Option::INPUT_AUTO); ?>"
+                                    <?php selected($option?->inputType ?? '', Option::INPUT_AUTO); ?>>
+                                Ajoutée d’office — la 1re réponse s’applique, sans choix
+                            </option>
+                        </select>
+                        <p class="description">
+                            « Ajoutée d’office » sert aux montants dus dès qu’une condition est
+                            remplie, comme la carte de niveau : l’adhérent la voit dans son
+                            récapitulatif, mais ne peut pas la refuser.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row">Réponse obligatoire</th>
                     <td>
                         <label>
@@ -285,6 +310,10 @@ final class CampaignEditor
                                    <?php checked($option?->isRequired ?? false); ?>>
                             L’adhérent doit répondre pour soumettre son dossier
                         </label>
+                        <p class="description">
+                            Sans objet pour une question ajoutée d’office ou posée en case à
+                            cocher : l’une comme l’autre ont toujours une réponse.
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -296,6 +325,7 @@ final class CampaignEditor
                                     <th style="width:180px;">Identifiant</th>
                                     <th>Ce que voit l’adhérent</th>
                                     <th style="width:120px;">Montant</th>
+                                    <th style="width:110px;">Ouvre le droit</th>
                                     <th style="width:40px;"></th>
                                 </tr>
                             </thead>
@@ -311,6 +341,20 @@ final class CampaignEditor
                                     <td><input type="text" name="choice_label[]" value="<?php echo esc_attr((string) $choice['label']); ?>" class="regular-text"></td>
                                     <td><input type="text" name="choice_amount[]" inputmode="decimal" class="small-text"
                                                value="<?php echo esc_attr(number_format((float) $choice['amount'], 2, ',', '')); ?>"> €</td>
+                                    <?php // Une liste plutôt qu'une case : une case décochée ne poste
+                                          // rien, et les réponses se décaleraient les unes sur les autres. ?>
+                                    <td>
+                                        <select name="choice_grants[]">
+                                            <option value="auto" <?php selected(!array_key_exists('grants', $choice)); ?>>
+                                                selon le montant
+                                            </option>
+                                            <option value="oui" <?php selected(!empty($choice['grants'])); ?>>oui</option>
+                                            <option value="non"
+                                                    <?php selected(array_key_exists('grants', $choice) && empty($choice['grants'])); ?>>
+                                                non
+                                            </option>
+                                        </select>
+                                    </td>
                                     <td><button type="button" class="button-link sub-repeat__remove" aria-label="Retirer">✕</button></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -319,6 +363,12 @@ final class CampaignEditor
                         <button type="button" class="button sub-repeat__add" data-repeat-add>+ Ajouter une réponse</button>
                         <p class="description">
                             Un montant négatif est une réduction. Exemple : <code>-49,00</code> pour une licence déjà détenue.
+                        </p>
+                        <p class="description">
+                            « Ouvre le droit » ne vaut que si l’option ouvre un droit d’emprunt, plus bas.
+                            <em>Selon le montant</em> convient presque toujours : une réponse payante ouvre le
+                            droit, « non » ne l’ouvre pas. Forcez <em>oui</em> pour une réponse gratuite qui
+                            l’ouvre quand même — le bloc prêté à l’encadrant.
                         </p>
                     </td>
                 </tr>
@@ -662,6 +712,7 @@ final class CampaignEditor
         $values  = (array) ($_POST['choice_value'] ?? []);
         $labels  = (array) ($_POST['choice_label'] ?? []);
         $amounts = (array) ($_POST['choice_amount'] ?? []);
+        $grants  = (array) ($_POST['choice_grants'] ?? []);
 
         foreach ($values as $i => $value) {
             $value = sanitize_key(wp_unslash((string) $value));
@@ -670,11 +721,21 @@ final class CampaignEditor
                 continue;
             }
 
-            $choices[] = [
+            $choice = [
                 'value'  => $value,
                 'label'  => sanitize_text_field(wp_unslash((string) ($labels[$i] ?? $value))),
                 'amount' => AdminUi::amount($amounts[$i] ?? 0),
             ];
+
+            // Absente, la clé laisse le montant trancher. Écrite, elle l'emporte :
+            // c'est ainsi qu'une réponse gratuite ouvre quand même un droit.
+            $grant = sanitize_key(wp_unslash((string) ($grants[$i] ?? 'auto')));
+
+            if ($grant === 'oui' || $grant === 'non') {
+                $choice['grants'] = $grant === 'oui';
+            }
+
+            $choices[] = $choice;
         }
 
         if ($choices === []) {
@@ -684,7 +745,7 @@ final class CampaignEditor
         $data = [
             'label'            => $label,
             'help'             => sanitize_text_field(wp_unslash((string) ($_POST['help'] ?? ''))),
-            'input_type'       => 'single',
+            'input_type'       => self::inputType($_POST['input_type'] ?? ''),
             'is_required'      => isset($_POST['is_required']) ? 1 : 0,
             'choices'          => wp_json_encode($choices),
             'condition_option' => sanitize_key(wp_unslash((string) ($_POST['condition_option'] ?? ''))) ?: null,
@@ -797,6 +858,18 @@ final class CampaignEditor
     /**
      * @return list<string>
      */
+    /**
+     * Type de saisie retenu, ramené à ceux que le formulaire sait rendre.
+     */
+    private static function inputType(mixed $raw): string
+    {
+        $value = sanitize_key(wp_unslash((string) $raw));
+
+        return in_array($value, [Option::INPUT_SINGLE, Option::INPUT_CHECK, Option::INPUT_AUTO], true)
+            ? $value
+            : Option::INPUT_SINGLE;
+    }
+
     private static function csv(mixed $raw): array
     {
         $parts = array_filter(array_map(

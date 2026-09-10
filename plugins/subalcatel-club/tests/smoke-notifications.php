@@ -89,12 +89,16 @@ $member     = $makeUser('sub_member');
 $treasurer  = $makeUser('sub_office', 'Jean');
 $service    = new ApplicationService();
 
+sub_test_complete_identity($member);
+
 $applicationId = $service->submit($member, $campaignId, 'plongee', [
     'origine_adhesion'       => 'exterieur',
-    'jeune'                  => 'non',
     'assurance_individuelle' => 'aucune',
     'niveau_prepare'         => 'aucun',
-]);
+    'pret_bloc'              => 'non',
+    'pret_detendeur'         => 'non',
+    'pret_gilet'             => 'non',
+], 'cheque');
 
 // Le montant attendu se lit sur le dossier, il ne se recopie pas. Le tarif du
 // plan vit dans `DemoSeeder` et bouge d'une saison à l'autre ; un chiffre écrit

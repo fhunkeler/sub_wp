@@ -83,6 +83,45 @@ if (!function_exists('sub_test_pdf')) {
     }
 
     /**
+     * Complète l'état civil et les coordonnées exigés par un dossier.
+     *
+     * Depuis que `ApplicationService` refuse un dossier sans état civil — la
+     * licence FFESSM ne se prend pas sans lieu de naissance — un compte de test
+     * tout neuf ne peut plus adhérer. Ces valeurs n'ont pas à être réalistes,
+     * seulement présentes.
+     */
+    function sub_test_complete_identity(int $userId): void
+    {
+        // Un compte de test créé sans adresse : WordPress l'accepte, un dossier
+        // d'adhésion non — c'est par là que passent toutes les notifications.
+        $user = get_userdata($userId);
+
+        if ($user && $user->user_email === '') {
+            wp_update_user([
+                'ID'         => $userId,
+                'user_email' => 'test_' . $userId . '@subalcatel.test',
+            ]);
+        }
+
+        foreach ([
+            'birth_date'       => '1980-05-14',
+            'birth_city'       => 'Lannion',
+            'birth_department' => '22',
+            'birth_country'    => 'France',
+            'address'          => '3 rue des Ancres',
+            'postal_code'      => '22300',
+            'city'             => 'Lannion',
+            'mobile'           => '0600000000',
+        ] as $field => $value) {
+            // On ne remplit que ce qui manque : une suite qui a posé ses propres
+            // coordonnées les vérifie ensuite, et ne doit pas les voir écrasées.
+            if ((string) get_user_meta($userId, 'sub_' . $field, true) === '') {
+                update_user_meta($userId, 'sub_' . $field, $value);
+            }
+        }
+    }
+
+    /**
      * Une campagne à l'usage exclusif des tests, avec ses propres tarifs.
      *
      * Les suites de tarification vérifient l'arithmétique du moteur, pas le
@@ -147,7 +186,7 @@ if (!function_exists('sub_test_pdf')) {
                 'name'             => $data['name'],
                 'label'            => $data['label'],
                 'help'             => '',
-                'input_type'       => 'single',
+                'input_type'       => $data['input_type'] ?? 'single',
                 'is_required'      => $data['required'] ?? 0,
                 'choices'          => wp_json_encode($data['choices'] ?? []),
                 'condition_option' => $data['condition_option'] ?? null,
@@ -176,17 +215,6 @@ if (!function_exists('sub_test_pdf')) {
         ]);
 
         $option([
-            'name'     => 'jeune',
-            'label'    => 'Tarif jeune (moins de 16 ans)',
-            'required' => 1,
-            'ordering' => 20,
-            'choices'  => [
-                ['value' => 'non', 'label' => 'Non', 'amount' => 0.0],
-                ['value' => 'oui', 'label' => 'Oui', 'amount' => 18.00],
-            ],
-        ]);
-
-        $option([
             'name'     => 'assurance_individuelle',
             'label'    => 'Assurance individuelle complémentaire',
             'required' => 1,
@@ -200,68 +228,75 @@ if (!function_exists('sub_test_pdf')) {
         ]);
 
         $option([
-            'name'             => 'moins_value_licence',
-            'label'            => 'Licence FFESSM déjà détenue',
-            'ordering'         => 40,
-            'condition_option' => 'jeune',
-            'condition_values' => ['non'],
-            'choices'          => $yesNo(-49.00),
+            'name'       => 'moins_value_licence',
+            'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
+            'input_type' => \Subalcatel\Club\Membership\Option::INPUT_CHECK,
+            'ordering'   => 40,
+            'choices'    => $yesNo(-49.00),
         ]);
 
         $option([
             'name'     => 'niveau_prepare',
             'label'    => 'Niveau préparé cette saison',
             'ordering' => 50,
+            'plans'    => ['plongee'],
             'choices'  => [
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
                 ['value' => 'pe12',  'label' => 'PE12',  'amount' => 0.0],
                 ['value' => 'pa20',  'label' => 'PA20',  'amount' => 0.0],
                 ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
+                ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
+                ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
+                ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
             ],
         ]);
 
         $option([
             'name'             => 'carte_niveau',
             'label'            => 'Carte de niveau',
+            'input_type'       => \Subalcatel\Club\Membership\Option::INPUT_AUTO,
             'ordering'         => 60,
+            'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40'],
-            'choices'          => $yesNo(16.00),
+            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40', 'n3'],
+            'choices'          => [
+                ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
+            ],
         ]);
 
         $option([
             'name'     => 'pret_bloc',
             'label'    => 'Prêt d’un bloc',
+            'required' => 1,
             'ordering' => 70,
-            'choices'  => $yesNo(36.00),
+            'plans'    => ['plongee'],
+            'choices'  => [
+                ['value' => 'oui', 'label' => 'Oui', 'amount' => 36.00],
+                ['value' => 'encadrant', 'label' => 'Oui — encadrant', 'amount' => 0.0, 'grants' => true],
+                ['value' => 'non', 'label' => 'Non', 'amount' => 0.0],
+            ],
             'grants'   => ['bloc'],
         ]);
 
         $option([
             'name'     => 'pret_detendeur',
             'label'    => 'Prêt d’un détendeur',
+            'required' => 1,
             'ordering' => 80,
+            'plans'    => ['plongee'],
             'choices'  => $yesNo(90.00),
             'grants'   => ['detendeur'],
         ]);
 
         $option([
             'name'     => 'pret_gilet',
-            'label'    => 'Prêt d’un gilet',
+            'label'    => 'Prêt d’un gilet (stab)',
+            'required' => 1,
             'ordering' => 90,
+            'plans'    => ['plongee'],
             'choices'  => $yesNo(20.00),
             'grants'   => ['gilet'],
-        ]);
-
-        $option([
-            'name'             => 'pret_ordinateur',
-            'label'            => 'Prêt d’un ordinateur',
-            'ordering'         => 100,
-            'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pa20', 'p2', 'pe40'],
-            'choices'          => $yesNo(40.00),
-            'grants'           => ['ordinateur'],
         ]);
 
         $option([

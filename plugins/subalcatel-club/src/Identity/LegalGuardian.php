@@ -9,9 +9,10 @@ use Subalcatel\Club\Support\Audit;
 /**
  * Représentant légal d'un adhérent mineur.
  *
- * Un club de plongée accueille des jeunes — l'option « tarif jeune » du Joomla
- * en atteste. Trois conséquences que ni le cahier des charges ni la proposition
- * initiale n'avaient prévues :
+ * Un club de plongée accueille des jeunes — le Joomla leur réservait même un
+ * tarif, que le bureau a depuis retiré. La minorité, elle, reste : trois
+ * conséquences que ni le cahier des charges ni la proposition initiale
+ * n'avaient prévues :
  *
  * 1. Le **consentement** est donné par le représentant légal, pas par le mineur.
  * 2. Les **rappels** doivent lui parvenir : un adolescent ne renouvellera pas

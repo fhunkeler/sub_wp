@@ -58,10 +58,14 @@ final class QuoteEndpoint
         $quote   = (new PricingEngine())->calculate($plan, $answers, $options, $rules);
 
         // Le serveur dit quelles options s'affichent : la règle de visibilité
-        // n'est pas dupliquée dans le JavaScript.
-        $visible = [];
+        // n'est pas dupliquée dans le JavaScript. Elle se juge sur les réponses
+        // telles que le moteur les retient — case décochée ramenée à « non »,
+        // option automatique déjà répondue.
+        $resolved = PricingEngine::resolveAnswers($plan, $answers, $options);
+        $visible  = [];
+
         foreach ($options as $option) {
-            if ($option->appliesToPlan($plan->slug) && $option->isVisible($answers)) {
+            if ($option->appliesToPlan($plan->slug) && $option->isVisible($resolved)) {
                 $visible[] = $option->name;
             }
         }

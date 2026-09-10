@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Membership\ApplicationService;
+use Subalcatel\Club\Membership\PaymentMethods;
 
 /**
  * Mon adhésion : shortcode [subalcatel_mon_adhesion].
@@ -102,12 +103,17 @@ final class MyMembership
             <?php self::renderStepper($status); ?>
 
             <?php if ($status === ApplicationService::STATUS_AWAITING_PAYMENT) : ?>
+                <?php $method = (string) ($application['payment_method'] ?? ''); ?>
                 <div class="sub-notice sub-notice--waiting">
                     <strong>En attente de votre règlement</strong>
                     <p>
-                        Montant : <strong><?php echo esc_html(self::euro((float) $application['total_amount'])); ?></strong>.
-                        Par chèque à l’ordre du club, ou via HelloAsso.
-                        Le bureau confirmera la réception.
+                        Montant : <strong><?php echo esc_html(self::euro((float) $application['total_amount'])); ?></strong>
+                        <?php if ($method !== '') : ?>
+                            — mode choisi : <strong><?php echo esc_html(PaymentMethods::label($method)); ?></strong>.
+                        <?php else : ?>
+                            .
+                        <?php endif; ?>
+                        <?php echo esc_html(PaymentMethods::instructions($method)); ?>
                     </p>
                 </div>
             <?php elseif ($status === ApplicationService::STATUS_REFUSED) : ?>
@@ -210,10 +216,6 @@ final class MyMembership
             return;
         }
 
-        $modes = [
-            'cheque' => 'Chèque', 'helloasso' => 'HelloAsso',
-            'virement' => 'Virement', 'especes' => 'Espèces',
-        ];
         ?>
         <h3 class="sub-membership-view__subtitle">Règlements enregistrés</h3>
         <ul class="sub-list">
@@ -221,7 +223,7 @@ final class MyMembership
                 <li class="sub-list__item">
                     <span class="sub-list__main">
                         <?php echo esc_html(self::euro((float) $payment['amount'])); ?>
-                        — <?php echo esc_html($modes[$payment['method']] ?? (string) $payment['method']); ?>
+                        — <?php echo esc_html(PaymentMethods::label((string) $payment['method'])); ?>
                     </span>
                     <span class="sub-pill sub-pill--ok">
                         <?php echo esc_html(MemberDashboard::frDate((string) $payment['received_on'])); ?>

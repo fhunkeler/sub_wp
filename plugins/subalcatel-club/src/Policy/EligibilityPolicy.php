@@ -311,9 +311,12 @@ final class EligibilityPolicy
      * Droit d'emprunter un type de matériel, ouvert par une option d'adhésion.
      *
      * Le module Emprunts arrive en phase 8, mais les options « prêt bloc /
-     * détendeur / gilet / ordinateur » sont souscrites et payées dès
-     * l'adhésion. Le droit est donc enregistré dès la phase 4 : sans cela,
-     * chaque campagne écoulée produirait des emprunts sans droit rattachable.
+     * détendeur / gilet » sont souscrites et payées dès l'adhésion. Le droit
+     * est donc enregistré dès la phase 4 : sans cela, chaque campagne écoulée
+     * produirait des emprunts sans droit rattachable.
+     *
+     * Payées, ou non : le bloc prêté à l'encadrant qui s'engage à encadrer dix
+     * fois dans la saison ne coûte rien et ouvre pourtant le même droit.
      */
     public function hasLendingRight(int $userId, string $equipmentType): Decision
     {

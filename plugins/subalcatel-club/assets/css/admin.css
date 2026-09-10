@@ -84,6 +84,25 @@
 	width: 100%;
 }
 
+/* Champ monétaire : le suffixe reste collé au champ, qui se contente de la
+   place restante. Sans cela, un champ à 100 % pousse le « € » à la ligne. */
+.sub-admin .sub-amount {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.sub-admin .sub-amount input[type='text'] {
+	flex: 1 1 auto;
+	min-width: 0;
+	text-align: right;
+}
+
+.sub-admin .sub-amount__unit {
+	flex: 0 0 auto;
+	color: #50575e;
+}
+
 .sub-admin .sub-repeat__remove {
 	color: #b32d2e;
 	text-decoration: none;
@@ -94,6 +113,26 @@
 
 .sub-admin .sub-repeat__add {
 	margin-bottom: 6px;
+}
+
+/* Condition « <option> vaut <valeurs> » : une liste s'aligne sur son milieu,
+   un champ texte sur sa ligne de base — côte à côte, ils se décalent de deux
+   pixels. Le flex les recale sur un axe commun. */
+.sub-admin .sub-condition {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.sub-admin .sub-condition select,
+.sub-admin .sub-condition input[type='text'] {
+	margin: 0;
+}
+
+.sub-admin .sub-condition__op {
+	flex: 0 0 auto;
+	color: #50575e;
 }
 
 /* Formulaires en ligne dans les tableaux de liste. */
@@ -200,6 +239,7 @@
 
 	.sub-admin .sub-cards td {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 16px;
@@ -209,12 +249,35 @@
 		text-align: right;
 	}
 
+	/* Une cellule peut porter un composite — nom, courriel, étiquette. Chaque
+	   enfant devient un élément flex : sans repli ni rétrécissement, le dernier
+	   sort de la carte. */
+	.sub-admin .sub-cards td > * {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.sub-admin .sub-cards td .sub-tag {
+		margin-left: 0;
+	}
+
 	.sub-admin .sub-cards td:last-child {
 		border-bottom: 0;
 	}
 
-	/* L'intitulé de colonne devient l'étiquette de la ligne. */
-	.sub-admin .sub-cards td::before {
+	/* L'intitulé de colonne devient l'étiquette de la ligne.
+
+	   La sélectivité n'est pas décorative : le cœur de WordPress applique
+	   `content: attr(data-colname)` à tout `wp-list-table` avec quatre classes.
+	   Nos tableaux en portent la classe ; sans `data-colname`, l'étiquette
+	   tombait à vide et les cartes s'affichaient sans intitulé. On repasse
+	   devant, et on annule le positionnement absolu que le cœur impose. */
+	.sub-admin .sub-cards tr:not(.inline-edit-row):not(.no-items) td[data-label]::before {
+		position: static;
+		width: auto;
+		overflow: visible;
+		white-space: normal;
+		text-overflow: clip;
 		content: attr(data-label);
 		font-weight: 600;
 		color: #50575e;
@@ -261,9 +324,74 @@
 		margin-bottom: 8px;
 	}
 
+	.sub-admin .sub-repeat td {
+		padding: 6px 0;
+	}
+
+	/* L'entête est masquée : l'intitulé de colonne devient l'étiquette du
+	   champ, sans quoi les quatre cases empilées ne se distinguent plus. */
+	.sub-admin .sub-repeat td[data-label]::before {
+		content: attr(data-label);
+		display: block;
+		font-size: 12px;
+		font-weight: 600;
+		color: #50575e;
+		margin-bottom: 2px;
+	}
+
 	.sub-admin .sub-repeat input[type='text'],
 	.sub-admin .sub-repeat select {
 		width: 100%;
+	}
+
+	/* Retirer une ligne : une cible tactile explicite plutôt qu'une croix
+	   perdue en bout de carte. */
+	.sub-admin .sub-repeat__actions {
+		padding: 8px 0 0;
+		border-top: 1px solid #f0f0f1;
+		text-align: right;
+	}
+
+	.sub-admin .sub-repeat__remove {
+		min-height: 44px;
+		padding: 0 4px;
+		font-size: 13px;
+	}
+
+	.sub-admin .sub-repeat__remove::after {
+		content: ' Retirer';
+	}
+
+	/* --- Condition : empilée, l'opérateur servant d'étiquette --- */
+
+	.sub-admin .sub-condition {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 4px;
+	}
+
+	.sub-admin .sub-condition select {
+		width: 100%;
+	}
+
+	.sub-admin .sub-condition__op {
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	/* --- Largeurs héritées du cœur, trop grandes pour un téléphone ---
+
+	   WordPress plafonne les listes à `max-width: 25rem` et les champs
+	   `.regular-text` à `25em` — 400 px, soit plus que l'écran. Le cœur ne
+	   ramène à 100 % que ce qui est dans un `.form-table` : ailleurs, une
+	   option au libellé long fait défiler toute la page. */
+	.sub-admin select,
+	.sub-admin input[type='text'],
+	.sub-admin input[type='email'],
+	.sub-admin input[type='url'],
+	.sub-admin input[type='search'],
+	.sub-admin input[type='number'] {
+		max-width: 100%;
 	}
 
 	/* --- Confort tactile --- */

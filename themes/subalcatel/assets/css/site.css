@@ -151,6 +151,28 @@
 		display: none;
 	}
 
+	/* Pagination : les numéros font 9 px de large pour 19 px de haut, collés
+	   les uns aux autres — au pouce, viser « 2 » plutôt que « 3 » tient du
+	   hasard. On leur donne une vraie surface tactile. */
+	.wp-block-query-pagination {
+		gap: 4px;
+	}
+
+	.wp-block-query-pagination .page-numbers,
+	.wp-block-query-pagination .wp-block-query-pagination-next,
+	.wp-block-query-pagination .wp-block-query-pagination-previous {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0 8px;
+	}
+
+	.wp-block-query-pagination .page-numbers.current {
+		font-weight: 700;
+	}
+
 	/* Le bouton de menu se range à droite, contre « Connexion » : avec trois
 	   enfants et `space-between`, il flottait seul au milieu de l'en-tête.
 	   Sur l'élément <nav> seulement : core repose la classe sur la liste elle-même,

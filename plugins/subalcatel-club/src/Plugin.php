@@ -49,8 +49,10 @@ use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\PasswordChange;
 use Subalcatel\Club\Setup\Updater;
 use Subalcatel\Club\Support\Hardening;
+use Subalcatel\Club\Support\LoginAudit;
 use Subalcatel\Club\Support\LoginThrottle;
 use Subalcatel\Club\Support\LoginUrl;
+use Subalcatel\Club\Support\PasswordPolicy;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Identity\Roles;
@@ -99,6 +101,12 @@ final class Plugin
         // les en-têtes doit s'appliquer avant tout rendu.
         Hardening::register();
         LoginThrottle::register();
+
+        // Consigne les connexions (réussies et échouées) dans le journal du
+        // club, et refuse un mot de passe proche de l'identité ou déjà fuité,
+        // y compris sur les écrans natifs de réinitialisation et de profil.
+        LoginAudit::register();
+        PasswordPolicy::register();
 
         // Signale les versions publiées sur le dépôt du club, et ferme au
         // passage la porte des mises à jour venues de wordpress.org par

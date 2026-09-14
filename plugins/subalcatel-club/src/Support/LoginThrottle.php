@@ -21,16 +21,30 @@ namespace Subalcatel\Club\Support;
  * punirait tout un réseau d'entreprise derrière une même adresse, et bloquer
  * sur le seul identifiant permettrait de verrouiller le compte d'un tiers en le
  * ciblant exprès (déni de service). Le couple limite les deux.
+ *
+ * À ce comptage fin s'ajoute un **second compteur, par IP seule**, contre une
+ * attaque que le premier ne voit pas : le *password spraying*, qui essaie un
+ * seul mot de passe sur des centaines de comptes différents. Chaque couple
+ * IP+identifiant reste alors sous le seuil de 8, mais une même origine accumule
+ * des dizaines d'échecs sur des identifiants distincts. Le seuil par IP est
+ * donc plus haut (il doit tolérer un vrai réseau partagé) et se contente de
+ * fermer la porte à une origine manifestement occupée à balayer.
  */
 final class LoginThrottle
 {
-    /** Tentatives tolérées avant blocage. */
+    /** Tentatives tolérées avant blocage, pour un couple IP + identifiant. */
     private const MAX_ATTEMPTS = 8;
+
+    /** Échecs tolérés depuis une même IP, tous identifiants confondus, avant
+     *  blocage : plus haut que le seuil fin pour épargner un réseau partagé,
+     *  assez bas pour arrêter un balayage. */
+    private const MAX_IP_ATTEMPTS = 30;
 
     /** Fenêtre d'observation et durée du blocage, en secondes. */
     private const WINDOW = 900; // 15 minutes
 
-    private const PREFIX = 'sub_login_fail_';
+    private const PREFIX    = 'sub_login_fail_';
+    private const IP_PREFIX = 'sub_login_ip_';
 
     public static function register(): void
     {
@@ -59,7 +73,9 @@ final class LoginThrottle
             return $user;
         }
 
-        if (self::attempts($username) < self::MAX_ATTEMPTS) {
+        if (self::attempts($username) < self::MAX_ATTEMPTS
+            && self::ipAttempts() < self::MAX_IP_ATTEMPTS
+        ) {
             return $user;
         }
 
@@ -83,10 +99,24 @@ final class LoginThrottle
         // fenêtre en continuant à essayer.
         set_transient($key, $count + 1, self::WINDOW);
 
+        // Même logique, mais sur l'IP seule : c'est ce compteur qui attrape le
+        // balayage d'un mot de passe sur beaucoup de comptes.
+        $ipKey   = self::ipKey();
+        $ipCount = (int) get_transient($ipKey);
+        set_transient($ipKey, $ipCount + 1, self::WINDOW);
+
         if ($count + 1 === self::MAX_ATTEMPTS) {
             Audit::log('login.locked_out', 'auth', null, [
                 'identifiant' => $username,
                 'origine'     => self::ip(),
+            ], 0);
+        }
+
+        // Le franchissement du seuil par IP est journalisé une seule fois : il
+        // signale un balayage, pas la simple maladresse d'un membre.
+        if ($ipCount + 1 === self::MAX_IP_ATTEMPTS) {
+            Audit::log('login.ip_locked_out', 'auth', null, [
+                'origine' => self::ip(),
             ], 0);
         }
     }
@@ -105,11 +135,24 @@ final class LoginThrottle
         return (int) get_transient(self::key($username));
     }
 
+    private static function ipAttempts(): int
+    {
+        return (int) get_transient(self::ipKey());
+    }
+
     private static function key(string $username): string
     {
         // L'identifiant est haché : il n'a pas à traîner en clair dans la table
         // des options, et le couple IP+identifiant suffit à distinguer les cas.
         return self::PREFIX . md5(self::ip() . '|' . strtolower($username));
+    }
+
+    private static function ipKey(): string
+    {
+        // Volontairement non effacé par un succès (voir `clearOnSuccess`) : un
+        // balayage qui tombe juste sur un compte ne doit pas remettre à zéro le
+        // rempart pour les autres. Il se relâche à l'expiration de la fenêtre.
+        return self::IP_PREFIX . md5(self::ip());
     }
 
     private static function ip(): string

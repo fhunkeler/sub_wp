@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Identity;
 
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\PasswordPolicy;
 use WP_Session_Tokens;
 
 /**
@@ -147,6 +148,17 @@ final class PasswordChange
 
         if ($new === $current) {
             self::back('Le nouveau mot de passe est identique à l’ancien.', true);
+        }
+
+        $reason = PasswordPolicy::rejectionReason($new, [
+            'login' => $user->user_login,
+            'email' => $user->user_email,
+            'first' => $user->first_name,
+            'last'  => $user->last_name,
+        ]);
+
+        if ($reason !== null) {
+            self::back($reason, true);
         }
 
         // `wp_update_user` réémet le cookie de la session courante : le membre

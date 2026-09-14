@@ -15,7 +15,7 @@ require_once __DIR__ . '/helpers.php';
 use Subalcatel\Club\Support\LoginThrottle;
 
 global $wpdb;
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login_fail%'");
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");
 
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {
@@ -78,21 +78,52 @@ $check('Un login réussi remet le compteur à zéro',
 // --- Une saisie vide n'est pas une tentative ---------------------------------
 echo "\n--- Cas limites ---\n";
 
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login_fail%'");
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");
 $attempt('', '');
 $check('Le formulaire vide ne déclenche pas le verrou',
     !$isLocked($attempt('', '')),
     'ouvrir la page de connexion n’est pas une tentative');
 $check('Et n’a rien enregistré',
-    (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '%sub_login_fail%'") === 0);
+    (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'") === 0);
 
 // --- Débrayage ---------------------------------------------------------------
 $check('Le ralentisseur est désactivable par filtre',
     apply_filters('subalcatel_login_throttle_enabled', true) === true,
     'récupérable si un réglage se révèle trop strict');
 
+// --- Balayage (password spraying) --------------------------------------------
+// Un seul mot de passe essayé sur beaucoup de comptes : chaque couple
+// IP+identifiant reste sous 8, mais l'IP accumule. C'est le second compteur qui
+// doit fermer la porte. Section auto-contenue, placée en fin de suite : on part
+// d'un état propre (cache d'objets compris) sur une IP jamais vue plus haut.
+echo "\n--- Balayage par IP ---\n";
+
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");
+wp_cache_flush();
+$_SERVER['REMOTE_ADDR'] = '203.0.113.200';
+
+for ($i = 0; $i < 29; $i++) {
+    do_action('wp_login_failed', "membre.n{$i}");
+}
+
+$check('29 échecs sur des comptes distincts ne bloquent pas encore l’IP',
+    !$isLocked($attempt('membre.neuf', 'x')),
+    'un vrai réseau partagé doit garder de la marge');
+
+do_action('wp_login_failed', 'membre.n29'); // 30e depuis cette IP
+
+$check('Le 30e échec depuis l’IP bloque un identifiant jamais essayé',
+    $isLocked($attempt('parfait.inconnu', 'x')),
+    'le balayage échappe au compteur IP+identifiant, pas au compteur IP');
+
+$_SERVER['REMOTE_ADDR'] = '198.51.100.77';
+$check('Une IP voisine reste libre',
+    !$isLocked($attempt('parfait.inconnu', 'x')),
+    'on ferme l’origine qui balaie, pas tout Internet');
+
 // --- Nettoyage ---------------------------------------------------------------
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login_fail%'");
+$_SERVER['REMOTE_ADDR'] = '203.0.113.10';
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");
 
 printf("\n%s\n", $failures === 0 ? '✓ Tous les contrôles passent.' : "✗ {$failures} échec(s).");
 exit($failures === 0 ? 0 : 1);

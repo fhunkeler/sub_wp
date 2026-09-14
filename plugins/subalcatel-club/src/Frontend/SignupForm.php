@@ -9,6 +9,7 @@ use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Support\PasswordPolicy;
 
 /**
  * Création de compte : shortcode [subalcatel_creer_compte].
@@ -201,6 +202,16 @@ final class SignupForm
 
         if (strlen($password) < 10) {
             throw new RuntimeException('Le mot de passe doit compter au moins dix caractères.');
+        }
+
+        $reason = PasswordPolicy::rejectionReason($password, [
+            'email' => $email,
+            'first' => $first,
+            'last'  => $last,
+        ]);
+
+        if ($reason !== null) {
+            throw new RuntimeException($reason);
         }
 
         if (empty($_POST['consent'])) {

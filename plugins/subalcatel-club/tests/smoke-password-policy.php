@@ -86,6 +86,28 @@ $check('Un mot de passe trop court est refusé à la réinitialisation',
     $errors->has_errors(),
     'WordPress ne l’imposait pas de lui-même sur cet écran');
 
+// --- Réglages depuis l'administration ----------------------------------------
+// La longueur et l'activation de la similarité se lisent dans SecuritySettings ;
+// on les pilote ici par filtre, sans écrire l'option.
+echo "\n--- Pilotage par les réglages ---\n";
+
+$settings = static fn (array $v): callable => static fn (): array => $v;
+
+$len20 = $settings(['password_min_length' => 20, 'password_similarity' => true]);
+add_filter('pre_option_subalcatel_security', $len20);
+$_POST['pass1'] = 'corail-abysse-92'; // 16 caractères : bon, mais trop court pour 20
+$errors = new WP_Error();
+PasswordPolicy::onCoreReset($errors, $user);
+$check('La longueur minimale suit le réglage (20 exigés)', $errors->has_errors());
+remove_filter('pre_option_subalcatel_security', $len20);
+
+$noSim = $settings(['password_similarity' => false, 'password_min_length' => 12]);
+add_filter('pre_option_subalcatel_security', $noSim);
+$check('Similarité désactivée : « login = mot de passe » n’est plus refusé',
+    PasswordPolicy::rejectionReason('mathieu', $identity) === null,
+    'le bureau peut assouplir la règle s’il le décide');
+remove_filter('pre_option_subalcatel_security', $noSim);
+
 // --- Débrayage du contrôle de fuite ------------------------------------------
 echo "\n--- Débrayage ---\n";
 

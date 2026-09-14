@@ -33,7 +33,8 @@ use WP_User;
  */
 final class PasswordPolicy
 {
-    /** Longueur minimale imposée aux écrans natifs (réinitialisation, profil). */
+    /** Longueur minimale par défaut, si aucun réglage n'a été enregistré.
+     *  La valeur effective se lit dans [SecuritySettings]. */
     public const MIN_LENGTH = 12;
 
     /** Longueur en deçà de laquelle un fragment d'identité est ignoré : « Ana »
@@ -56,6 +57,12 @@ final class PasswordPolicy
         add_action('user_profile_update_errors', [self::class, 'onProfileUpdate'], 10, 3);
     }
 
+    /** Longueur minimale effective (réglage de l'administration, défaut 12). */
+    public static function minLength(): int
+    {
+        return SecuritySettings::passwordMinLength();
+    }
+
     /**
      * Première raison de rejet, ou `null` si le mot de passe est acceptable.
      *
@@ -63,7 +70,7 @@ final class PasswordPolicy
      */
     public static function rejectionReason(string $password, array $identity): ?string
     {
-        if (self::tooSimilar($password, $identity)) {
+        if (SecuritySettings::similarityEnabled() && self::tooSimilar($password, $identity)) {
             return 'Ce mot de passe est trop proche de votre identifiant, de votre '
                 . 'adresse e-mail ou de votre nom. Choisissez-en un sans rapport avec '
                 . 'votre identité.';
@@ -131,7 +138,9 @@ final class PasswordPolicy
      */
     public static function isBreached(string $password): bool
     {
-        if (!(bool) apply_filters('subalcatel_password_breach_check_enabled', true)) {
+        // Le réglage de l'administration fixe le défaut ; le filtre garde le
+        // dernier mot (surcharge de code, désactivation en test).
+        if (!(bool) apply_filters('subalcatel_password_breach_check_enabled', SecuritySettings::breachCheckEnabled())) {
             return false;
         }
 
@@ -225,10 +234,12 @@ final class PasswordPolicy
      */
     private static function enforce(WP_Error $errors, string $password, array $identity): void
     {
-        if (strlen($password) < self::MIN_LENGTH) {
+        $minLength = SecuritySettings::passwordMinLength();
+
+        if (strlen($password) < $minLength) {
             $errors->add('sub_pass_too_short', sprintf(
                 'Le mot de passe doit compter au moins %d caractères.',
-                self::MIN_LENGTH
+                $minLength
             ));
             return; // inutile d'empiler les reproches sur un mot de passe déjà trop court.
         }

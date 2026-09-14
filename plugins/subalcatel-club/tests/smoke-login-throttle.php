@@ -121,6 +121,34 @@ $check('Une IP voisine reste libre',
     !$isLocked($attempt('parfait.inconnu', 'x')),
     'on ferme l’origine qui balaie, pas tout Internet');
 
+// --- IP de confiance ---------------------------------------------------------
+// Origine déclarée de confiance (local du club, VPN…) : jamais ralentie, même
+// sous un déluge d'échecs. On injecte la liste par filtre, sans écrire l'option.
+echo "\n--- IP de confiance ---\n";
+
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");
+wp_cache_flush();
+
+$exemption = static fn (): array => ['throttle_ip_allowlist' => ['203.0.113.222', '10.0.0.0/8']];
+add_filter('pre_option_subalcatel_security', $exemption);
+
+$_SERVER['REMOTE_ADDR'] = '203.0.113.222';
+for ($i = 0; $i < 40; $i++) {
+    do_action('wp_login_failed', "cible.n{$i}");
+}
+$check('Une IP exacte de confiance n’est jamais verrouillée',
+    !$isLocked($attempt('cible.n0', 'x')),
+    '40 échecs, et pourtant libre');
+
+$_SERVER['REMOTE_ADDR'] = '10.5.6.7'; // dans 10.0.0.0/8
+for ($i = 0; $i < 40; $i++) {
+    do_action('wp_login_failed', "cible.c{$i}");
+}
+$check('Une IP dans un bloc CIDR de confiance n’est jamais verrouillée',
+    !$isLocked($attempt('cible.c0', 'x')));
+
+remove_filter('pre_option_subalcatel_security', $exemption);
+
 // --- Nettoyage ---------------------------------------------------------------
 $_SERVER['REMOTE_ADDR'] = '203.0.113.10';
 $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");

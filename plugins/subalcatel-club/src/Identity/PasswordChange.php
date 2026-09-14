@@ -34,11 +34,13 @@ final class PasswordChange
     public const ACTION = 'sub_password_change';
 
     /**
-     * Longueur minimale.
+     * Longueur minimale **par défaut**.
      *
      * Douze caractères plutôt que huit, sans exigence de casse ni de chiffre :
      * une longue phrase se retient et résiste mieux qu'un « P@ssw0rd! » que son
-     * porteur finit par coller sur l'écran.
+     * porteur finit par coller sur l'écran. La valeur effective se lit dans
+     * [SecuritySettings] (modifiable depuis l'administration) ; cette constante
+     * n'est plus que le défaut de ce réglage.
      */
     public const MIN_LENGTH = 12;
 
@@ -69,7 +71,7 @@ final class PasswordChange
             <h2>Changer mon mot de passe</h2>
             <p class="sub-help">
                 Le nouveau mot de passe doit faire au moins
-                <?php echo esc_html((string) self::MIN_LENGTH); ?> caractères. Une phrase
+                <?php echo esc_html((string) PasswordPolicy::minLength()); ?> caractères. Une phrase
                 dont vous vous souvenez vaut mieux qu’une suite de symboles que vous
                 devrez noter quelque part.
             </p>
@@ -88,13 +90,13 @@ final class PasswordChange
                         <label for="sub_new_password">Nouveau mot de passe</label>
                         <input type="password" id="sub_new_password" name="new_password"
                                autocomplete="new-password"
-                               minlength="<?php echo esc_attr((string) self::MIN_LENGTH); ?>" required>
+                               minlength="<?php echo esc_attr((string) PasswordPolicy::minLength()); ?>" required>
                     </p>
                     <p class="sub-input">
                         <label for="sub_new_password_confirm">Confirmation</label>
                         <input type="password" id="sub_new_password_confirm" name="new_password_confirm"
                                autocomplete="new-password"
-                               minlength="<?php echo esc_attr((string) self::MIN_LENGTH); ?>" required>
+                               minlength="<?php echo esc_attr((string) PasswordPolicy::minLength()); ?>" required>
                     </p>
                 </div>
 
@@ -139,10 +141,10 @@ final class PasswordChange
             self::back('Les deux nouveaux mots de passe ne correspondent pas.', true);
         }
 
-        if (strlen($new) < self::MIN_LENGTH) {
+        if (strlen($new) < PasswordPolicy::minLength()) {
             self::back(sprintf(
                 'Le nouveau mot de passe doit faire au moins %d caractères.',
-                self::MIN_LENGTH
+                PasswordPolicy::minLength()
             ), true);
         }
 

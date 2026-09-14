@@ -32,23 +32,19 @@ namespace Subalcatel\Club\Support;
  */
 final class LoginThrottle
 {
-    /** Tentatives tolérées avant blocage, pour un couple IP + identifiant. */
-    private const MAX_ATTEMPTS = 8;
-
-    /** Échecs tolérés depuis une même IP, tous identifiants confondus, avant
-     *  blocage : plus haut que le seuil fin pour épargner un réseau partagé,
-     *  assez bas pour arrêter un balayage. */
-    private const MAX_IP_ATTEMPTS = 30;
-
-    /** Fenêtre d'observation et durée du blocage, en secondes. */
-    private const WINDOW = 900; // 15 minutes
+    // Les seuils, la fenêtre et la liste d'IP exemptées se lisent désormais dans
+    // [SecuritySettings] (modifiables depuis l'administration) ; les valeurs par
+    // défaut y reproduisent l'ancien comportement — 8 échecs par couple
+    // IP+identifiant, 30 par IP seule, sur une fenêtre de 15 minutes.
 
     private const PREFIX    = 'sub_login_fail_';
     private const IP_PREFIX = 'sub_login_ip_';
 
     public static function register(): void
     {
-        if (!(bool) apply_filters('subalcatel_login_throttle_enabled', true)) {
+        // Le réglage de l'administration fixe le défaut ; le filtre garde le
+        // dernier mot (surcharge de code, désactivation en test).
+        if (!(bool) apply_filters('subalcatel_login_throttle_enabled', SecuritySettings::throttleEnabled())) {
             return;
         }
 
@@ -73,8 +69,14 @@ final class LoginThrottle
             return $user;
         }
 
-        if (self::attempts($username) < self::MAX_ATTEMPTS
-            && self::ipAttempts() < self::MAX_IP_ATTEMPTS
+        // Origine de confiance déclarée par le bureau (local du club, VPN…) :
+        // jamais ralentie.
+        if (SecuritySettings::isIpExempt(self::ip())) {
+            return $user;
+        }
+
+        if (self::attempts($username) < SecuritySettings::maxAttempts()
+            && self::ipAttempts() < SecuritySettings::maxIpAttempts()
         ) {
             return $user;
         }
@@ -84,28 +86,36 @@ final class LoginThrottle
             sprintf(
                 'Trop de tentatives de connexion. Réessayez dans %d minutes, ou '
                 . 'réinitialisez votre mot de passe.',
-                (int) ceil(self::WINDOW / 60)
+                (int) ceil(SecuritySettings::windowSeconds() / 60)
             )
         );
     }
 
     public static function recordFailure(string $username): void
     {
+        // Une origine exemptée ne remplit aucun compteur : sinon elle finirait
+        // par franchir le seuil par IP et se verrouiller elle-même.
+        if (SecuritySettings::isIpExempt(self::ip())) {
+            return;
+        }
+
+        $window = SecuritySettings::windowSeconds();
+
         $key   = self::key($username);
         $count = (int) get_transient($key);
 
         // Chaque échec repousse l'expiration : un attaquant qui insiste reste
         // bloqué tant qu'il insiste, il ne peut pas attendre passivement la
         // fenêtre en continuant à essayer.
-        set_transient($key, $count + 1, self::WINDOW);
+        set_transient($key, $count + 1, $window);
 
         // Même logique, mais sur l'IP seule : c'est ce compteur qui attrape le
         // balayage d'un mot de passe sur beaucoup de comptes.
         $ipKey   = self::ipKey();
         $ipCount = (int) get_transient($ipKey);
-        set_transient($ipKey, $ipCount + 1, self::WINDOW);
+        set_transient($ipKey, $ipCount + 1, $window);
 
-        if ($count + 1 === self::MAX_ATTEMPTS) {
+        if ($count + 1 === SecuritySettings::maxAttempts()) {
             Audit::log('login.locked_out', 'auth', null, [
                 'identifiant' => $username,
                 'origine'     => self::ip(),
@@ -114,7 +124,7 @@ final class LoginThrottle
 
         // Le franchissement du seuil par IP est journalisé une seule fois : il
         // signale un balayage, pas la simple maladresse d'un membre.
-        if ($ipCount + 1 === self::MAX_IP_ATTEMPTS) {
+        if ($ipCount + 1 === SecuritySettings::maxIpAttempts()) {
             Audit::log('login.ip_locked_out', 'auth', null, [
                 'origine' => self::ip(),
             ], 0);

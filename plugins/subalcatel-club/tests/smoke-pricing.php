@@ -193,7 +193,7 @@ $scenario(
 );
 
 // ---------------------------------------------------------------------------
-// 9. La carte de niveau s'ajoute d'office — sauf pour le N4 et le MF1, que la
+// 9. La carte de niveau s'ajoute d'office — sauf pour le N4, l'E3 et l'E4, que la
 //    fédération délivre elle-même.
 // ---------------------------------------------------------------------------
 $scenario(
@@ -214,6 +214,17 @@ $scenario(
         'origine_adhesion'       => 'exterieur',
         'assurance_individuelle' => 'aucune',
         'niveau_prepare'         => 'n4',
+    ],
+    210.00
+);
+
+$scenario(
+    'E3 préparé — pas de carte de niveau non plus',
+    'plongee',
+    [
+        'origine_adhesion'       => 'exterieur',
+        'assurance_individuelle' => 'aucune',
+        'niveau_prepare'         => 'e3',
     ],
     210.00
 );

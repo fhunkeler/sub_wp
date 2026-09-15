@@ -157,13 +157,16 @@ final class DemoSeeder
                 ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
                 ['value' => 'p3',    'label' => 'P3',    'amount' => 0.0],
                 ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
-                ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
+                // E3 et E4, pas MF1 et MF2 : ce sont les mêmes brevets, et le
+                // club les désigne par leur niveau d'encadrement.
+                ['value' => 'e3',    'label' => 'E3',    'amount' => 0.0],
+                ['value' => 'e4',    'label' => 'E4',    'amount' => 0.0],
             ],
         ]);
 
         // Due dès qu'un niveau est préparé, et sans choix à faire : le club la
-        // commande de toute façon. N4 et MF1 en sont dispensés — ces brevets
-        // sont délivrés par la fédération, pas par le club.
+        // commande de toute façon. N4, E3 et E4 en sont dispensés — ces
+        // brevets-là sont délivrés par la fédération, pas par le club.
         $option([
             'name'             => 'carte_niveau',
             'label'            => 'Carte de niveau',

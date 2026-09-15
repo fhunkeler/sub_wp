@@ -247,7 +247,8 @@ if (!function_exists('sub_test_pdf')) {
                 ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
                 ['value' => 'p3',    'label' => 'P3',    'amount' => 0.0],
                 ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
-                ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
+                ['value' => 'e3',    'label' => 'E3',    'amount' => 0.0],
+                ['value' => 'e4',    'label' => 'E4',    'amount' => 0.0],
             ],
         ]);
 

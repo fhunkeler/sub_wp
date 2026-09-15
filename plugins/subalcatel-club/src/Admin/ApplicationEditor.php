@@ -88,6 +88,7 @@ final class ApplicationEditor
 
         $answers  = $service->answers($applicationId);
         $resolved = PricingEngine::resolveAnswers($plan, $answers, $options);
+        $perimes  = self::staleAnswers($options, $resolved);
 
         $user = $application['user_id'] === null ? null : get_userdata((int) $application['user_id']);
         $paid = $service->paidAmount($applicationId);
@@ -119,6 +120,17 @@ final class ApplicationEditor
                 qui fait le prix de <em>cette</em> adhésion.
             </p>
 
+            <?php if ($perimes !== []) : ?>
+                <div class="notice notice-error inline" style="margin:16px 0;">
+                    <p>
+                        <strong>Ce dossier répond à des choix qui n’existent plus.</strong>
+                        Le bureau a modifié la campagne depuis le dépôt — un niveau retiré, une
+                        option renommée. Les réponses concernées sont signalées ci-dessous : tant
+                        qu’elles ne sont pas reprises, enregistrer la correction les perdrait.
+                    </p>
+                </div>
+            <?php endif; ?>
+
             <?php if ($paid > 0) : ?>
                 <div class="notice notice-warning inline" style="margin:16px 0;">
                     <p>
@@ -145,7 +157,7 @@ final class ApplicationEditor
                         <?php MembershipFields::plans($plans, $plan); ?>
 
                         <?php foreach ($options as $option) : ?>
-                            <?php MembershipFields::option($option, $plan, $resolved); ?>
+                            <?php MembershipFields::option($option, $plan, $resolved, $perimes); ?>
                         <?php endforeach; ?>
 
                         <?php MembershipFields::payment(
@@ -269,6 +281,53 @@ final class ApplicationEditor
             self::url($applicationId)
         ));
         exit;
+    }
+
+    /**
+     * Les réponses enregistrées qui ne désignent plus aucun choix.
+     *
+     * Une campagne se retouche en cours de saison — le club retire un niveau
+     * qu'il ne prépare plus, renomme une option. Les dossiers déjà déposés n'en
+     * souffrent pas : leurs lignes sont figées. Mais celui qu'on rouvre pour le
+     * corriger est recalculé sur la campagne d'aujourd'hui, et une réponse
+     * devenue inconnue ne vaut plus rien — ni ligne, ni condition satisfaite.
+     *
+     * Elle disparaîtrait donc en silence, emportant ce qu'elle déclenchait : le
+     * niveau préparé retiré emmène la carte de niveau avec lui. Le dire avant
+     * l'enregistrement coûte ce contrôle ; le découvrir après coûte un dossier
+     * faux que personne ne sait expliquer.
+     *
+     * @param list<\Subalcatel\Club\Membership\Option> $options
+     * @param array<string, string|list<string>> $answers Réponses déjà résolues.
+     * @return array<string, string> nom technique => message
+     */
+    private static function staleAnswers(array $options, array $answers): array
+    {
+        $stale = [];
+
+        foreach ($options as $option) {
+            $answer = $answers[$option->name] ?? null;
+
+            if ($answer === null || $answer === '' || $answer === []) {
+                continue;
+            }
+
+            $connus  = array_map(
+                static fn (array $choice): string => (string) $choice['value'],
+                $option->choices
+            );
+            $perdues = array_diff(is_array($answer) ? $answer : [$answer], $connus);
+
+            if ($perdues !== []) {
+                $stale[$option->name] = sprintf(
+                    'Réponse enregistrée : « %s ». Ce choix ne fait plus partie de la campagne — '
+                    . 'reprenez-en un ci-dessous, sinon il sera perdu à l’enregistrement.',
+                    implode(', ', $perdues)
+                );
+            }
+        }
+
+        return $stale;
     }
 
     /**

@@ -21,6 +21,8 @@ use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\IncompleteApplication;
 use Subalcatel\Club\Notifications\EmailTemplates;
 
+global $wpdb;
+
 $campaignId = sub_test_pricing_campaign();
 $service    = new ApplicationService();
 $failures   = 0;
@@ -134,6 +136,43 @@ $check('L’écart est visible : 54,00 € à rembourser',
 $check('Le dossier reste au stade « paiement confirmé »',
     $service->find($applicationId)['status'] === ApplicationService::STATUS_PAYMENT_CONFIRMED);
 
+// --- Une réponse que la campagne ne connaît plus ------------------------------
+echo "\n--- Choix retiré de la campagne en cours de saison ---\n";
+
+// Le club décide en octobre qu'il ne prépare plus ce niveau. Les dossiers déjà
+// déposés gardent leurs lignes figées ; celui qu'on rouvre, lui, est recalculé
+// sur la campagne d'aujourd'hui — et sa réponse ne désigne plus rien.
+$niveaux = $wpdb->get_var($wpdb->prepare(
+    "SELECT choices FROM {$wpdb->prefix}sub_options WHERE campaign_id = %d AND name = 'niveau_prepare'",
+    $campaignId
+));
+$restants = array_values(array_filter(
+    (array) json_decode((string) $niveaux, true),
+    static fn (array $choix): bool => $choix['value'] !== 'p2'
+));
+$wpdb->update(
+    "{$wpdb->prefix}sub_options",
+    ['choices' => wp_json_encode($restants)],
+    ['campaign_id' => $campaignId, 'name' => 'niveau_prepare']
+);
+
+wp_set_current_user($bureau);
+$_GET['application_id'] = $applicationId;
+ob_start();
+\Subalcatel\Club\Admin\ApplicationEditor::render();
+$ecran = ob_get_clean();
+
+$check('L’écran signale la réponse devenue inconnue',
+    str_contains($ecran, 'répond à des choix qui n’existent plus'));
+$check('… et désigne la case fautive', str_contains($ecran, 'Réponse enregistrée : « p2 »'));
+
+$wpdb->update(
+    "{$wpdb->prefix}sub_options",
+    ['choices' => $niveaux],
+    ['campaign_id' => $campaignId, 'name' => 'niveau_prepare']
+);
+wp_set_current_user(0);
+
 // --- Après activation ---------------------------------------------------------
 echo "\n--- Après activation ---\n";
 
@@ -148,8 +187,6 @@ try {
 
 // --- Traçabilité --------------------------------------------------------------
 echo "\n--- Traçabilité ---\n";
-
-global $wpdb;
 
 $corrections = (int) $wpdb->get_var($wpdb->prepare(
     "SELECT COUNT(*) FROM {$wpdb->prefix}sub_validations

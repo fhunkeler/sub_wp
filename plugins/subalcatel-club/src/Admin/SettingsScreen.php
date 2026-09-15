@@ -620,29 +620,89 @@ final class SettingsScreen
         return is_string($raw) && filter_var($raw, FILTER_VALIDATE_IP) ? $raw : 'inconnue';
     }
 
+    /** Catégories du journal : libellés lisibles, repli sur la valeur brute. */
+    private const AUDIT_CATEGORIES = [
+        'auth'        => 'Connexions & sécurité',
+        'user'        => 'Comptes',
+        'membership'  => 'Adhésions',
+        'event'       => 'Événements',
+        'document'    => 'Documents',
+        'campaign'    => 'Campagnes',
+    ];
+
     public static function renderAudit(): void
     {
-        $entries = Audit::recent(100);
+        $q       = sanitize_text_field(wp_unslash((string) ($_GET['audit_q'] ?? '')));
+        $entity  = sanitize_key(wp_unslash((string) ($_GET['audit_type'] ?? '')));
+        $perPage = (int) ($_GET['audit_per'] ?? 50);
+        $page    = max(1, (int) ($_GET['audit_page'] ?? 1));
+
+        $result = Audit::search([
+            'q'           => $q,
+            'entity_type' => $entity,
+            'per_page'    => $perPage,
+            'page'        => $page,
+        ]);
+
+        $entries = $result['rows'];
+        $baseArgs = ['page' => self::SLUG, 'tab' => 'audit'];
         ?>
         <p class="description">
-            Trace des actions sensibles. Ce journal ne peut pas être modifié :
-            c'est ce qui le rend opposable.
+            Trace des actions sensibles — connexions, adhésions, documents, réglages.
+            Ce journal ne peut pas être modifié : c'est ce qui le rend opposable.
+        </p>
+
+        <form method="get" style="margin:12px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
+            <input type="hidden" name="tab" value="audit">
+            <input type="search" name="audit_q" value="<?php echo esc_attr($q); ?>"
+                   class="regular-text" placeholder="Identifiant, action, adresse IP…">
+            <select name="audit_type">
+                <option value="">Toutes les catégories</option>
+                <?php foreach (Audit::entityTypes() as $type) : ?>
+                    <option value="<?php echo esc_attr($type); ?>" <?php selected($entity, $type); ?>>
+                        <?php echo esc_html(self::AUDIT_CATEGORIES[$type] ?? $type); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <select name="audit_per">
+                <?php foreach ([50, 100, 200, 500] as $n) : ?>
+                    <option value="<?php echo (int) $n; ?>" <?php selected($result['per_page'], $n); ?>>
+                        <?php echo (int) $n; ?> par page
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="button">Rechercher</button>
+            <?php if ($q !== '' || $entity !== '') : ?>
+                <a class="button-link" href="<?php echo esc_url(add_query_arg($baseArgs, admin_url('admin.php'))); ?>">
+                    Réinitialiser
+                </a>
+            <?php endif; ?>
+        </form>
+
+        <p class="description">
+            <strong><?php echo (int) $result['total']; ?></strong> entrée(s)<?php
+                echo ($q !== '' || $entity !== '') ? ' correspondant au filtre' : '';
+            ?> — page <?php echo (int) $result['page']; ?> sur <?php echo (int) $result['pages']; ?>.
         </p>
 
         <div class="sub-scroll">
-        <table class="wp-list-table widefat striped" style="min-width:840px;">
+        <table class="wp-list-table widefat striped" style="min-width:900px;">
             <thead>
                 <tr>
-                    <th style="width:160px;">Quand</th>
-                    <th style="width:170px;">Qui</th>
-                    <th style="width:200px;">Action</th>
-                    <th style="width:130px;">Objet</th>
+                    <th style="width:150px;">Quand</th>
+                    <th style="width:160px;">Qui</th>
+                    <th style="width:190px;">Action</th>
+                    <th style="width:120px;">Objet</th>
+                    <th style="width:130px;">Adresse IP</th>
                     <th>Détails</th>
                 </tr>
             </thead>
             <tbody>
             <?php if ($entries === []) : ?>
-                <tr><td colspan="5">Journal vide.</td></tr>
+                <tr><td colspan="6"><?php echo $q !== '' || $entity !== ''
+                    ? 'Aucune entrée ne correspond à cette recherche.'
+                    : 'Journal vide.'; ?></td></tr>
             <?php endif; ?>
 
             <?php foreach ($entries as $entry) : ?>
@@ -652,11 +712,14 @@ final class SettingsScreen
                 <?php $user = $entry['user_id'] ? get_userdata((int) $entry['user_id']) ?: null : null; ?>
                 <tr>
                     <td><?php echo esc_html(wp_date('d/m/Y H:i', strtotime((string) $entry['created_at']))); ?></td>
-                    <td><?php echo esc_html($user?->display_name ?: '—'); ?></td>
+                    <td><?php echo esc_html($user?->display_name ?: ($entry['user_id'] ? '#' . (int) $entry['user_id'] : '—')); ?></td>
                     <td><code><?php echo esc_html((string) $entry['action']); ?></code></td>
                     <td>
                         <?php echo esc_html((string) $entry['entity_type']); ?>
                         <?php echo $entry['entity_id'] ? '#' . (int) $entry['entity_id'] : ''; ?>
+                    </td>
+                    <td style="font-variant-numeric:tabular-nums;font-size:12px;">
+                        <?php echo esc_html((string) ($entry['ip_address'] ?? '') ?: '—'); ?>
                     </td>
                     <td style="color:#50575e;font-size:12px;">
                         <?php echo esc_html((string) ($entry['details'] ?? '')); ?>
@@ -666,6 +729,34 @@ final class SettingsScreen
             </tbody>
         </table>
         </div>
+
+        <?php if ($result['pages'] > 1) : ?>
+            <?php
+            $current  = (int) $result['page'];
+            $filter   = array_filter([
+                'audit_q'    => $q,
+                'audit_type' => $entity,
+                'audit_per'  => $result['per_page'],
+            ], static fn ($v): bool => $v !== '' && $v !== null);
+            $pageUrl  = static fn (int $n): string => esc_url(add_query_arg(
+                array_merge($baseArgs, $filter, ['audit_page' => $n]),
+                admin_url('admin.php')
+            ));
+            ?>
+            <div class="tablenav" style="margin-top:12px;">
+                <div class="tablenav-pages">
+                    <?php if ($current > 1) : ?>
+                        <a class="button" href="<?php echo $pageUrl(1); ?>">« Début</a>
+                        <a class="button" href="<?php echo $pageUrl($current - 1); ?>">‹ Précédent</a>
+                    <?php endif; ?>
+                    <span style="margin:0 8px;">Page <?php echo $current; ?> / <?php echo (int) $result['pages']; ?></span>
+                    <?php if ($current < (int) $result['pages']) : ?>
+                        <a class="button" href="<?php echo $pageUrl($current + 1); ?>">Suivant ›</a>
+                        <a class="button" href="<?php echo $pageUrl((int) $result['pages']); ?>">Fin »</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
         <?php
     }
 

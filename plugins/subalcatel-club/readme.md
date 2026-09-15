@@ -36,6 +36,7 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | **Club → Adhésions → Campagnes** | Liste, création, **duplication annuelle**, suppression d'une campagne sans dossier |
 | **Configurer une campagne** | Formules, options et remises — tout se règle ici |
 | **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes, origine des adhésions et délais d'encaissement |
+| **Club → Réglages → Mises à jour** | Pourquoi le site se met à jour, ou ne se met pas à jour : quota GitHub, dernier appel, jeton |
 
 ## Dérouler la démonstration
 
@@ -116,6 +117,7 @@ sera stabilisé.
 | Campagnes : création, duplication, ouverture | Livré |
 | Formules, options et remises configurables | Livré |
 | Journal d'audit | Livré |
+| Diagnostic des mises à jour — quota GitHub, dernier appel, jeton | Livré |
 | Tableau de bord : 6 blocs actionnables et 4 courbes | Livré |
 | Bloc « Club » sur le tableau de bord de WordPress : compteurs et raccourcis | Livré |
 | Statistiques annuelles : renouvellement, niveaux, âges, participation | Livré |

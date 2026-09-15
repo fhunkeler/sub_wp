@@ -16,6 +16,7 @@ use Subalcatel\Club\Admin\ExportsScreen;
 use Subalcatel\Club\Admin\MembersScreen;
 use Subalcatel\Club\Admin\NotificationsScreen;
 use Subalcatel\Club\Admin\SettingsScreen;
+use Subalcatel\Club\Admin\UpdatesScreen;
 use Subalcatel\Club\Admin\AccountsScreen;
 use Subalcatel\Club\Admin\ClubDocumentsScreen;
 use Subalcatel\Club\Admin\MailingListsScreen;
@@ -189,5 +190,6 @@ final class Plugin
         NotificationsScreen::register();
         ExportsScreen::register();
         SettingsScreen::register();
+        UpdatesScreen::register();
     }
 }

@@ -982,3 +982,13 @@
 	background: #fbeae8;
 	color: #b82a1e;
 }
+
+/* Diagnostic des mises à jour : un libellé, une valeur, rien de décoratif. */
+.sub-updates th {
+	font-weight: 400;
+	color: #50575e;
+}
+
+.sub-updates td {
+	font-variant-numeric: tabular-nums;
+}

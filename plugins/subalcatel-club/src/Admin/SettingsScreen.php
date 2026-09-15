@@ -85,6 +85,13 @@ final class SettingsScreen
                 'cap'    => 'sub_manage_event_types',
                 'render' => [self::class, 'renderAudit'],
             ],
+            UpdatesScreen::TAB           => [
+                'label'  => 'Mises à jour',
+                // Même raison que « Sécurité » : poser un jeton dans
+                // wp-config.php n'est pas une tâche de gestion du bureau.
+                'cap'    => 'manage_options',
+                'render' => [UpdatesScreen::class, 'renderTab'],
+            ],
         ]);
     }
 

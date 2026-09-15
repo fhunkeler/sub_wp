@@ -35,14 +35,14 @@ use const Subalcatel\Club\VERSION;
 final class Updater
 {
     /** Dépôt qui porte le code et les archives publiées. */
-    private const DEPOT = 'fhunkeler/sub_wp';
+    public const DEPOT = 'fhunkeler/sub_wp';
 
     /** Hôte déclaré par l'en-tête « Update URI » du plugin et du thème. */
     private const HOTE = 'github.com';
 
-    private const PLUGIN_FICHIER = 'subalcatel-club/subalcatel-club.php';
-    private const PLUGIN_SLUG    = 'subalcatel-club';
-    private const THEME_SLUG     = 'subalcatel';
+    public const PLUGIN_FICHIER = 'subalcatel-club/subalcatel-club.php';
+    public const PLUGIN_SLUG    = 'subalcatel-club';
+    public const THEME_SLUG     = 'subalcatel';
 
     /**
      * Préfixes de balises. Un seul dépôt porte les deux extensions : sans
@@ -342,6 +342,18 @@ final class Updater
 
     // -- Cache ----------------------------------------------------------------
 
+    /**
+     * Un jeton est-il posé ?
+     *
+     * Sa valeur ne sort jamais d'ici : l'écran a besoin de savoir s'il existe,
+     * pas de le montrer. Un secret affiché dans une administration finit dans
+     * une capture d'écran.
+     */
+    public static function jetonPose(): bool
+    {
+        return defined('SUBALCATEL_GITHUB_TOKEN') && SUBALCATEL_GITHUB_TOKEN !== '';
+    }
+
     public static function oublier(): void
     {
         delete_site_transient(self::CACHE);
@@ -438,7 +450,7 @@ final class Updater
      *
      * @return array{slug:string,version:string,package:string,url:string,notes:string,date:string}|null
      */
-    private static function derniere(string $slug): ?array
+    public static function derniere(string $slug): ?array
     {
         return self::plusRecente($slug, '0.0.0');
     }

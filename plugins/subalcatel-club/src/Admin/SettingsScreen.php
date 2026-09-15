@@ -10,6 +10,7 @@ use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Setup\SiteBuilder;
 use Subalcatel\Club\Setup\SiteMap;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\SecuritySettings;
 
 /**
  * Réglages du club : les référentiels que le bureau fait vivre.
@@ -36,6 +37,7 @@ final class SettingsScreen
         add_action('admin_post_sub_event_type_delete', [self::class, 'handleTypeDelete']);
         add_action('admin_post_sub_level_save', [self::class, 'handleLevelSave']);
         add_action('admin_post_sub_level_delete', [self::class, 'handleLevelDelete']);
+        add_action('admin_post_sub_security_save', [self::class, 'handleSecuritySave']);
     }
 
     public static function render(): void
@@ -70,6 +72,13 @@ final class SettingsScreen
                 'label'  => 'Contrôle d’intégrité',
                 'cap'    => 'sub_manage_content',
                 'render' => [ClubDocumentsScreen::class, 'renderIntegrityTab'],
+            ],
+            'security'                   => [
+                'label'  => 'Sécurité',
+                // Réservé aux administrateurs : régler la protection des
+                // connexions n'est pas une tâche de gestion courante du bureau.
+                'cap'    => 'manage_options',
+                'render' => [self::class, 'renderSecurity'],
             ],
             'audit'                      => [
                 'label'  => 'Journal',
@@ -447,6 +456,161 @@ final class SettingsScreen
             admin_url('admin.php')
         ));
         exit;
+    }
+
+    // -------------------------------------------------------------- Sécurité
+
+    public static function renderSecurity(): void
+    {
+        AdminUi::requireCap('manage_options');
+
+        $s = SecuritySettings::all();
+        ?>
+        <h2>Politique de mot de passe</h2>
+        <p class="description">
+            Ces règles s’appliquent partout où un mot de passe est choisi : inscription,
+            changement depuis l’espace membre, « mot de passe oublié » et profil de
+            l’administration.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_security_save">
+            <?php wp_nonce_field('sub_security_save'); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row"><label for="sub_pw_min">Longueur minimale</label></th>
+                    <td>
+                        <input type="number" id="sub_pw_min" name="password_min_length" min="8" max="64"
+                               value="<?php echo esc_attr((string) $s['password_min_length']); ?>" class="small-text">
+                        caractères
+                        <p class="description">Entre 8 et 64. Une longue phrase se retient et résiste mieux qu’un mot compliqué.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Refus des mots de passe faibles</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="password_similarity" value="1"
+                                <?php checked($s['password_similarity']); ?>>
+                            Refuser un mot de passe trop proche de l’identifiant, de l’e-mail ou du nom
+                        </label>
+                        <p class="description">Ferme le cas « identifiant = mot de passe », qu’aucun ralentisseur n’arrête.</p>
+                        <label>
+                            <input type="checkbox" name="password_breach_check" value="1"
+                                <?php checked($s['password_breach_check']); ?>>
+                            Refuser un mot de passe présent dans une fuite connue
+                        </label>
+                        <p class="description">
+                            Vérifié auprès du service « Have I Been Pwned » en k-anonymité : le mot de passe
+                            ne quitte jamais le serveur, seuls cinq caractères de son empreinte sont envoyés.
+                            Sans effet si le service est injoignable.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
+            <h2>Ralentisseur de connexion</h2>
+            <p class="description">
+                Contre la devinette de mot de passe. Ce n’est pas un pare-feu : un vrai WAF
+                reste préférable en production, mais ceci ferme la porte grande ouverte.
+            </p>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">Activation</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="throttle_enabled" value="1"
+                                <?php checked($s['throttle_enabled']); ?>>
+                            Ralentir les tentatives de connexion répétées
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="sub_thr_user">Seuil par compte</label></th>
+                    <td>
+                        <input type="number" id="sub_thr_user" name="throttle_max_attempts" min="3" max="100"
+                               value="<?php echo esc_attr((string) $s['throttle_max_attempts']); ?>" class="small-text">
+                        échecs pour un même couple identifiant + adresse IP
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="sub_thr_ip">Seuil par adresse IP</label></th>
+                    <td>
+                        <input type="number" id="sub_thr_ip" name="throttle_max_ip_attempts" min="3" max="100"
+                               value="<?php echo esc_attr((string) $s['throttle_max_ip_attempts']); ?>" class="small-text">
+                        échecs depuis une même IP, tous identifiants confondus
+                        <p class="description">
+                            Attrape le balayage d’un mot de passe sur beaucoup de comptes. Ramené au seuil
+                            par compte s’il est saisi plus bas. Prévoir de la marge pour un réseau partagé.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="sub_thr_win">Durée de la fenêtre</label></th>
+                    <td>
+                        <input type="number" id="sub_thr_win" name="throttle_window_minutes" min="1" max="1440"
+                               value="<?php echo esc_attr((string) $s['throttle_window_minutes']); ?>" class="small-text">
+                        minutes
+                        <p class="description">Sert à la fois de fenêtre de comptage et de durée du blocage.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="sub_thr_allow">Adresses IP de confiance</label></th>
+                    <td>
+                        <textarea id="sub_thr_allow" name="throttle_ip_allowlist" rows="4" class="large-text code"
+                                  placeholder="203.0.113.10&#10;192.168.1.0/24&#10;2001:db8::/32"><?php
+                            echo esc_textarea(implode("\n", $s['throttle_ip_allowlist']));
+                        ?></textarea>
+                        <p class="description">
+                            Une adresse ou un bloc CIDR par ligne. Ces origines (local du club, VPN du bureau…)
+                            ne sont jamais ralenties. Les entrées invalides sont ignorées à l’enregistrement.
+                            Votre adresse actuelle : <code><?php echo esc_html(self::currentIp()); ?></code>.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
+            <p>
+                <button type="submit" class="button button-primary">Enregistrer les réglages</button>
+            </p>
+        </form>
+        <?php
+    }
+
+    public static function handleSecuritySave(): void
+    {
+        check_admin_referer('sub_security_save');
+        AdminUi::requireCap('manage_options');
+
+        SecuritySettings::save([
+            'password_min_length'      => $_POST['password_min_length'] ?? 12,
+            'password_similarity'      => $_POST['password_similarity'] ?? '',
+            'password_breach_check'    => $_POST['password_breach_check'] ?? '',
+            'throttle_enabled'         => $_POST['throttle_enabled'] ?? '',
+            'throttle_max_attempts'    => $_POST['throttle_max_attempts'] ?? 8,
+            'throttle_max_ip_attempts' => $_POST['throttle_max_ip_attempts'] ?? 30,
+            'throttle_window_minutes'  => $_POST['throttle_window_minutes'] ?? 15,
+            'throttle_ip_allowlist'    => wp_unslash((string) ($_POST['throttle_ip_allowlist'] ?? '')),
+        ]);
+
+        Audit::log('security.settings_saved', 'auth', null, [
+            'ip_de_confiance' => count(SecuritySettings::ipAllowlist()),
+        ]);
+
+        AdminUi::redirect(self::SLUG, 'Réglages de sécurité enregistrés.', false, ['tab' => 'security']);
+    }
+
+    /**
+     * Adresse réelle de la connexion en cours, pour aider à remplir la liste de
+     * confiance sans se tromper d'IP.
+     */
+    private static function currentIp(): string
+    {
+        $raw = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        return is_string($raw) && filter_var($raw, FILTER_VALIDATE_IP) ? $raw : 'inconnue';
     }
 
     public static function renderAudit(): void

@@ -9,6 +9,7 @@ use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Support\PasswordPolicy;
 
 /**
  * Création de compte : shortcode [subalcatel_creer_compte].
@@ -96,8 +97,9 @@ final class SignupForm
             <p>
                 <label for="sub-signup-pass">Mot de passe <span class="sub-field__required">*</span></label>
                 <input type="password" id="sub-signup-pass" name="password" required
-                       minlength="10" autocomplete="new-password">
-                <span class="sub-help">Dix caractères minimum.</span>
+                       minlength="<?php echo esc_attr((string) PasswordPolicy::minLength()); ?>"
+                       autocomplete="new-password">
+                <span class="sub-help"><?php echo esc_html((string) PasswordPolicy::minLength()); ?> caractères minimum.</span>
             </p>
 
             <p>
@@ -199,8 +201,23 @@ final class SignupForm
             );
         }
 
-        if (strlen($password) < 10) {
-            throw new RuntimeException('Le mot de passe doit compter au moins dix caractères.');
+        $minLength = PasswordPolicy::minLength();
+
+        if (strlen($password) < $minLength) {
+            throw new RuntimeException(sprintf(
+                'Le mot de passe doit compter au moins %d caractères.',
+                $minLength
+            ));
+        }
+
+        $reason = PasswordPolicy::rejectionReason($password, [
+            'email' => $email,
+            'first' => $first,
+            'last'  => $last,
+        ]);
+
+        if ($reason !== null) {
+            throw new RuntimeException($reason);
         }
 
         if (empty($_POST['consent'])) {

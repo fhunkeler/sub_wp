@@ -136,7 +136,18 @@ final class SiteBuilder
         $content = self::resolveLinks((string) ($page['content'] ?? ''), $ids);
 
         $installedHash = (string) get_post_meta($id, self::HASH_META, true);
-        $untouched     = $installedHash === '' || $installedHash === md5((string) $post->post_content);
+        $current       = (string) $post->post_content;
+
+        // Trois façons de conclure que personne n'a écrit sur cette page : elle
+        // n'a jamais été empreintée, son empreinte correspond encore, ou son
+        // texte est mot pour mot celui que le plan poserait. Le troisième cas
+        // rattrape les bases où l'empreinte a vieilli sans que le contenu
+        // change de main : un `search-replace` d'adresse au déploiement suffit
+        // à la périmer, et la page resterait « préservée » à jamais — ce qui
+        // veut dire : plus jamais mise à jour.
+        $untouched = $installedHash === ''
+            || $installedHash === md5($current)
+            || $current === $content;
 
         $update = [
             'ID'          => $id,
@@ -176,6 +187,15 @@ final class SiteBuilder
     /**
      * Remplace les jetons `%%URL:clé%%` par les adresses réelles.
      *
+     * L'adresse écrite est **relative à la racine du site**, jamais absolue. Le
+     * domaine change — poste de développement, sous-domaine de démonstration,
+     * domaine définitif — et le déploiement le remplace partout par un
+     * `search-replace`. Une adresse absolue enregistrée ici serait donc
+     * réécrite dans le dos du constructeur : l'empreinte prise à l'installation
+     * ne correspondrait plus, la page passerait pour retouchée par un bénévole,
+     * et ne serait plus jamais mise à jour. Le thème pose déjà ses propres
+     * liens internes de cette façon.
+     *
      * @param array<string, int> $ids
      */
     private static function resolveLinks(string $content, array $ids): string
@@ -189,7 +209,7 @@ final class SiteBuilder
             static function (array $matches) use ($ids): string {
                 $target = $ids[$matches[1]] ?? 0;
 
-                return $target === 0 ? '#' : (string) get_permalink($target);
+                return $target === 0 ? '#' : wp_make_link_relative((string) get_permalink($target));
             },
             $content
         ) ?? $content;
@@ -351,6 +371,18 @@ final class SiteBuilder
             wp_delete_post($duplicateId, true);
         }
 
+        $planned = [];
+
+        foreach ($pages as $page) {
+            $pageId = $ids[$page['key']] ?? 0;
+
+            if ($pageId !== 0) {
+                $planned[$pageId] = true;
+            }
+        }
+
+        self::forgetObsolete($known, $planned);
+
         $position = 0;
         $parents  = [];
 
@@ -377,6 +409,43 @@ final class SiteBuilder
             if (!is_wp_error($itemId)) {
                 $parents[$page['key']] = (int) $itemId;
             }
+        }
+    }
+
+    /**
+     * Retire les entrées que le plan ne demande plus.
+     *
+     * Une page sortie du plan — ou déplacée vers un autre menu — laisse son
+     * entrée derrière elle : le constructeur ne la retrouvait dans aucune page
+     * à poser, donc ne la touchait pas, et le menu gardait un lien vers une
+     * rubrique abandonnée. La dérive ne se voit pas — le thème du club
+     * n'affiche aucun menu classique — mais le menu grossit d'une version du
+     * plan à la suivante.
+     *
+     * Ne sont retirées que **nos** entrées : celles qui visent une page portant
+     * la clé posée par l'installation, et celles dont la page n'existe plus. Un
+     * lien ajouté à la main par le bureau vers une page qui lui appartient
+     * n'est pas de notre ressort — l'effacer serait aussi grossier qu'écraser
+     * un texte rédigé un dimanche soir. La page abandonnée, elle, reste en
+     * place : elle a pu être remplie depuis, c'est au bureau de la supprimer.
+     *
+     * @param array<int, int>  $known   entrée retenue par page, allégée sur place
+     * @param array<int, true> $planned pages que ce menu doit porter
+     */
+    private static function forgetObsolete(array &$known, array $planned): void
+    {
+        foreach ($known as $pageId => $itemId) {
+            if (isset($planned[$pageId])) {
+                continue;
+            }
+
+            if (get_post($pageId) instanceof \WP_Post
+                && get_post_meta($pageId, Pages::KEY_META, true) === '') {
+                continue;
+            }
+
+            wp_delete_post($itemId, true);
+            unset($known[$pageId]);
         }
     }
 

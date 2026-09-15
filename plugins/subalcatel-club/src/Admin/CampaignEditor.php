@@ -387,44 +387,50 @@ final class CampaignEditor
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">N’afficher que si…</th>
+                    <th scope="row">Quand l’afficher ?</th>
                     <td>
-                        <?php self::conditionField(
-                            array_values(array_filter(
-                                $allOptions,
-                                static fn (Option $other): bool => $option === null || $other->name !== $option->name
-                            )),
-                            $option?->conditionOption,
-                            $option?->conditionValues ?? [],
-                            '— toujours affichée —',
-                        ); ?>
+                        <?php
+                        $autres = array_values(array_filter(
+                            $allOptions,
+                            static fn (Option $other): bool => $option === null || $other->name !== $option->name
+                        ));
+                        ?>
+                        <div class="sub-visibility" data-visibility>
+                            <?php self::conditionField(
+                                $autres,
+                                $option?->conditionOption,
+                                $option?->conditionValues ?? [],
+                                'Toujours — quelles que soient les autres réponses',
+                                'condition',
+                                'inclusion',
+                                'Ne l’afficher que si cette question reçoit…',
+                            ); ?>
+
+                            <?php self::conditionField(
+                                $autres,
+                                $option?->excludeOption,
+                                $option?->excludeValues ?? [],
+                                'Aucune exception',
+                                'exclude',
+                                'exclusion',
+                                'Ne jamais l’afficher si cette question reçoit…',
+                            ); ?>
+
+                            <?php // Relire sa propre règle en français est le seul moyen de voir
+                                  // qu'on s'est trompé de sens. Le JavaScript la recompose à chaque
+                                  // clic ; sans lui, le serveur en a déjà posé une version juste. ?>
+                            <p class="sub-visibility__summary" data-visibility-summary aria-live="polite">
+                                <?php echo esc_html(self::visibilitySentence($option, $autres)); ?>
+                            </p>
+                        </div>
+
                         <p class="description">
-                            C’est ainsi que la carte de niveau s’attache au niveau préparé : elle ne
-                            s’affiche — et ne se facture — que pour les niveaux cochés ici. Un niveau
-                            ajouté plus tard à la liste n’y entre pas tout seul.
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Ne pas afficher si…</th>
-                    <td>
-                        <?php self::conditionField(
-                            array_values(array_filter(
-                                $allOptions,
-                                static fn (Option $other): bool => $option === null || $other->name !== $option->name
-                            )),
-                            $option?->excludeOption,
-                            $option?->excludeValues ?? [],
-                            '— aucune exclusion —',
-                            'exclude',
-                        ); ?>
-                        <p class="description">
-                            L’inverse de la ligne précédente, et l’exclusion l’emporte. À préférer
-                            quand l’option vaut partout sauf dans un cas : la licence FFESSM déjà
-                            détenue n’a pas à être proposée aux adhérents Nokia, dont le tarif la
-                            couvre déjà. Nommer le cas à écarter, plutôt que d’énumérer tous les
-                            autres, évite de voir l’option disparaître le jour où une origine
-                            nouvelle est créée.
+                            La première règle restreint, la seconde excepte, et l’exception l’emporte.
+                            La carte de niveau se sert de la première — elle ne s’affiche que pour les
+                            niveaux cochés. La licence déjà détenue se sert de la seconde — elle vaut
+                            pour tout le monde sauf les adhérents Nokia, dont le tarif la couvre.
+                            Nommer le cas à écarter plutôt qu’énumérer tous les autres évite de voir
+                            l’option disparaître le jour où une réponse nouvelle est créée.
                         </p>
                     </td>
                 </tr>
@@ -552,7 +558,10 @@ final class CampaignEditor
                             $options,
                             $rule?->conditionOption,
                             $rule?->conditionValues ?? [],
-                            '— choisir une option —',
+                            '— choisir une question —',
+                            'condition',
+                            '',
+                            'N’appliquer cette remise que si cette question reçoit…',
                         ); ?>
                     </td>
                 </tr>
@@ -925,9 +934,16 @@ final class CampaignEditor
         array $values,
         string $emptyLabel,
         string $field = 'condition',
+        string $tone = '',
+        string $lead = '',
     ): void {
         ?>
-        <div class="sub-condition" data-condition>
+        <div class="sub-condition <?php echo $tone === '' ? '' : 'sub-condition--' . esc_attr($tone); ?>"
+             data-condition>
+            <?php if ($lead !== '') : ?>
+                <p class="sub-condition__lead"><?php echo esc_html($lead); ?></p>
+            <?php endif; ?>
+
             <select name="<?php echo esc_attr($field); ?>_option" data-condition-option>
                 <option value=""><?php echo esc_html($emptyLabel); ?></option>
                 <?php foreach ($options as $other) : ?>
@@ -937,29 +953,142 @@ final class CampaignEditor
                     </option>
                 <?php endforeach; ?>
             </select>
-            <span class="sub-condition__op">vaut</span>
 
-            <?php foreach ($options as $other) : ?>
-                <?php $actif = $selected === $other->name; ?>
-                <span class="sub-condition__choices"
-                      data-condition-for="<?php echo esc_attr($other->name); ?>"
-                      <?php echo $actif ? '' : 'hidden'; ?>>
-                    <?php if ($other->choices === []) : ?>
-                        <em>Cette question n’a aucune réponse à cocher.</em>
-                    <?php endif; ?>
-                    <?php foreach ($other->choices as $choice) : ?>
-                        <label class="sub-condition__choice">
-                            <input type="checkbox" name="<?php echo esc_attr($field); ?>_values[]"
-                                   value="<?php echo esc_attr((string) $choice['value']); ?>"
-                                   <?php checked(in_array((string) $choice['value'], $values, true)); ?>
-                                   <?php disabled(!$actif); ?>>
-                            <?php echo esc_html((string) $choice['label']); ?>
-                        </label>
-                    <?php endforeach; ?>
-                </span>
-            <?php endforeach; ?>
+            <?php // Les réponses descendent sous la question, précédées de ce qu'elles
+                  // font. « vaut » suivi de deux cases « Oui » « Non » ne disait pas ce
+                  // que cocher voulait dire, et deux règles de sens opposé se lisaient
+                  // pareil. ?>
+            <div class="sub-condition__answers" data-condition-answers
+                 <?php echo $selected === null ? 'hidden' : ''; ?>>
+                <p class="sub-condition__hint">Cochez la ou les réponses concernées :</p>
+
+                <?php foreach ($options as $other) : ?>
+                    <?php $actif = $selected === $other->name; ?>
+                    <div class="sub-condition__choices"
+                         data-condition-for="<?php echo esc_attr($other->name); ?>"
+                         <?php echo $actif ? '' : 'hidden'; ?>>
+                        <?php if ($other->choices === []) : ?>
+                            <em>Cette question n’a aucune réponse à cocher.</em>
+                        <?php endif; ?>
+                        <?php foreach ($other->choices as $choice) : ?>
+                            <label class="sub-condition__choice">
+                                <input type="checkbox" name="<?php echo esc_attr($field); ?>_values[]"
+                                       value="<?php echo esc_attr((string) $choice['value']); ?>"
+                                       <?php checked(in_array((string) $choice['value'], $values, true)); ?>
+                                       <?php disabled(!$actif); ?>>
+                                <span><?php echo esc_html((string) $choice['label']); ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
         <?php
+    }
+
+    /**
+     * La règle d'affichage d'une option, dite en français.
+     *
+     * Relire sa propre règle est le seul moyen de s'apercevoir qu'on l'a posée à
+     * l'envers. Le JavaScript la recompose à chaque clic ; celle-ci est la
+     * version servie par le serveur, à l'ouverture du formulaire.
+     *
+     * Les libellés, jamais les noms techniques : c'est le même principe que les
+     * cases à cocher qui ont remplacé la saisie d'identifiants.
+     *
+     * @param list<Option> $allOptions
+     */
+    private static function visibilitySentence(?Option $option, array $allOptions): string
+    {
+        if ($option === null || ($option->conditionOption === null && $option->excludeOption === null)) {
+            return 'Toujours affichée, quelles que soient les autres réponses.';
+        }
+
+        $phrases = [];
+
+        foreach ([
+            ['nom' => $option->conditionOption, 'valeurs' => $option->conditionValues, 'inclus' => true],
+            ['nom' => $option->excludeOption,   'valeurs' => $option->excludeValues,   'inclus' => false],
+        ] as $regle) {
+            if ($regle['nom'] === null) {
+                continue;
+            }
+
+            $cible   = self::optionNamed($allOptions, (string) $regle['nom']);
+            $question = $cible?->label ?? (string) $regle['nom'];
+
+            if ($regle['valeurs'] === []) {
+                $phrases[] = $regle['inclus']
+                    ? sprintf('Aucune réponse cochée sur « %s » : la question ne s’afficherait jamais.', $question)
+                    : sprintf('Aucune réponse cochée sur « %s » : cette exception ne fait rien.', $question);
+
+                continue;
+            }
+
+            $phrases[] = sprintf(
+                $regle['inclus'] ? 'Affichée seulement si « %s » vaut %s.' : 'Jamais affichée si « %s » vaut %s.',
+                $question,
+                self::enumerate(self::choiceLabels($cible, $regle['valeurs']))
+            );
+        }
+
+        return implode(' ', $phrases);
+    }
+
+    /**
+     * @param list<Option> $options
+     */
+    private static function optionNamed(array $options, string $name): ?Option
+    {
+        foreach ($options as $option) {
+            if ($option->name === $name) {
+                return $option;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<string> $values
+     * @return list<string>
+     */
+    private static function choiceLabels(?Option $option, array $values): array
+    {
+        if ($option === null) {
+            return $values;
+        }
+
+        return array_map(
+            static function (string $value) use ($option): string {
+                foreach ($option->choices as $choice) {
+                    if ((string) $choice['value'] === $value) {
+                        return (string) $choice['label'];
+                    }
+                }
+
+                // Une réponse qui n'existe plus : la nommer telle quelle plutôt
+                // que la taire, c'est ce qui la fera corriger.
+                return $value;
+            },
+            $values
+        );
+    }
+
+    /**
+     * « a, b ou c » — la virgule partout sauf devant le dernier.
+     *
+     * @param list<string> $items
+     */
+    private static function enumerate(array $items): string
+    {
+        if (count($items) <= 1) {
+            return implode('', $items);
+        }
+
+        $dernier = array_pop($items);
+
+        return implode(', ', $items) . ' ou ' . $dernier;
     }
 
     /**

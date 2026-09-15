@@ -242,8 +242,6 @@ if (!function_exists('sub_test_pdf')) {
             'plans'    => ['plongee'],
             'choices'  => [
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
-                ['value' => 'pe12',  'label' => 'PE12',  'amount' => 0.0],
-                ['value' => 'pa20',  'label' => 'PA20',  'amount' => 0.0],
                 ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
                 ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
@@ -259,7 +257,7 @@ if (!function_exists('sub_test_pdf')) {
             'ordering'         => 60,
             'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40', 'n3'],
+            'condition_values' => ['p2', 'pe40', 'n3'],
             'choices'          => [
                 ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
             ],

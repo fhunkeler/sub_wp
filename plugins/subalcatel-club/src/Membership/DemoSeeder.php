@@ -147,8 +147,9 @@ final class DemoSeeder
             'plans'    => ['plongee'],
             'choices'  => [
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
-                ['value' => 'pe12',  'label' => 'PE12',  'amount' => 0.0],
-                ['value' => 'pa20',  'label' => 'PA20',  'amount' => 0.0],
+                // Ni PE12 ni PA20 : le club ne prépare pas ces deux-là, et les
+                // laisser dans la liste faisait cocher un niveau qui n'existe
+                // nulle part dans sa saison (retour du bureau, 15/09/2026).
                 ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
                 ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
@@ -168,7 +169,7 @@ final class DemoSeeder
             'ordering'         => 60,
             'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40', 'n3'],
+            'condition_values' => ['p2', 'pe40', 'n3'],
             'choices'          => [
                 ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
             ],

@@ -863,3 +863,40 @@
 .sub-widget__more {
 	margin: 12px 0 0;
 }
+
+/* ------------------------------------------------------------------
+   Correction d'un dossier — le formulaire de l'adhérent dans wp-admin
+   ------------------------------------------------------------------ */
+
+/* `membership.css` puise ses couleurs dans les variables générées par
+   theme.json. L'administration ne les connaît pas : sans ce bloc, la moitié des
+   déclarations de couleur sont invalides et le formulaire vire au gris. Mêmes
+   valeurs que la charte, écrites en dur — comme le fait déjà `login.css` du
+   thème, pour la même raison. */
+.sub-dossier {
+	--sub-abysse: #142f52;
+	--sub-profond: #1d5480;
+	--sub-lien: #1d6493;
+	--sub-lagon: #2e8fc0;
+	--sub-ecume: #e9f4fa;
+	--sub-blanc: #fff;
+	--sub-ardoise: #566b84;
+	--sub-brume: #c4d3e3;
+	--sub-brume-fonce: #7a8ca6;
+	--sub-corail-fonce: #c0561a;
+	--sub-sable: #f2c14e;
+	--sub-algue: #17795e;
+	--sub-alerte: #b82a1e;
+}
+
+/* Le formulaire est posé dans une colonne d'administration, pas dans une page
+   du site : il n'a pas à s'étaler sur 1 600 px. */
+.sub-dossier .sub-membership {
+	max-width: 1100px;
+	margin-top: 16px;
+}
+
+/* wp-admin met ses propres marges sur les champs ; le formulaire a les siennes. */
+.sub-dossier .sub-membership input[type="text"] {
+	width: 100%;
+}

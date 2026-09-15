@@ -383,23 +383,20 @@ final class CampaignEditor
                 <tr>
                     <th scope="row">N’afficher que si…</th>
                     <td>
-                        <div class="sub-condition">
-                            <select name="condition_option">
-                                <option value="">— toujours affichée —</option>
-                                <?php foreach ($allOptions as $other) : ?>
-                                    <?php if ($option !== null && $other->name === $option->name) { continue; } ?>
-                                    <option value="<?php echo esc_attr($other->name); ?>"
-                                            <?php selected($option?->conditionOption, $other->name); ?>>
-                                        <?php echo esc_html($other->label); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <span class="sub-condition__op">vaut</span>
-                            <input type="text" name="condition_values" class="regular-text"
-                                   value="<?php echo esc_attr(implode(', ', $option?->conditionValues ?? [])); ?>"
-                                   placeholder="nokia, ce_orange">
-                        </div>
-                        <p class="description">Identifiants des réponses, séparés par des virgules.</p>
+                        <?php self::conditionField(
+                            array_values(array_filter(
+                                $allOptions,
+                                static fn (Option $other): bool => $option === null || $other->name !== $option->name
+                            )),
+                            $option?->conditionOption,
+                            $option?->conditionValues ?? [],
+                            '— toujours affichée —',
+                        ); ?>
+                        <p class="description">
+                            C’est ainsi que la carte de niveau s’attache au niveau préparé : elle ne
+                            s’affiche — et ne se facture — que pour les niveaux cochés ici. Un niveau
+                            ajouté plus tard à la liste n’y entre pas tout seul.
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -522,21 +519,12 @@ final class CampaignEditor
                 <tr>
                     <th scope="row">S’applique si…</th>
                     <td>
-                        <div class="sub-condition">
-                            <select name="condition_option" required>
-                                <option value="">— choisir une option —</option>
-                                <?php foreach ($options as $o) : ?>
-                                    <option value="<?php echo esc_attr($o->name); ?>"
-                                            <?php selected($rule?->conditionOption, $o->name); ?>>
-                                        <?php echo esc_html($o->label); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <span class="sub-condition__op">vaut</span>
-                            <input type="text" name="condition_values" class="regular-text" required
-                                   value="<?php echo esc_attr(implode(', ', $rule?->conditionValues ?? [])); ?>"
-                                   placeholder="nokia">
-                        </div>
+                        <?php self::conditionField(
+                            $options,
+                            $rule?->conditionOption,
+                            $rule?->conditionValues ?? [],
+                            '— choisir une option —',
+                        ); ?>
                     </td>
                 </tr>
                 <tr>
@@ -761,7 +749,7 @@ final class CampaignEditor
             'is_required'      => isset($_POST['is_required']) ? 1 : 0,
             'choices'          => wp_json_encode($choices),
             'condition_option' => sanitize_key(wp_unslash((string) ($_POST['condition_option'] ?? ''))) ?: null,
-            'condition_values' => wp_json_encode(self::csv($_POST['condition_values'] ?? '')),
+            'condition_values' => wp_json_encode(self::conditionValues($_POST['condition_values'] ?? [])),
             'grants'           => wp_json_encode(self::csv($_POST['grants'] ?? '')),
             'plans'            => wp_json_encode(array_map('sanitize_key', (array) ($_POST['plans'] ?? []))),
             'ordering'         => absint($_POST['ordering'] ?? 999),
@@ -833,7 +821,7 @@ final class CampaignEditor
         $data = [
             'label'            => $label,
             'condition_option' => sanitize_key(wp_unslash((string) ($_POST['condition_option'] ?? ''))),
-            'condition_values' => wp_json_encode(self::csv($_POST['condition_values'] ?? '')),
+            'condition_values' => wp_json_encode(self::conditionValues($_POST['condition_values'] ?? [])),
             'flat_amount'      => AdminUi::amount($_POST['flat_amount'] ?? 0),
             'per_option'       => wp_json_encode($reductions),
             'plans'            => wp_json_encode(array_map('sanitize_key', (array) ($_POST['plans'] ?? []))),
@@ -880,6 +868,87 @@ final class CampaignEditor
         return in_array($value, [Option::INPUT_SINGLE, Option::INPUT_CHECK, Option::INPUT_AUTO], true)
             ? $value
             : Option::INPUT_SINGLE;
+    }
+
+    /**
+     * « N'afficher que si telle question vaut telle réponse. »
+     *
+     * Les réponses se désignaient autrefois en tapant leurs identifiants
+     * techniques, séparés par des virgules. Deux ennuis, tous deux vérifiés :
+     * personne ne connaît par cœur le nom interne d'une réponse, et surtout rien
+     * ne rappelle d'y revenir. Ajouter P1 à la liste des niveaux laissait la
+     * carte de niveau accrochée aux anciens — donc non facturée, sans le moindre
+     * message.
+     *
+     * Les réponses réellement existantes sont donc proposées à cocher. Un groupe
+     * par question, celui de la question retenue affiché, les autres neutralisés :
+     * une case désactivée ne poste rien, ce qui évite de mêler les réponses d'une
+     * question à la condition d'une autre.
+     *
+     * @param list<Option> $options
+     * @param list<string> $values
+     */
+    private static function conditionField(
+        array $options,
+        ?string $selected,
+        array $values,
+        string $emptyLabel,
+    ): void {
+        ?>
+        <div class="sub-condition" data-condition>
+            <select name="condition_option" data-condition-option>
+                <option value=""><?php echo esc_html($emptyLabel); ?></option>
+                <?php foreach ($options as $other) : ?>
+                    <option value="<?php echo esc_attr($other->name); ?>"
+                            <?php selected($selected, $other->name); ?>>
+                        <?php echo esc_html($other->label); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <span class="sub-condition__op">vaut</span>
+
+            <?php foreach ($options as $other) : ?>
+                <?php $actif = $selected === $other->name; ?>
+                <span class="sub-condition__choices"
+                      data-condition-for="<?php echo esc_attr($other->name); ?>"
+                      <?php echo $actif ? '' : 'hidden'; ?>>
+                    <?php if ($other->choices === []) : ?>
+                        <em>Cette question n’a aucune réponse à cocher.</em>
+                    <?php endif; ?>
+                    <?php foreach ($other->choices as $choice) : ?>
+                        <label class="sub-condition__choice">
+                            <input type="checkbox" name="condition_values[]"
+                                   value="<?php echo esc_attr((string) $choice['value']); ?>"
+                                   <?php checked(in_array((string) $choice['value'], $values, true)); ?>
+                                   <?php disabled(!$actif); ?>>
+                            <?php echo esc_html((string) $choice['label']); ?>
+                        </label>
+                    <?php endforeach; ?>
+                </span>
+            <?php endforeach; ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * Les réponses retenues pour une condition.
+     *
+     * Elles arrivent désormais cochées — donc en tableau. La lecture d'une liste
+     * séparée par des virgules reste acceptée : rien ne garantit qu'aucun
+     * formulaire encore ouvert dans un onglet ne la poste plus.
+     *
+     * @return list<string>
+     */
+    private static function conditionValues(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return self::csv($raw);
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $v): string => sanitize_key((string) wp_unslash((string) $v)),
+            $raw
+        )));
     }
 
     private static function csv(mixed $raw): array

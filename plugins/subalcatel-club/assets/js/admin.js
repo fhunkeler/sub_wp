@@ -8,6 +8,41 @@
 (function () {
 	'use strict';
 
+	// ------------------------------------------------- Condition d'affichage
+
+	/**
+	 * « N'afficher que si telle question vaut telle réponse. »
+	 *
+	 * Le serveur rend un groupe de cases par question ; celui de la question
+	 * retenue est seul visible. Les autres sont masqués ET désactivés : masquer
+	 * ne suffit pas, un champ caché poste quand même sa valeur, et la condition
+	 * repartirait avec les réponses d'une question qu'elle ne vise pas.
+	 */
+	function syncCondition(root) {
+		const select = root.querySelector('[data-condition-option]');
+		const groups = root.querySelectorAll('[data-condition-for]');
+
+		if (!select || !groups.length) {
+			return;
+		}
+
+		function apply() {
+			groups.forEach(function (group) {
+				const active = group.dataset.conditionFor === select.value;
+
+				group.hidden = !active;
+				group.querySelectorAll('input').forEach(function (input) {
+					input.disabled = !active;
+				});
+			});
+		}
+
+		select.addEventListener('change', apply);
+		apply();
+	}
+
+	document.querySelectorAll('[data-condition]').forEach(syncCondition);
+
 	// ------------------------------------------------------- Lignes ajoutables
 
 	function clearInputs(row) {

@@ -900,3 +900,18 @@
 .sub-dossier .sub-membership input[type="text"] {
 	width: 100%;
 }
+
+/* Les réponses qui déclenchent une condition, cochées plutôt que tapées. */
+.sub-condition__choices {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	align-items: center;
+}
+
+.sub-condition__choice {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	white-space: nowrap;
+}

@@ -129,9 +129,90 @@ $check('Ses détails ne pointent plus vers GitHub',
 $check('Ils pointent vers la page servie par le club',
     is_array($offre) && str_contains((string) $offre['url'], 'admin-post.php'));
 
-// --- Nettoyage ----------------------------------------------------------------
+// --- Ce que le dernier appel a répondu ---------------------------------------
+//
+// Jusqu'ici l'échec était silencieux ET oublié : un site qui ne se mettait plus
+// à jour ne donnait aucune prise, et il a fallu déposer un fichier de
+// diagnostic sur l'hébergement pour découvrir un quota épuisé. C'est cette
+// mémoire-là qu'on vérifie — l'onglet « Mises à jour » n'affiche rien d'autre.
+echo "\n--- Mémoire du dernier appel ---\n";
+
 remove_filter('pre_http_request', $servir, 10);
+
+$rejouer = static function (callable $reponse): array {
+    remove_all_filters('pre_http_request');
+    add_filter('pre_http_request', $reponse, 10, 3);
+    delete_site_transient('subalcatel_releases_etat');
+
+    $etat = Updater::rafraichir();
+
+    remove_all_filters('pre_http_request');
+
+    return $etat;
+};
+
+// Le cas vécu le 15/09/2026 : 403, quota à zéro, adresse partagée.
+$etat = $rejouer(static fn ($court, $args, $url): array => [
+    'response' => ['code' => 403],
+    'body'     => '{"message":"API rate limit exceeded for 212.83.0.1."}',
+    'headers'  => [
+        'x-ratelimit-limit'     => '60',
+        'x-ratelimit-remaining' => '0',
+        'x-ratelimit-reset'     => (string) (time() + 1800),
+    ],
+]);
+
+$check('Quota épuisé : le code est retenu', $etat['code'] === 403, (string) $etat['code']);
+$check('… le quota restant aussi', $etat['remaining'] === 0, var_export($etat['remaining'], true));
+$check('… la limite aussi', $etat['limit'] === 60, var_export($etat['limit'], true));
+$check('… et le message de GitHub', str_contains((string) $etat['message'], 'rate limit'), (string) $etat['message']);
+$check('L’heure de rétablissement est connue', $etat['reset'] !== null);
+
+// Réseau coupé : ce n'est pas un code HTTP, c'est une erreur de transport.
+$etat = $rejouer(static fn ($court, $args, $url): WP_Error => new WP_Error('http_request_failed', 'Connection refused'));
+
+$check('Réseau coupé : l’erreur est retenue', $etat['error'] === 'http_request_failed', $etat['error']);
+$check('… avec son message', $etat['message'] === 'Connection refused', $etat['message']);
+$check('… et aucun code HTTP', $etat['code'] === 0, (string) $etat['code']);
+
+// Appel réussi : le compte des versions lues sert à distinguer « répondu » de
+// « répondu quelque chose d'exploitable ».
+$etat = $rejouer($servir);
+
+$check('Appel réussi : HTTP 200', $etat['code'] === 200, (string) $etat['code']);
+$check('… et les versions lues sont comptées', $etat['count'] > 0, (string) $etat['count']);
+$check('Aucune erreur retenue', $etat['error'] === '');
+
+// La valeur du jeton ne doit jamais sortir : l'écran en dit l'existence, rien de plus.
+$check('Le jeton se dit présent ou absent', is_bool(Updater::jetonPose()),
+    Updater::jetonPose() ? 'défini' : 'absent');
+
+// --- L'écran du bureau --------------------------------------------------------
+echo "\n--- Onglet « Mises à jour » ---\n";
+
+$administrateurs = get_users(['role' => 'administrator', 'number' => 1]);
+wp_set_current_user($administrateurs[0]->ID);
+
+add_filter('pre_http_request', $servir, 10, 3);
+ob_start();
+\Subalcatel\Club\Admin\UpdatesScreen::renderTab();
+$ecran = ob_get_clean();
+remove_all_filters('pre_http_request');
+
+$check('L’écran se rend', strlen($ecran) > 500, strlen($ecran) . ' octets');
+$check('Il dit le chemin exact de l’extension',
+    str_contains($ecran, Updater::PLUGIN_FICHIER));
+$check('Il dit l’état du jeton', str_contains($ecran, 'Jeton GitHub'));
+$check('Il n’affiche jamais la valeur d’un jeton',
+    !Updater::jetonPose() || !str_contains($ecran, (string) constant('SUBALCATEL_GITHUB_TOKEN')));
+$check('Il offre de refaire l’appel', str_contains($ecran, 'sub_updates_refresh'));
+
+wp_set_current_user(0);
+
+// --- Nettoyage ----------------------------------------------------------------
+remove_all_filters('pre_http_request');
 delete_site_transient('subalcatel_releases');
+delete_site_transient('subalcatel_releases_etat');
 
 printf("\n%s\n", $failures === 0 ? '✓ Tous les contrôles passent.' : "✗ {$failures} échec(s).");
 exit($failures === 0 ? 0 : 1);

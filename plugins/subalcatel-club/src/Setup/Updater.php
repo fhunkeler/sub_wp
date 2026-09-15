@@ -35,14 +35,14 @@ use const Subalcatel\Club\VERSION;
 final class Updater
 {
     /** Dépôt qui porte le code et les archives publiées. */
-    private const DEPOT = 'fhunkeler/sub_wp';
+    public const DEPOT = 'fhunkeler/sub_wp';
 
     /** Hôte déclaré par l'en-tête « Update URI » du plugin et du thème. */
     private const HOTE = 'github.com';
 
-    private const PLUGIN_FICHIER = 'subalcatel-club/subalcatel-club.php';
-    private const PLUGIN_SLUG    = 'subalcatel-club';
-    private const THEME_SLUG     = 'subalcatel';
+    public const PLUGIN_FICHIER = 'subalcatel-club/subalcatel-club.php';
+    public const PLUGIN_SLUG    = 'subalcatel-club';
+    public const THEME_SLUG     = 'subalcatel';
 
     /**
      * Préfixes de balises. Un seul dépôt porte les deux extensions : sans
@@ -54,6 +54,20 @@ final class Updater
     ];
 
     private const CACHE = 'subalcatel_releases';
+
+    /**
+     * Ce qu'a répondu le dernier appel : code, erreur, quota restant.
+     *
+     * L'échec de `releases()` est silencieux par choix — une extension qui
+     * hurle dans l'admin parce que GitHub tousse finit par être désactivée. Mais
+     * silencieux ne veut pas dire oublié : sans cette trace, un site qui ne se
+     * met plus à jour ne donne aucune prise, et il a fallu déposer un fichier de
+     * diagnostic sur l'hébergement pour découvrir un quota épuisé (15/09/2026).
+     *
+     * Gardée plus longtemps que le cache lui-même : ce qu'on veut relire, c'est
+     * justement l'échec d'il y a deux heures.
+     */
+    private const ETAT = 'subalcatel_releases_etat';
 
     /** Page d'affichage des notes du thème, ouverte dans la fenêtre modale. */
     private const ACTION_NOTES = 'sub_notes_de_version';
@@ -328,9 +342,94 @@ final class Updater
 
     // -- Cache ----------------------------------------------------------------
 
+    /**
+     * Un jeton est-il posé ?
+     *
+     * Sa valeur ne sort jamais d'ici : l'écran a besoin de savoir s'il existe,
+     * pas de le montrer. Un secret affiché dans une administration finit dans
+     * une capture d'écran.
+     */
+    public static function jetonPose(): bool
+    {
+        return defined('SUBALCATEL_GITHUB_TOKEN') && SUBALCATEL_GITHUB_TOKEN !== '';
+    }
+
     public static function oublier(): void
     {
         delete_site_transient(self::CACHE);
+    }
+
+    /**
+     * Refait l'appel sur-le-champ, et rend ce qu'il a donné.
+     *
+     * L'état, lui, n'est pas purgé : il est réécrit par l'appel. Le purger
+     * d'abord ferait clignoter l'écran sur « aucun appel connu » pour rien.
+     *
+     * @return array{code:int,error:string,message:string,limit:?int,remaining:?int,reset:?int,at:int,count:int}
+     */
+    public static function rafraichir(): array
+    {
+        self::oublier();
+        self::releases();
+
+        return self::etat();
+    }
+
+    /**
+     * Ce qu'a répondu le dernier appel au dépôt.
+     *
+     * @return array{code:int,error:string,message:string,limit:?int,remaining:?int,reset:?int,at:int,count:int}
+     */
+    public static function etat(): array
+    {
+        $etat = get_site_transient(self::ETAT);
+
+        return is_array($etat) ? $etat + self::ETAT_VIDE : self::ETAT_VIDE;
+    }
+
+    /** @var array{code:int,error:string,message:string,limit:?int,remaining:?int,reset:?int,at:int,count:int} */
+    private const ETAT_VIDE = [
+        'code'      => 0,
+        'error'     => '',
+        'message'   => '',
+        'limit'     => null,
+        'remaining' => null,
+        'reset'     => null,
+        'at'        => 0,
+        'count'     => 0,
+    ];
+
+    /**
+     * @param array<string,mixed>|\WP_Error $reponse
+     */
+    private static function memoriser(array|\WP_Error $reponse, int $count): void
+    {
+        $etat = self::ETAT_VIDE;
+        $etat['at']    = time();
+        $etat['count'] = $count;
+
+        if (is_wp_error($reponse)) {
+            $etat['error']   = $reponse->get_error_code();
+            $etat['message'] = $reponse->get_error_message();
+        } else {
+            $etat['code'] = (int) wp_remote_retrieve_response_code($reponse);
+
+            foreach (['limit', 'remaining', 'reset'] as $clef) {
+                $valeur = wp_remote_retrieve_header($reponse, 'x-ratelimit-' . $clef);
+                $etat[$clef] = $valeur === '' ? null : (int) $valeur;
+            }
+
+            if ($etat['code'] !== 200) {
+                $corps = json_decode(wp_remote_retrieve_body($reponse), true);
+                $etat['message'] = is_array($corps) && isset($corps['message'])
+                    ? (string) $corps['message']
+                    : '';
+            }
+        }
+
+        // Une journée : le cache d'échec ne dure qu'une demi-heure, et la
+        // question « pourquoi rien ne bouge » se pose bien après.
+        set_site_transient(self::ETAT, $etat, DAY_IN_SECONDS);
     }
 
     /** « Vérifier à nouveau » doit vraiment revérifier. */
@@ -351,7 +450,7 @@ final class Updater
      *
      * @return array{slug:string,version:string,package:string,url:string,notes:string,date:string}|null
      */
-    private static function derniere(string $slug): ?array
+    public static function derniere(string $slug): ?array
     {
         return self::plusRecente($slug, '0.0.0');
     }
@@ -408,8 +507,11 @@ final class Updater
         );
 
         if (is_wp_error($reponse) || wp_remote_retrieve_response_code($reponse) !== 200) {
-            // Échec silencieux, et volontairement : une extension qui hurle
-            // dans l'admin parce que GitHub tousse finit par être désactivée.
+            // Échec silencieux dans l'administration courante, et volontairement :
+            // une extension qui hurle parce que GitHub tousse finit par être
+            // désactivée. La raison est consignée — l'onglet « Mises à jour » la
+            // montre à qui la cherche.
+            self::memoriser($reponse, 0);
             set_site_transient(self::CACHE, [], self::CACHE_ECHEC);
 
             return [];
@@ -418,6 +520,7 @@ final class Updater
         $brut = json_decode(wp_remote_retrieve_body($reponse), true);
         $releases = is_array($brut) ? self::interpreter($brut) : [];
 
+        self::memoriser($reponse, count($releases));
         set_site_transient(self::CACHE, $releases, self::CACHE_SUCCES);
 
         return $releases;

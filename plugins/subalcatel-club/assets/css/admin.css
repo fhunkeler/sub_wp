@@ -915,3 +915,10 @@
 	align-items: center;
 	white-space: nowrap;
 }
+
+/* L'exclusion se lit d'un coup d'œil comme une restriction, pas comme une
+   condition de plus : c'est une autre couleur, pas une autre place. */
+.sub-admin .sub-tag--exclu {
+	background: #fbeae8;
+	color: #b82a1e;
+}

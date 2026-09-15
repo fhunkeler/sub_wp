@@ -191,6 +191,8 @@ if (!function_exists('sub_test_pdf')) {
                 'choices'          => wp_json_encode($data['choices'] ?? []),
                 'condition_option' => $data['condition_option'] ?? null,
                 'condition_values' => wp_json_encode($data['condition_values'] ?? []),
+                'exclude_option'   => $data['exclude_option'] ?? null,
+                'exclude_values'   => wp_json_encode($data['exclude_values'] ?? []),
                 'grants'           => wp_json_encode($data['grants'] ?? []),
                 'plans'            => wp_json_encode($data['plans'] ?? []),
                 'ordering'         => $data['ordering'],
@@ -233,6 +235,10 @@ if (!function_exists('sub_test_pdf')) {
             'input_type' => \Subalcatel\Club\Membership\Option::INPUT_CHECK,
             'ordering'   => 40,
             'choices'    => $yesNo(-49.00),
+            // Le tarif Nokia couvre déjà la licence : la déduire une seconde fois
+            // rendait 20 € de trop à l'adhérent.
+            'exclude_option' => 'origine_adhesion',
+            'exclude_values' => ['nokia'],
         ]);
 
         $option([

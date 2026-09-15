@@ -227,6 +227,12 @@ final class CampaignEditor
                             = <?php echo esc_html(implode(' ou ', $option->conditionValues)); ?>
                         </span>
                     <?php endif; ?>
+                    <?php if ($option->excludeOption !== null) : ?>
+                        <span class="sub-tag sub-tag--exclu">
+                            sauf si <?php echo esc_html($option->excludeOption); ?>
+                            = <?php echo esc_html(implode(' ou ', $option->excludeValues)); ?>
+                        </span>
+                    <?php endif; ?>
                     <?php if ($option->grants !== []) : ?>
                         <span class="sub-tag sub-tag--grant">
                             ouvre : <?php echo esc_html(implode(', ', $option->grants)); ?>
@@ -396,6 +402,29 @@ final class CampaignEditor
                             C’est ainsi que la carte de niveau s’attache au niveau préparé : elle ne
                             s’affiche — et ne se facture — que pour les niveaux cochés ici. Un niveau
                             ajouté plus tard à la liste n’y entre pas tout seul.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Ne pas afficher si…</th>
+                    <td>
+                        <?php self::conditionField(
+                            array_values(array_filter(
+                                $allOptions,
+                                static fn (Option $other): bool => $option === null || $other->name !== $option->name
+                            )),
+                            $option?->excludeOption,
+                            $option?->excludeValues ?? [],
+                            '— aucune exclusion —',
+                            'exclude',
+                        ); ?>
+                        <p class="description">
+                            L’inverse de la ligne précédente, et l’exclusion l’emporte. À préférer
+                            quand l’option vaut partout sauf dans un cas : la licence FFESSM déjà
+                            détenue n’a pas à être proposée aux adhérents Nokia, dont le tarif la
+                            couvre déjà. Nommer le cas à écarter, plutôt que d’énumérer tous les
+                            autres, évite de voir l’option disparaître le jour où une origine
+                            nouvelle est créée.
                         </p>
                     </td>
                 </tr>
@@ -750,6 +779,8 @@ final class CampaignEditor
             'choices'          => wp_json_encode($choices),
             'condition_option' => sanitize_key(wp_unslash((string) ($_POST['condition_option'] ?? ''))) ?: null,
             'condition_values' => wp_json_encode(self::conditionValues($_POST['condition_values'] ?? [])),
+            'exclude_option'   => sanitize_key(wp_unslash((string) ($_POST['exclude_option'] ?? ''))) ?: null,
+            'exclude_values'   => wp_json_encode(self::conditionValues($_POST['exclude_values'] ?? [])),
             'grants'           => wp_json_encode(self::csv($_POST['grants'] ?? '')),
             'plans'            => wp_json_encode(array_map('sanitize_key', (array) ($_POST['plans'] ?? []))),
             'ordering'         => absint($_POST['ordering'] ?? 999),
@@ -893,10 +924,11 @@ final class CampaignEditor
         ?string $selected,
         array $values,
         string $emptyLabel,
+        string $field = 'condition',
     ): void {
         ?>
         <div class="sub-condition" data-condition>
-            <select name="condition_option" data-condition-option>
+            <select name="<?php echo esc_attr($field); ?>_option" data-condition-option>
                 <option value=""><?php echo esc_html($emptyLabel); ?></option>
                 <?php foreach ($options as $other) : ?>
                     <option value="<?php echo esc_attr($other->name); ?>"
@@ -917,7 +949,7 @@ final class CampaignEditor
                     <?php endif; ?>
                     <?php foreach ($other->choices as $choice) : ?>
                         <label class="sub-condition__choice">
-                            <input type="checkbox" name="condition_values[]"
+                            <input type="checkbox" name="<?php echo esc_attr($field); ?>_values[]"
                                    value="<?php echo esc_attr((string) $choice['value']); ?>"
                                    <?php checked(in_array((string) $choice['value'], $values, true)); ?>
                                    <?php disabled(!$actif); ?>>

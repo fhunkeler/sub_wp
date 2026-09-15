@@ -163,9 +163,13 @@ $napMember = wp_insert_user([
 $napMember = is_wp_error($napMember) ? 0 : $napMember;
 
 // Dossier Plongée, Nokia, avec bloc et détendeur — le même scénario que la
-// suite de tarification, complété par la moins-value licence :
+// suite de tarification :
 //   210 (plan) + 29 (assurance) + 16 (carte) + 36 (bloc) + 90 (détendeur)
-//     - 49 (moins-value licence) - 108 (remise Nokia) = 224,00 €
+//     - 108 (remise Nokia) = 273,00 €
+//
+// La moins-value licence est postée, et écartée : le tarif Nokia couvre déjà la
+// licence. C'est l'exclusion de l'option qui le dit, et elle vaut aussi ici —
+// un dossier déposé ne facture pas ce que le formulaire n'a pas proposé.
 sub_test_complete_identity($diver);
 
 $diveApplicationId = $bureauService->submit($diver, $bureauCampaignId, 'plongee', [
@@ -177,21 +181,24 @@ $diveApplicationId = $bureauService->submit($diver, $bureauCampaignId, 'plongee'
     'pret_detendeur'         => 'oui',
     'pret_gilet'             => 'non',
 ], 'helloasso');
-$bureauService->recordPayment($diveApplicationId, 224.00, 'helloasso', '2026-09-22', $office);
+$bureauService->recordPayment($diveApplicationId, 273.00, 'helloasso', '2026-09-22', $office);
 $bureauService->validateSecretariat($diveApplicationId, $office);
 
 // Dossier NAP, extérieur, avec piscine — payé mais pas encore validé : teste
 // le repli de la date sur la soumission, et l'inclusion d'un dossier « paiement
 // confirmé », pas seulement « actif ».
-//   120 (plan) + 60 (piscine) = 180,00 €, aucune remise (origine extérieure)
+//   120 (plan) + 60 (piscine) - 49 (licence déjà détenue) = 131,00 €,
+//   aucune remise (origine extérieure). C'est ce dossier qui couvre la colonne
+//   « moins-value licence » : sur le dossier Nokia, l'option n'est pas proposée.
 sub_test_complete_identity($napMember);
 
 $napApplicationId = $bureauService->submit($napMember, $bureauCampaignId, 'nap', [
     'origine_adhesion'       => 'exterieur',
     'assurance_individuelle' => 'aucune',
+    'moins_value_licence'    => 'oui',
     'piscine'                => 'oui',
 ], 'cheque');
-$bureauService->recordPayment($napApplicationId, 180.00, 'cheque', '2026-09-11', $office);
+$bureauService->recordPayment($napApplicationId, 131.00, 'cheque', '2026-09-11', $office);
 
 // Un troisième dossier, refusé : ne doit jamais figurer dans l'export.
 $refusedMember = $makeUser('sub_member');
@@ -243,7 +250,9 @@ if ($dive !== null) {
     $check('N° carte ASAC', $dive[5] === 'A-22-9999', $dive[5]);
     $check('Type Adhésion', $dive[6] === 'Plongée', $dive[6]);
     $check('Origine adhésion', $dive[7] === 'Nokia', $dive[7]);
-    $check('Moins-value Licence', abs((float) $dive[8] - (-49.00)) < 0.005, (string) $dive[8]);
+    // Postée par le dossier, écartée par l'exclusion : le tarif Nokia couvre
+    // déjà la licence, et la déduire ici rendait 20 € de trop.
+    $check('Moins-value Licence écartée pour un Nokia', abs((float) $dive[8]) < 0.005, (string) $dive[8]);
     $check('Moins-value Nokia', abs((float) $dive[9] - (-108.00)) < 0.005, (string) $dive[9]);
     $check('Assurance', $dive[10] === 'Loisir 2', $dive[10]);
     $check('Piscine vide en Plongée', $dive[11] === '', "'{$dive[11]}'");
@@ -252,7 +261,7 @@ if ($dive !== null) {
     $check('Détendeur', $dive[14] === 'Oui', $dive[14]);
     $check('Carte niveau', $dive[15] === 'Oui', $dive[15]);
     $check('Type paiement', $dive[17] === 'HelloAsso', $dive[17]);
-    $check('Montant cotisation site', abs((float) $dive[18] - 224.00) < 0.005, (string) $dive[18]);
+    $check('Montant cotisation site', abs((float) $dive[18] - 273.00) < 0.005, (string) $dive[18]);
 }
 
 if ($nap !== null) {
@@ -260,11 +269,12 @@ if ($nap !== null) {
     $check('Type Adhésion NAP', $nap[6] === 'Nage Avec Palmes', $nap[6]);
     $check('Origine adhésion extérieure', $nap[7] === 'Extérieur / Autre', $nap[7]);
     $check('Aucune remise Nokia', (float) $nap[9] === 0.0, (string) $nap[9]);
+    $check('Moins-value Licence retenue hors Nokia', abs((float) $nap[8] - (-49.00)) < 0.005, (string) $nap[8]);
     $check('Assurance « Aucune »', $nap[10] === 'Aucune', $nap[10]);
     $check('Piscine', $nap[11] === 'Oui', $nap[11]);
     $check('Bloc jamais demandé sur ce dossier', $nap[12] === '', "'{$nap[12]}'");
     $check('Type paiement chèque', $nap[17] === 'Chèque', $nap[17]);
-    $check('Montant cotisation site', abs((float) $nap[18] - 180.00) < 0.005, (string) $nap[18]);
+    $check('Montant cotisation site', abs((float) $nap[18] - 131.00) < 0.005, (string) $nap[18]);
 }
 
 $check('Le secrétariat voit aussi le détail des adhésions',

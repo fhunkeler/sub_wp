@@ -192,6 +192,22 @@ $scenario(
     161.00
 );
 
+// Le tarif Nokia couvre déjà la licence. La déduire une seconde fois rendait
+// 20 € de trop à l'adhérent — d'où l'exclusion posée sur l'option, qui la
+// retire du formulaire ET du calcul. Une réponse forgée ne la ramène pas :
+// 210 - 58 = 152 €, et non 103 €.
+$scenario(
+    'Nokia — la licence déjà détenue ne se déduit pas',
+    'plongee',
+    [
+        'origine_adhesion'       => 'nokia',
+        'assurance_individuelle' => 'aucune',
+        'moins_value_licence'    => 'oui',
+        'niveau_prepare'         => 'aucun',
+    ],
+    152.00
+);
+
 // ---------------------------------------------------------------------------
 // 9. La carte de niveau s'ajoute d'office — sauf pour le N4, l'E3 et l'E4, que la
 //    fédération délivre elle-même.

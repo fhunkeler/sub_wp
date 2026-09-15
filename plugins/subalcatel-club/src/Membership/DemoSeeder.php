@@ -90,6 +90,8 @@ final class DemoSeeder
                 'choices'          => wp_json_encode($data['choices'] ?? []),
                 'condition_option' => $data['condition_option'] ?? null,
                 'condition_values' => wp_json_encode($data['condition_values'] ?? []),
+                'exclude_option'   => $data['exclude_option'] ?? null,
+                'exclude_values'   => wp_json_encode($data['exclude_values'] ?? []),
                 'grants'           => wp_json_encode($data['grants'] ?? []),
                 'plans'            => wp_json_encode($data['plans'] ?? []),
                 'ordering'         => $data['ordering'],
@@ -138,6 +140,13 @@ final class DemoSeeder
             'input_type' => Option::INPUT_CHECK,
             'ordering'   => 40,
             'choices'    => $yesNo(-49.00, 'Oui, j’ai déjà une licence valide', 'Non'),
+            // Pas aux adhérents Nokia : leur tarif couvre déjà la licence, et la
+            // déduire une seconde fois rendait 20 € de trop (retour du bureau,
+            // 15/09/2026). Une exclusion plutôt qu'une liste des origines
+            // admises : une origine créée plus tard ne doit pas perdre l'option
+            // sans que personne l'ait décidé.
+            'exclude_option' => 'origine_adhesion',
+            'exclude_values' => ['nokia'],
         ]);
 
         $option([

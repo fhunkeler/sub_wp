@@ -33,6 +33,7 @@ final class Option
     /**
      * @param list<array{value: string, label: string, amount: float, grants?: bool}> $choices
      * @param list<string> $conditionValues Valeurs de `conditionOption` qui rendent l'option visible.
+     * @param list<string> $excludeValues   Valeurs de `excludeOption` qui l'écartent, elles.
      * @param list<string> $grants          Droits ouverts si l'option est retenue (ex. emprunt détendeur).
      * @param list<string> $plans           Plans concernés. Vide = tous.
      */
@@ -44,6 +45,8 @@ final class Option
         public readonly array $choices = [],
         public readonly ?string $conditionOption = null,
         public readonly array $conditionValues = [],
+        public readonly ?string $excludeOption = null,
+        public readonly array $excludeValues = [],
         public readonly array $grants = [],
         public readonly array $plans = [],
         public readonly string $help = '',
@@ -94,23 +97,55 @@ final class Option
     /**
      * L'option est-elle affichée, compte tenu des autres réponses ?
      *
+     * Deux règles, et l'exclusion l'emporte. Elles ne disent pas la même chose :
+     * « n'afficher que si » est une liste blanche, qui se referme dès qu'une
+     * réponse nouvelle apparaît — ajoutez une origine d'adhésion, et l'option
+     * disparaît pour elle sans que personne ne l'ait demandé. « Ne pas afficher
+     * si » nomme le cas à écarter et laisse passer tout le reste, y compris ce
+     * qui n'existe pas encore.
+     *
+     * L'une sert quand l'option n'a de sens que dans quelques cas — la carte de
+     * niveau, pour qui prépare un niveau. L'autre quand elle a du sens partout
+     * sauf un — la licence déjà détenue, que le tarif Nokia couvre déjà.
+     *
      * @param array<string, string|list<string>> $answers
      */
     public function isVisible(array $answers): bool
     {
+        if (self::answerMatches($answers, $this->excludeOption, $this->excludeValues)) {
+            return false;
+        }
+
         if ($this->conditionOption === null) {
             return true;
         }
 
-        $value = $answers[$this->conditionOption] ?? null;
+        return self::answerMatches($answers, $this->conditionOption, $this->conditionValues);
+    }
+
+    /**
+     * La réponse à `$option` tombe-t-elle dans `$values` ?
+     *
+     * Une option non renseignée ne déclenche rien — ni la condition qui l'exige,
+     * ni l'exclusion qui l'écarte. C'est ce qui laisse un formulaire encore vide
+     * afficher ce qu'il doit afficher.
+     *
+     * @param array<string, string|list<string>> $answers
+     * @param list<string> $values
+     */
+    private static function answerMatches(array $answers, ?string $option, array $values): bool
+    {
+        if ($option === null || $values === []) {
+            return false;
+        }
+
+        $value = $answers[$option] ?? null;
 
         if ($value === null) {
             return false;
         }
 
-        $given = is_array($value) ? $value : [$value];
-
-        return array_intersect($given, $this->conditionValues) !== [];
+        return array_intersect(is_array($value) ? $value : [$value], $values) !== [];
     }
 
     /**
@@ -210,6 +245,8 @@ final class Option
             choices: $decode($row['choices'] ?? null),
             conditionOption: ($row['condition_option'] ?? null) ?: null,
             conditionValues: $decode($row['condition_values'] ?? null),
+            excludeOption: ($row['exclude_option'] ?? null) ?: null,
+            excludeValues: $decode($row['exclude_values'] ?? null),
             grants: $decode($row['grants'] ?? null),
             plans: $decode($row['plans'] ?? null),
             help: (string) ($row['help'] ?? ''),

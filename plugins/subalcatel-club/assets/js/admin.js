@@ -8,6 +8,137 @@
 (function () {
 	'use strict';
 
+	// ------------------------------------------------- Condition d'affichage
+
+	/**
+	 * « N'afficher que si telle question reçoit telles réponses. »
+	 *
+	 * Le serveur rend un groupe de cases par question ; celui de la question
+	 * retenue est seul visible. Les autres sont masqués ET désactivés : masquer
+	 * ne suffit pas, un champ caché poste quand même sa valeur, et la règle
+	 * repartirait avec les réponses d'une question qu'elle ne vise pas.
+	 */
+	function syncCondition(root) {
+		const select = root.querySelector('[data-condition-option]');
+		const answers = root.querySelector('[data-condition-answers]');
+		const groups = root.querySelectorAll('[data-condition-for]');
+
+		if (!select || !groups.length) {
+			return;
+		}
+
+		function apply() {
+			groups.forEach(function (group) {
+				const active = group.dataset.conditionFor === select.value;
+
+				group.hidden = !active;
+				group.querySelectorAll('input').forEach(function (input) {
+					input.disabled = !active;
+				});
+			});
+
+			// Sans question choisie, il n'y a rien à cocher : on retire le bloc
+			// entier plutôt que de laisser une consigne suivie de rien.
+			if (answers) {
+				answers.hidden = select.value === '';
+			}
+		}
+
+		select.addEventListener('change', apply);
+		apply();
+	}
+
+	document.querySelectorAll('[data-condition]').forEach(syncCondition);
+
+	// ------------------------------------------- Règle d'affichage, en français
+
+	/** « a, b ou c » — la virgule partout sauf devant le dernier. */
+	function enumerate(items) {
+		if (items.length <= 1) {
+			return items.join('');
+		}
+
+		return items.slice(0, -1).join(', ') + ' ou ' + items[items.length - 1];
+	}
+
+	/** Ce qu'une des deux règles dit, ou null si elle ne dit rien. */
+	function readRule(block) {
+		const select = block.querySelector('[data-condition-option]');
+
+		if (!select || !select.value) {
+			return null;
+		}
+
+		const group = block.querySelector('[data-condition-for="' + select.value + '"]');
+		const answers = group
+			? Array.from(group.querySelectorAll('input:checked')).map(function (input) {
+					return input.parentElement.textContent.trim();
+				})
+			: [];
+
+		return {
+			question: select.options[select.selectedIndex].textContent.trim(),
+			answers: answers,
+			excludes: block.classList.contains('sub-condition--exclusion'),
+		};
+	}
+
+	/**
+	 * Relire sa propre règle en français est le seul moyen de voir qu'on l'a
+	 * posée à l'envers — et de repérer le cas qui ne se voit pas autrement : une
+	 * question choisie sans aucune réponse cochée masque l'option pour toujours.
+	 */
+	function syncVisibility(root) {
+		const out = root.querySelector('[data-visibility-summary]');
+		const blocks = root.querySelectorAll('[data-condition]');
+
+		if (!out || !blocks.length) {
+			return;
+		}
+
+		function apply() {
+			const phrases = [];
+
+			blocks.forEach(function (block) {
+				const rule = readRule(block);
+
+				if (!rule) {
+					return;
+				}
+
+				if (!rule.answers.length) {
+					phrases.push(
+						'Aucune réponse cochée sur « ' +
+							rule.question +
+							' » : ' +
+							(rule.excludes
+								? 'cette exception ne fait rien.'
+								: 'la question ne s’afficherait jamais.')
+					);
+
+					return;
+				}
+
+				phrases.push(
+					(rule.excludes ? 'Jamais affichée si « ' : 'Affichée seulement si « ') +
+						rule.question +
+						' » vaut ' +
+						enumerate(rule.answers) +
+						'.'
+				);
+			});
+
+			out.textContent = phrases.length
+				? phrases.join(' ')
+				: 'Toujours affichée, quelles que soient les autres réponses.';
+		}
+
+		root.addEventListener('change', apply);
+		apply();
+	}
+
+	document.querySelectorAll('[data-visibility]').forEach(syncVisibility);
+
 	// ------------------------------------------------------- Lignes ajoutables
 
 	function clearInputs(row) {

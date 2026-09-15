@@ -199,6 +199,7 @@ final class ClubMenu
     {
         foreach ([
             [CampaignEditor::SLUG, 'Configurer la campagne', [CampaignEditor::class, 'render'], 'sub_manage_memberships'],
+            [ApplicationEditor::SLUG, 'Corriger un dossier', [ApplicationEditor::class, 'render'], 'sub_manage_memberships'],
             [EventsScreen::SLUG_ROSTER, 'Inscrits', [EventsScreen::class, 'renderRoster'], 'read'],
         ] as [$slug, $title, $render, $capability]) {
             add_submenu_page('', $title, $title, $capability, $slug, $render);

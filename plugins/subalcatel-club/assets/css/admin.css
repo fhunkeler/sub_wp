@@ -863,3 +863,122 @@
 .sub-widget__more {
 	margin: 12px 0 0;
 }
+
+/* ------------------------------------------------------------------
+   Correction d'un dossier — le formulaire de l'adhérent dans wp-admin
+   ------------------------------------------------------------------ */
+
+/* `membership.css` puise ses couleurs dans les variables générées par
+   theme.json. L'administration ne les connaît pas : sans ce bloc, la moitié des
+   déclarations de couleur sont invalides et le formulaire vire au gris. Mêmes
+   valeurs que la charte, écrites en dur — comme le fait déjà `login.css` du
+   thème, pour la même raison. */
+.sub-dossier {
+	--sub-abysse: #142f52;
+	--sub-profond: #1d5480;
+	--sub-lien: #1d6493;
+	--sub-lagon: #2e8fc0;
+	--sub-ecume: #e9f4fa;
+	--sub-blanc: #fff;
+	--sub-ardoise: #566b84;
+	--sub-brume: #c4d3e3;
+	--sub-brume-fonce: #7a8ca6;
+	--sub-corail-fonce: #c0561a;
+	--sub-sable: #f2c14e;
+	--sub-algue: #17795e;
+	--sub-alerte: #b82a1e;
+}
+
+/* Le formulaire est posé dans une colonne d'administration, pas dans une page
+   du site : il n'a pas à s'étaler sur 1 600 px. */
+.sub-dossier .sub-membership {
+	max-width: 1100px;
+	margin-top: 16px;
+}
+
+/* wp-admin met ses propres marges sur les champs ; le formulaire a les siennes. */
+.sub-dossier .sub-membership input[type="text"] {
+	width: 100%;
+}
+
+/* ------------------------------------------------------------------
+   Quand une question s'affiche — deux règles de sens opposé
+   ------------------------------------------------------------------ */
+
+/* Elles se lisaient pareil : même gabarit, même « vaut », mêmes cases « Oui »
+   « Non » en bout de ligne. Ce qui les sépare doit donc se voir avant d'être
+   lu — un filet de couleur, une consigne propre, et les réponses sous la
+   question plutôt qu'à sa suite. */
+.sub-visibility {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	max-width: 760px;
+}
+
+.sub-condition {
+	border-left: 3px solid #c3c4c7;
+	border-radius: 0 4px 4px 0;
+	background: #f6f7f7;
+	padding: 10px 14px;
+}
+
+.sub-condition--inclusion { border-left-color: #1d5480; }
+.sub-condition--exclusion { border-left-color: #b82a1e; }
+
+.sub-condition__lead {
+	margin: 0 0 6px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.sub-condition--exclusion .sub-condition__lead { color: #b82a1e; }
+
+.sub-condition__answers {
+	margin-top: 10px;
+	padding-left: 2px;
+}
+
+.sub-condition__hint {
+	margin: 0 0 6px;
+	color: #646970;
+	font-size: 0.85rem;
+}
+
+/* Les réponses qui déclenchent la règle, cochées plutôt que tapées. */
+.sub-condition__choices {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 20px;
+}
+
+.sub-condition__choice {
+	display: inline-flex;
+	gap: 6px;
+	align-items: baseline;
+	max-width: 100%;
+}
+
+/* Un libellé long — l'engagement de l'encadrant — revient à la ligne sans
+   emporter sa case avec lui. */
+.sub-condition__choice > span {
+	overflow-wrap: anywhere;
+}
+
+/* La règle relue en français : c'est elle qui fait voir qu'on s'est trompé
+   de sens, donc elle se lit, elle ne se devine pas. */
+.sub-visibility__summary {
+	margin: 0;
+	padding: 8px 12px;
+	border-radius: 4px;
+	background: #e9f4fa;
+	color: #142f52;
+	font-style: italic;
+}
+
+/* L'exclusion se lit d'un coup d'œil comme une restriction, pas comme une
+   condition de plus : c'est une autre couleur, pas une autre place. */
+.sub-admin .sub-tag--exclu {
+	background: #fbeae8;
+	color: #b82a1e;
+}

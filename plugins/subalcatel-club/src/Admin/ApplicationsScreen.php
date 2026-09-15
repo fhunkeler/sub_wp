@@ -58,11 +58,20 @@ final class ApplicationsScreen
         global $wpdb;
         $p = $wpdb->prefix . 'sub_';
 
+        // Le montant encaissé est joint plutôt que compté ligne à ligne : une
+        // correction peut creuser un écart avec le montant dû, et c'est un écart
+        // qui doit se voir sur la liste, pas au dossier ouvert.
         $rows = $wpdb->get_results(
-            "SELECT a.*, u.display_name, u.user_email, pl.title AS plan_title
+            "SELECT a.*, u.display_name, u.user_email, pl.title AS plan_title,
+                    COALESCE(pay.paid, 0) AS paid_amount
              FROM {$p}applications a
              LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
              LEFT JOIN {$p}plans pl ON pl.id = a.plan_id
+             LEFT JOIN (
+                 SELECT application_id, SUM(amount) AS paid
+                 FROM {$p}payments WHERE status = 'received'
+                 GROUP BY application_id
+             ) pay ON pay.application_id = a.id
              ORDER BY FIELD(a.status,'awaiting_payment','payment_confirmed','active','refused'),
                       a.created_at DESC
              LIMIT 100",
@@ -122,7 +131,8 @@ final class ApplicationsScreen
                         </td>
                         <td data-label="Formule"><?php echo esc_html((string) $row['plan_title']); ?></td>
                         <td data-label="Montant" style="font-variant-numeric:tabular-nums;">
-                            <?php echo esc_html(number_format((float) $row['total_amount'], 2, ',', ' ')); ?> €
+                            <?php echo esc_html(AdminUi::euro((float) $row['total_amount'])); ?>
+                            <?php self::renderPaymentGap($row); ?>
                         </td>
                         <td data-label="Règlement annoncé">
                             <?php
@@ -148,6 +158,55 @@ final class ApplicationsScreen
      * @param array<string, mixed> $row
      */
     private static function renderActions(array $row): void
+    {
+        self::renderStepAction($row);
+
+        // Corriger reste possible tant que le dossier n'est pas activé, quelle
+        // que soit l'étape : l'erreur de saisie se découvre aussi bien à
+        // l'encaissement du chèque qu'à la vérification des pièces.
+        if (
+            ApplicationService::isEditable((string) $row['status'])
+            && current_user_can('sub_manage_memberships')
+        ) {
+            printf(
+                '<a class="button button-small" style="margin-left:8px;" href="%s">Corriger</a>',
+                esc_url(ApplicationEditor::url((int) $row['id']))
+            );
+        }
+    }
+
+    /**
+     * L'écart entre ce qui est dû et ce qui a été encaissé.
+     *
+     * Il n'apparaît que lorsqu'il existe. Un dossier corrigé après règlement est
+     * le seul cas courant — et le seul où le trésorier doit relancer quelqu'un.
+     *
+     * @param array<string, mixed> $row
+     */
+    private static function renderPaymentGap(array $row): void
+    {
+        $paid = (float) ($row['paid_amount'] ?? 0);
+        $gap  = round((float) $row['total_amount'] - $paid, 2);
+
+        if ($paid <= 0 || abs($gap) < 0.005) {
+            return;
+        }
+
+        printf(
+            '<br><small style="color:%s;">%s réglés — %s %s</small>',
+            $gap > 0 ? '#b82a1e' : '#c0561a',
+            esc_html(AdminUi::euro($paid)),
+            esc_html(AdminUi::euro(abs($gap))),
+            $gap > 0 ? 'à encaisser' : 'à rembourser'
+        );
+    }
+
+    /**
+     * L'action qui fait avancer le dossier d'une étape.
+     *
+     * @param array<string, mixed> $row
+     */
+    private static function renderStepAction(array $row): void
     {
         $id = (int) $row['id'];
 

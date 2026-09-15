@@ -227,6 +227,12 @@ final class CampaignEditor
                             = <?php echo esc_html(implode(' ou ', $option->conditionValues)); ?>
                         </span>
                     <?php endif; ?>
+                    <?php if ($option->excludeOption !== null) : ?>
+                        <span class="sub-tag sub-tag--exclu">
+                            sauf si <?php echo esc_html($option->excludeOption); ?>
+                            = <?php echo esc_html(implode(' ou ', $option->excludeValues)); ?>
+                        </span>
+                    <?php endif; ?>
                     <?php if ($option->grants !== []) : ?>
                         <span class="sub-tag sub-tag--grant">
                             ouvre : <?php echo esc_html(implode(', ', $option->grants)); ?>
@@ -381,25 +387,51 @@ final class CampaignEditor
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">N’afficher que si…</th>
+                    <th scope="row">Quand l’afficher ?</th>
                     <td>
-                        <div class="sub-condition">
-                            <select name="condition_option">
-                                <option value="">— toujours affichée —</option>
-                                <?php foreach ($allOptions as $other) : ?>
-                                    <?php if ($option !== null && $other->name === $option->name) { continue; } ?>
-                                    <option value="<?php echo esc_attr($other->name); ?>"
-                                            <?php selected($option?->conditionOption, $other->name); ?>>
-                                        <?php echo esc_html($other->label); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <span class="sub-condition__op">vaut</span>
-                            <input type="text" name="condition_values" class="regular-text"
-                                   value="<?php echo esc_attr(implode(', ', $option?->conditionValues ?? [])); ?>"
-                                   placeholder="nokia, ce_orange">
+                        <?php
+                        $autres = array_values(array_filter(
+                            $allOptions,
+                            static fn (Option $other): bool => $option === null || $other->name !== $option->name
+                        ));
+                        ?>
+                        <div class="sub-visibility" data-visibility>
+                            <?php self::conditionField(
+                                $autres,
+                                $option?->conditionOption,
+                                $option?->conditionValues ?? [],
+                                'Toujours — quelles que soient les autres réponses',
+                                'condition',
+                                'inclusion',
+                                'Ne l’afficher que si cette question reçoit…',
+                            ); ?>
+
+                            <?php self::conditionField(
+                                $autres,
+                                $option?->excludeOption,
+                                $option?->excludeValues ?? [],
+                                'Aucune exception',
+                                'exclude',
+                                'exclusion',
+                                'Ne jamais l’afficher si cette question reçoit…',
+                            ); ?>
+
+                            <?php // Relire sa propre règle en français est le seul moyen de voir
+                                  // qu'on s'est trompé de sens. Le JavaScript la recompose à chaque
+                                  // clic ; sans lui, le serveur en a déjà posé une version juste. ?>
+                            <p class="sub-visibility__summary" data-visibility-summary aria-live="polite">
+                                <?php echo esc_html(self::visibilitySentence($option, $autres)); ?>
+                            </p>
                         </div>
-                        <p class="description">Identifiants des réponses, séparés par des virgules.</p>
+
+                        <p class="description">
+                            La première règle restreint, la seconde excepte, et l’exception l’emporte.
+                            La carte de niveau se sert de la première — elle ne s’affiche que pour les
+                            niveaux cochés. La licence déjà détenue se sert de la seconde — elle vaut
+                            pour tout le monde sauf les adhérents Nokia, dont le tarif la couvre.
+                            Nommer le cas à écarter plutôt qu’énumérer tous les autres évite de voir
+                            l’option disparaître le jour où une réponse nouvelle est créée.
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -522,21 +554,15 @@ final class CampaignEditor
                 <tr>
                     <th scope="row">S’applique si…</th>
                     <td>
-                        <div class="sub-condition">
-                            <select name="condition_option" required>
-                                <option value="">— choisir une option —</option>
-                                <?php foreach ($options as $o) : ?>
-                                    <option value="<?php echo esc_attr($o->name); ?>"
-                                            <?php selected($rule?->conditionOption, $o->name); ?>>
-                                        <?php echo esc_html($o->label); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <span class="sub-condition__op">vaut</span>
-                            <input type="text" name="condition_values" class="regular-text" required
-                                   value="<?php echo esc_attr(implode(', ', $rule?->conditionValues ?? [])); ?>"
-                                   placeholder="nokia">
-                        </div>
+                        <?php self::conditionField(
+                            $options,
+                            $rule?->conditionOption,
+                            $rule?->conditionValues ?? [],
+                            '— choisir une question —',
+                            'condition',
+                            '',
+                            'N’appliquer cette remise que si cette question reçoit…',
+                        ); ?>
                     </td>
                 </tr>
                 <tr>
@@ -761,7 +787,9 @@ final class CampaignEditor
             'is_required'      => isset($_POST['is_required']) ? 1 : 0,
             'choices'          => wp_json_encode($choices),
             'condition_option' => sanitize_key(wp_unslash((string) ($_POST['condition_option'] ?? ''))) ?: null,
-            'condition_values' => wp_json_encode(self::csv($_POST['condition_values'] ?? '')),
+            'condition_values' => wp_json_encode(self::conditionValues($_POST['condition_values'] ?? [])),
+            'exclude_option'   => sanitize_key(wp_unslash((string) ($_POST['exclude_option'] ?? ''))) ?: null,
+            'exclude_values'   => wp_json_encode(self::conditionValues($_POST['exclude_values'] ?? [])),
             'grants'           => wp_json_encode(self::csv($_POST['grants'] ?? '')),
             'plans'            => wp_json_encode(array_map('sanitize_key', (array) ($_POST['plans'] ?? []))),
             'ordering'         => absint($_POST['ordering'] ?? 999),
@@ -833,7 +861,7 @@ final class CampaignEditor
         $data = [
             'label'            => $label,
             'condition_option' => sanitize_key(wp_unslash((string) ($_POST['condition_option'] ?? ''))),
-            'condition_values' => wp_json_encode(self::csv($_POST['condition_values'] ?? '')),
+            'condition_values' => wp_json_encode(self::conditionValues($_POST['condition_values'] ?? [])),
             'flat_amount'      => AdminUi::amount($_POST['flat_amount'] ?? 0),
             'per_option'       => wp_json_encode($reductions),
             'plans'            => wp_json_encode(array_map('sanitize_key', (array) ($_POST['plans'] ?? []))),
@@ -880,6 +908,208 @@ final class CampaignEditor
         return in_array($value, [Option::INPUT_SINGLE, Option::INPUT_CHECK, Option::INPUT_AUTO], true)
             ? $value
             : Option::INPUT_SINGLE;
+    }
+
+    /**
+     * « N'afficher que si telle question vaut telle réponse. »
+     *
+     * Les réponses se désignaient autrefois en tapant leurs identifiants
+     * techniques, séparés par des virgules. Deux ennuis, tous deux vérifiés :
+     * personne ne connaît par cœur le nom interne d'une réponse, et surtout rien
+     * ne rappelle d'y revenir. Ajouter P1 à la liste des niveaux laissait la
+     * carte de niveau accrochée aux anciens — donc non facturée, sans le moindre
+     * message.
+     *
+     * Les réponses réellement existantes sont donc proposées à cocher. Un groupe
+     * par question, celui de la question retenue affiché, les autres neutralisés :
+     * une case désactivée ne poste rien, ce qui évite de mêler les réponses d'une
+     * question à la condition d'une autre.
+     *
+     * @param list<Option> $options
+     * @param list<string> $values
+     */
+    private static function conditionField(
+        array $options,
+        ?string $selected,
+        array $values,
+        string $emptyLabel,
+        string $field = 'condition',
+        string $tone = '',
+        string $lead = '',
+    ): void {
+        ?>
+        <div class="sub-condition <?php echo $tone === '' ? '' : 'sub-condition--' . esc_attr($tone); ?>"
+             data-condition>
+            <?php if ($lead !== '') : ?>
+                <p class="sub-condition__lead"><?php echo esc_html($lead); ?></p>
+            <?php endif; ?>
+
+            <select name="<?php echo esc_attr($field); ?>_option" data-condition-option>
+                <option value=""><?php echo esc_html($emptyLabel); ?></option>
+                <?php foreach ($options as $other) : ?>
+                    <option value="<?php echo esc_attr($other->name); ?>"
+                            <?php selected($selected, $other->name); ?>>
+                        <?php echo esc_html($other->label); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?php // Les réponses descendent sous la question, précédées de ce qu'elles
+                  // font. « vaut » suivi de deux cases « Oui » « Non » ne disait pas ce
+                  // que cocher voulait dire, et deux règles de sens opposé se lisaient
+                  // pareil. ?>
+            <div class="sub-condition__answers" data-condition-answers
+                 <?php echo $selected === null ? 'hidden' : ''; ?>>
+                <p class="sub-condition__hint">Cochez la ou les réponses concernées :</p>
+
+                <?php foreach ($options as $other) : ?>
+                    <?php $actif = $selected === $other->name; ?>
+                    <div class="sub-condition__choices"
+                         data-condition-for="<?php echo esc_attr($other->name); ?>"
+                         <?php echo $actif ? '' : 'hidden'; ?>>
+                        <?php if ($other->choices === []) : ?>
+                            <em>Cette question n’a aucune réponse à cocher.</em>
+                        <?php endif; ?>
+                        <?php foreach ($other->choices as $choice) : ?>
+                            <label class="sub-condition__choice">
+                                <input type="checkbox" name="<?php echo esc_attr($field); ?>_values[]"
+                                       value="<?php echo esc_attr((string) $choice['value']); ?>"
+                                       <?php checked(in_array((string) $choice['value'], $values, true)); ?>
+                                       <?php disabled(!$actif); ?>>
+                                <span><?php echo esc_html((string) $choice['label']); ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * La règle d'affichage d'une option, dite en français.
+     *
+     * Relire sa propre règle est le seul moyen de s'apercevoir qu'on l'a posée à
+     * l'envers. Le JavaScript la recompose à chaque clic ; celle-ci est la
+     * version servie par le serveur, à l'ouverture du formulaire.
+     *
+     * Les libellés, jamais les noms techniques : c'est le même principe que les
+     * cases à cocher qui ont remplacé la saisie d'identifiants.
+     *
+     * @param list<Option> $allOptions
+     */
+    private static function visibilitySentence(?Option $option, array $allOptions): string
+    {
+        if ($option === null || ($option->conditionOption === null && $option->excludeOption === null)) {
+            return 'Toujours affichée, quelles que soient les autres réponses.';
+        }
+
+        $phrases = [];
+
+        foreach ([
+            ['nom' => $option->conditionOption, 'valeurs' => $option->conditionValues, 'inclus' => true],
+            ['nom' => $option->excludeOption,   'valeurs' => $option->excludeValues,   'inclus' => false],
+        ] as $regle) {
+            if ($regle['nom'] === null) {
+                continue;
+            }
+
+            $cible   = self::optionNamed($allOptions, (string) $regle['nom']);
+            $question = $cible?->label ?? (string) $regle['nom'];
+
+            if ($regle['valeurs'] === []) {
+                $phrases[] = $regle['inclus']
+                    ? sprintf('Aucune réponse cochée sur « %s » : la question ne s’afficherait jamais.', $question)
+                    : sprintf('Aucune réponse cochée sur « %s » : cette exception ne fait rien.', $question);
+
+                continue;
+            }
+
+            $phrases[] = sprintf(
+                $regle['inclus'] ? 'Affichée seulement si « %s » vaut %s.' : 'Jamais affichée si « %s » vaut %s.',
+                $question,
+                self::enumerate(self::choiceLabels($cible, $regle['valeurs']))
+            );
+        }
+
+        return implode(' ', $phrases);
+    }
+
+    /**
+     * @param list<Option> $options
+     */
+    private static function optionNamed(array $options, string $name): ?Option
+    {
+        foreach ($options as $option) {
+            if ($option->name === $name) {
+                return $option;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<string> $values
+     * @return list<string>
+     */
+    private static function choiceLabels(?Option $option, array $values): array
+    {
+        if ($option === null) {
+            return $values;
+        }
+
+        return array_map(
+            static function (string $value) use ($option): string {
+                foreach ($option->choices as $choice) {
+                    if ((string) $choice['value'] === $value) {
+                        return (string) $choice['label'];
+                    }
+                }
+
+                // Une réponse qui n'existe plus : la nommer telle quelle plutôt
+                // que la taire, c'est ce qui la fera corriger.
+                return $value;
+            },
+            $values
+        );
+    }
+
+    /**
+     * « a, b ou c » — la virgule partout sauf devant le dernier.
+     *
+     * @param list<string> $items
+     */
+    private static function enumerate(array $items): string
+    {
+        if (count($items) <= 1) {
+            return implode('', $items);
+        }
+
+        $dernier = array_pop($items);
+
+        return implode(', ', $items) . ' ou ' . $dernier;
+    }
+
+    /**
+     * Les réponses retenues pour une condition.
+     *
+     * Elles arrivent désormais cochées — donc en tableau. La lecture d'une liste
+     * séparée par des virgules reste acceptée : rien ne garantit qu'aucun
+     * formulaire encore ouvert dans un onglet ne la poste plus.
+     *
+     * @return list<string>
+     */
+    private static function conditionValues(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return self::csv($raw);
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $v): string => sanitize_key((string) wp_unslash((string) $v)),
+            $raw
+        )));
     }
 
     private static function csv(mixed $raw): array

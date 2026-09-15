@@ -1,7 +1,7 @@
 # subalcatel-club — extension métier du club
 
 Adhésions, événements et droits du club de plongée Sub Alcatel.
-Version **0.16.0** — jalon *démonstration*.
+Version **0.19.2** — jalon *démonstration*.
 
 ---
 
@@ -31,9 +31,9 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | `/mon-profil/` | Profil du membre — les champs du bureau sont en lecture seule |
 | `/espace-membre/agenda/organiser-une-sortie/` | Un autonome ou un directeur de plongée ouvre une sortie sans passer par l'administration |
 | `/espace-membre/agenda/mes-sorties-organisees/` | Ses inscrits — niveau, téléphone, personne à prévenir, validité des documents — et la feuille d'émargement à imprimer |
-| **Club → Adhésions → Dossiers** | Validation : paiement puis secrétariat |
+| **Club → Adhésions → Dossiers** | Validation : paiement puis secrétariat, et **correction d'un dossier** avant activation |
 | **Club → Membres → Annuaire** | Liste, fiche, attribution des niveaux, historique des brevets |
-| **Club → Adhésions → Campagnes** | Liste, création et **duplication annuelle** |
+| **Club → Adhésions → Campagnes** | Liste, création, **duplication annuelle**, suppression d'une campagne sans dossier |
 | **Configurer une campagne** | Formules, options et remises — tout se règle ici |
 | **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes, origine des adhésions et délais d'encaissement |
 
@@ -56,6 +56,12 @@ Comparer avec un profil *Extérieur* : mêmes options, remise absente.
 `demo_bureau` et ouvrir l'écran *Club*. Le dossier apparaît avec son détail
 figé. Enregistrer le paiement, puis valider. L'adhésion devient active **et les
 droits d'emprunt souscrits s'ouvrent automatiquement**.
+
+**2 bis. La case oubliée** — sur un dossier en attente, bouton **Corriger**. Le
+bureau retrouve le formulaire de l'adhérent, rempli tel qu'il l'a soumis.
+Déclarer le niveau préparé ajoute la carte de niveau d'office : le total est
+recalculé au serveur et les lignes figées sont remplacées. Si le règlement était
+déjà encaissé, la liste affiche l'écart — reste à encaisser, ou à rembourser.
 
 **3. L'éligibilité** — `/agenda-club/` en tant que `demo_membre`. Les sorties
 dont le niveau ne convient pas affichent le motif exact plutôt qu'un refus muet.
@@ -86,7 +92,7 @@ docker exec sub_demo_wp wp --allow-root eval-file wp-content/plugins/subalcatel-
 ```
 
 Une suite par domaine, dans `tests/` — `smoke-eligibility`, `smoke-pricing`,
-`smoke-application`, `smoke-events`, `smoke-outing`, `smoke-roster`,
+`smoke-application`, `smoke-amendment`, `smoke-campaigns`, `smoke-events`, `smoke-outing`, `smoke-roster`,
 `smoke-charts`, `smoke-stats`, `smoke-widget`… Elles nettoient leurs données et se lancent de
 la même façon.
 
@@ -102,6 +108,7 @@ sera stabilisé.
 | `EligibilityPolicy` — point de décision unique | Livré |
 | Tarification conditionnelle, remises, campagnes | Livré |
 | Dossiers : soumission, paiement, validation, droits | Livré |
+| Correction d'un dossier par le bureau, avant activation | Livré |
 | Événements : types, droits de création, inscription, liste d'attente | Livré |
 | Écran bureau des dossiers | Livré |
 | Profil membre : 26 champs, 7 groupes, droits par champ | Livré |

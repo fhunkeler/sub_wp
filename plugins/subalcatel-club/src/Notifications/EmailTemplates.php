@@ -30,6 +30,7 @@ final class EmailTemplates
     public const ACCOUNT_REFUSED  = 'account.refused';
 
     public const MEMBERSHIP_SUBMITTED = 'membership.submitted';
+    public const MEMBERSHIP_AMENDED   = 'membership.amended';
     public const MEMBERSHIP_PAID      = 'membership.paid';
     public const MEMBERSHIP_ACTIVATED = 'membership.activated';
     public const MEMBERSHIP_REFUSED   = 'membership.refused';
@@ -142,6 +143,29 @@ final class EmailTemplates
                     'formule'   => 'Formule choisie',
                     'reglement' => 'Mode de règlement choisi par l’adhérent',
                     'consignes' => 'Ce qu’il reste à faire pour régler, selon ce mode',
+                ],
+            ],
+            [
+                'code'        => self::MEMBERSHIP_AMENDED,
+                'label'       => 'Dossier corrigé par le bureau',
+                'description' => 'Envoyé quand le bureau corrige un dossier et que le montant change. '
+                    . 'Une correction sans effet sur le prix ne déclenche pas d’envoi.',
+                'subject'     => '[{club}] Votre dossier {reference} a été corrigé',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "Le bureau a corrigé votre dossier d’adhésion {reference}.\n\n"
+                    . "Motif : {motif}\n\n"
+                    . "Formule : {formule}.\n"
+                    . "Montant : {montant} — au lieu de {ancien_montant}.\n\n"
+                    . "Si vous avez déjà réglé l’ancien montant, le bureau reviendra vers vous "
+                    . "pour la différence. Le détail à jour figure dans votre espace membre.\n\n"
+                    . "Une erreur de notre part ? Répondez à ce message.\n\n"
+                    . "— {club}",
+                'variables'   => [
+                    'reference'      => 'Référence du dossier',
+                    'formule'        => 'Formule retenue après correction',
+                    'montant'        => 'Nouveau montant',
+                    'ancien_montant' => 'Montant avant correction',
+                    'motif'          => 'Motif saisi par le bureau',
                 ],
             ],
             [
@@ -373,7 +397,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 3;
+    private const VERSION        = 4;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void

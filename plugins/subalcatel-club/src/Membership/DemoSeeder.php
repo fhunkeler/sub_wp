@@ -90,6 +90,8 @@ final class DemoSeeder
                 'choices'          => wp_json_encode($data['choices'] ?? []),
                 'condition_option' => $data['condition_option'] ?? null,
                 'condition_values' => wp_json_encode($data['condition_values'] ?? []),
+                'exclude_option'   => $data['exclude_option'] ?? null,
+                'exclude_values'   => wp_json_encode($data['exclude_values'] ?? []),
                 'grants'           => wp_json_encode($data['grants'] ?? []),
                 'plans'            => wp_json_encode($data['plans'] ?? []),
                 'ordering'         => $data['ordering'],
@@ -138,6 +140,13 @@ final class DemoSeeder
             'input_type' => Option::INPUT_CHECK,
             'ordering'   => 40,
             'choices'    => $yesNo(-49.00, 'Oui, j’ai déjà une licence valide', 'Non'),
+            // Pas aux adhérents Nokia : leur tarif couvre déjà la licence, et la
+            // déduire une seconde fois rendait 20 € de trop (retour du bureau,
+            // 15/09/2026). Une exclusion plutôt qu'une liste des origines
+            // admises : une origine créée plus tard ne doit pas perdre l'option
+            // sans que personne l'ait décidé.
+            'exclude_option' => 'origine_adhesion',
+            'exclude_values' => ['nokia'],
         ]);
 
         $option([
@@ -146,20 +155,27 @@ final class DemoSeeder
             'ordering' => 50,
             'plans'    => ['plongee'],
             'choices'  => [
+                // L'ordre et la liste sont ceux que le club prépare vraiment
+                // (retour du bureau, 15/09/2026) : ni PE12 ni PA20, qu'il ne
+                // prépare pas, et les niveaux nommés comme le bureau les nomme —
+                // P3, pas N3. Deux noms pour un même brevet, et la moitié des
+                // adhérents cherchent lequel cocher.
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
-                ['value' => 'pe12',  'label' => 'PE12',  'amount' => 0.0],
-                ['value' => 'pa20',  'label' => 'PA20',  'amount' => 0.0],
-                ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
+                ['value' => 'p1',    'label' => 'P1',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
-                ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
+                ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
+                ['value' => 'p3',    'label' => 'P3',    'amount' => 0.0],
                 ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
-                ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
+                // E3 et E4, pas MF1 et MF2 : ce sont les mêmes brevets, et le
+                // club les désigne par leur niveau d'encadrement.
+                ['value' => 'e3',    'label' => 'E3',    'amount' => 0.0],
+                ['value' => 'e4',    'label' => 'E4',    'amount' => 0.0],
             ],
         ]);
 
         // Due dès qu'un niveau est préparé, et sans choix à faire : le club la
-        // commande de toute façon. N4 et MF1 en sont dispensés — ces brevets
-        // sont délivrés par la fédération, pas par le club.
+        // commande de toute façon. N4, E3 et E4 en sont dispensés — ces
+        // brevets-là sont délivrés par la fédération, pas par le club.
         $option([
             'name'             => 'carte_niveau',
             'label'            => 'Carte de niveau',
@@ -168,7 +184,7 @@ final class DemoSeeder
             'ordering'         => 60,
             'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40', 'n3'],
+            'condition_values' => ['p1', 'pe40', 'p2', 'p3'],
             'choices'          => [
                 ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
             ],

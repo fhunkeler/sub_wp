@@ -27,6 +27,23 @@ final class ApplicationService
     public const STATUS_REFUSED           = 'refused';
     public const STATUS_CANCELLED         = 'cancelled';
 
+    /**
+     * Les états dans lesquels un dossier se corrige encore.
+     *
+     * La limite est l'activation, pas le paiement : une erreur de saisie se
+     * découvre le plus souvent quand le chèque arrive et que son montant ne
+     * tombe pas juste. Passé l'activation, le dossier a produit une licence et
+     * des droits d'emprunt — il ne se réécrit plus, il s'annule.
+     *
+     * @var list<string>
+     */
+    public const EDITABLE_STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_SUBMITTED,
+        self::STATUS_AWAITING_PAYMENT,
+        self::STATUS_PAYMENT_CONFIRMED,
+    ];
+
     private string $prefix;
 
     public function __construct(
@@ -107,21 +124,7 @@ final class ApplicationService
 
         $applicationId = (int) $wpdb->insert_id;
 
-        // Lignes figées : changer un tarif l'an prochain ne doit pas réécrire
-        // la comptabilité de cette année.
-        $ordering = 0;
-        foreach ($quote->lines as $line) {
-            $wpdb->insert("{$this->prefix}application_lines", [
-                'application_id' => $applicationId,
-                'line_type'      => $line->type,
-                'source_name'    => $line->sourceName,
-                'label'          => $line->label,
-                'value_label'    => $line->valueLabel,
-                'amount'         => $line->amount,
-                'ordering'       => $ordering++,
-            ]);
-        }
-
+        $this->freezeLines($applicationId, $quote);
         $this->storeAnswers($applicationId, $answers);
         $this->recordValidation($applicationId, 'submission', 'submitted', $userId);
 
@@ -139,6 +142,141 @@ final class ApplicationService
         ], ['entity_type' => 'application', 'entity_id' => $applicationId]);
 
         return $applicationId;
+    }
+
+    /**
+     * Corrige un dossier déposé, tant qu'il n'est pas activé.
+     *
+     * Une adhésion se remplit une fois par an, sur un formulaire qu'on découvre
+     * à chaque saison : la case oubliée est la règle, pas l'exception. Jusqu'ici
+     * le bureau n'avait que deux gestes — refuser le dossier et faire tout
+     * retaper, ou corriger le montant à la main sans que les lignes suivent.
+     * Ni l'un ni l'autre ne laissait une comptabilité juste.
+     *
+     * La correction repasse donc par le même chemin que la soumission : mêmes
+     * règles de visibilité, même contrôle des réponses obligatoires, même
+     * recalcul au serveur, mêmes lignes figées. Ce qui change est seulement qui
+     * tient le clavier — et cela, le journal le retient.
+     *
+     * Le prix est recalculé sur la campagne DU DOSSIER, jamais sur celle qui se
+     * trouve ouverte aujourd'hui : corriger en janvier une adhésion déposée en
+     * septembre ne doit pas lui appliquer les tarifs de la saison suivante.
+     *
+     * @param array<string, string|list<string>> $answers
+     * @return float Le nouveau total du dossier.
+     */
+    public function amend(
+        int $applicationId,
+        int $actorId,
+        string $planSlug,
+        array $answers,
+        string $paymentMethod,
+        string $comment = '',
+    ): float {
+        global $wpdb;
+
+        if (!user_can($actorId, 'sub_manage_memberships')) {
+            throw new RuntimeException('Droit de gestion des adhésions requis.');
+        }
+
+        $application = $this->find($applicationId);
+        if ($application === null) {
+            throw new RuntimeException('Dossier introuvable.');
+        }
+
+        if (!self::isEditable((string) $application['status'])) {
+            throw new RuntimeException(
+                'Ce dossier n’est plus modifiable : une adhésion active ou close ne se réécrit pas.'
+            );
+        }
+
+        $campaignId = (int) $application['campaign_id'];
+
+        $plan = $this->campaigns->planBySlug($campaignId, $planSlug);
+        if ($plan === null) {
+            throw new RuntimeException('Plan inconnu pour cette campagne.');
+        }
+
+        if (!PaymentMethods::isOffered($paymentMethod)) {
+            throw new RuntimeException('Choisissez un mode de règlement.');
+        }
+
+        $options = $this->campaigns->options($campaignId);
+        $rules   = $this->campaigns->discountRules($campaignId);
+        $answers = PricingEngine::resolveAnswers($plan, $answers, $options);
+
+        // L'état civil n'est pas revérifié ici : il vit sur la fiche du membre,
+        // se corrige depuis l'annuaire, et le dossier a déjà passé ce contrôle
+        // à son dépôt. Les réponses obligatoires, elles, appartiennent au
+        // dossier — une correction ne doit pas pouvoir en retirer une.
+        $missing = $this->missingRequired($plan, $options, $answers);
+
+        if ($missing !== []) {
+            throw new IncompleteApplication($missing);
+        }
+
+        $quote    = $this->pricing->calculate($plan, $answers, $options, $rules);
+        $previous = (float) $application['total_amount'];
+
+        $wpdb->update("{$this->prefix}applications", [
+            'plan_id'        => $plan->id,
+            'total_amount'   => $quote->total(),
+            'payment_method' => $paymentMethod,
+            'updated_at'     => current_time('mysql'),
+        ], ['id' => $applicationId]);
+
+        // Les lignes sont remplacées en bloc : une correction n'ajoute pas une
+        // ligne de régularisation, elle redit ce que le dossier contient.
+        $wpdb->delete("{$this->prefix}application_lines", ['application_id' => $applicationId]);
+        $this->freezeLines($applicationId, $quote);
+        $this->storeAnswers($applicationId, $answers);
+
+        $this->recordValidation($applicationId, 'correction', 'amended', $actorId, $comment);
+
+        Audit::log('membership.amended', 'application', $applicationId, [
+            'plan'  => $plan->slug,
+            'from'  => $previous,
+            'to'    => $quote->total(),
+        ], $actorId);
+
+        // Le membre est prévenu dès que le montant bouge : il a peut-être déjà
+        // posté son chèque, et découvrir l'écart à l'encaissement est le plus
+        // sûr moyen d'une relance pénible. Une correction sans effet sur le
+        // prix — un droit d'emprunt rectifié — ne mérite pas de courriel.
+        if ($application['user_id'] !== null && abs($quote->total() - $previous) >= 0.005) {
+            Mailer::toUser(EmailTemplates::MEMBERSHIP_AMENDED, (int) $application['user_id'], [
+                'reference'      => (string) $application['reference'],
+                'formule'        => $plan->title,
+                'ancien_montant' => number_format($previous, 2, ',', ' ') . ' €',
+                'montant'        => number_format($quote->total(), 2, ',', ' ') . ' €',
+                'motif'          => $comment !== '' ? $comment : 'Correction du dossier par le bureau.',
+            ], ['entity_type' => 'application', 'entity_id' => $applicationId, 'sender_id' => $actorId]);
+        }
+
+        return $quote->total();
+    }
+
+    public static function isEditable(string $status): bool
+    {
+        return in_array($status, self::EDITABLE_STATUSES, true);
+    }
+
+    /**
+     * Somme réellement encaissée sur un dossier.
+     *
+     * Elle ne se déduit pas du statut : une correction peut changer le montant
+     * dû après que la trésorerie a enregistré le règlement, et c'est justement
+     * cet écart qu'il faut pouvoir montrer.
+     */
+    public function paidAmount(int $applicationId): float
+    {
+        global $wpdb;
+
+        return (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(amount), 0) FROM {$this->prefix}payments
+             WHERE application_id = %d AND status = 'received'",
+            $applicationId
+        ));
     }
 
     /**
@@ -359,6 +497,31 @@ final class ApplicationService
         $raw = get_option("sub_application_answers_{$applicationId}", []);
 
         return is_array($raw) ? $raw : [];
+    }
+
+    /**
+     * Fige le détail tarifaire d'un dossier.
+     *
+     * Changer un tarif l'an prochain ne doit pas réécrire la comptabilité de
+     * cette année : ces lignes sont une copie, pas une jointure.
+     */
+    private function freezeLines(int $applicationId, Quote $quote): void
+    {
+        global $wpdb;
+
+        $ordering = 0;
+
+        foreach ($quote->lines as $line) {
+            $wpdb->insert("{$this->prefix}application_lines", [
+                'application_id' => $applicationId,
+                'line_type'      => $line->type,
+                'source_name'    => $line->sourceName,
+                'label'          => $line->label,
+                'value_label'    => $line->valueLabel,
+                'amount'         => $line->amount,
+                'ordering'       => $ordering++,
+            ]);
+        }
     }
 
     /**

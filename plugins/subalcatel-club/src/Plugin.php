@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club;
 
+use Subalcatel\Club\Admin\ApplicationEditor;
 use Subalcatel\Club\Admin\ApplicationsScreen;
 use Subalcatel\Club\Admin\CampaignEditor;
 use Subalcatel\Club\Admin\ClubMenu;
@@ -176,6 +177,7 @@ final class Plugin
         DashboardWidget::register();
 
         ApplicationsScreen::register();
+        ApplicationEditor::register();
         AccountsScreen::register();
         ClubDocumentsScreen::register();
         MailingListsScreen::register();

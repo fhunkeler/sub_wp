@@ -16,7 +16,7 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 10;
+    private const VERSION        = 11;
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -124,6 +124,8 @@ final class Schema
             choices longtext,
             condition_option varchar(100) default NULL,
             condition_values longtext,
+            exclude_option varchar(100) default NULL,
+            exclude_values longtext,
             grants longtext,
             plans longtext,
             ordering int(11) NOT NULL default 0,

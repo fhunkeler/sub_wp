@@ -191,6 +191,8 @@ if (!function_exists('sub_test_pdf')) {
                 'choices'          => wp_json_encode($data['choices'] ?? []),
                 'condition_option' => $data['condition_option'] ?? null,
                 'condition_values' => wp_json_encode($data['condition_values'] ?? []),
+                'exclude_option'   => $data['exclude_option'] ?? null,
+                'exclude_values'   => wp_json_encode($data['exclude_values'] ?? []),
                 'grants'           => wp_json_encode($data['grants'] ?? []),
                 'plans'            => wp_json_encode($data['plans'] ?? []),
                 'ordering'         => $data['ordering'],
@@ -233,6 +235,10 @@ if (!function_exists('sub_test_pdf')) {
             'input_type' => \Subalcatel\Club\Membership\Option::INPUT_CHECK,
             'ordering'   => 40,
             'choices'    => $yesNo(-49.00),
+            // Le tarif Nokia couvre déjà la licence : la déduire une seconde fois
+            // rendait 20 € de trop à l'adhérent.
+            'exclude_option' => 'origine_adhesion',
+            'exclude_values' => ['nokia'],
         ]);
 
         $option([
@@ -242,13 +248,13 @@ if (!function_exists('sub_test_pdf')) {
             'plans'    => ['plongee'],
             'choices'  => [
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
-                ['value' => 'pe12',  'label' => 'PE12',  'amount' => 0.0],
-                ['value' => 'pa20',  'label' => 'PA20',  'amount' => 0.0],
-                ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
+                ['value' => 'p1',    'label' => 'P1',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
-                ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
+                ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
+                ['value' => 'p3',    'label' => 'P3',    'amount' => 0.0],
                 ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
-                ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
+                ['value' => 'e3',    'label' => 'E3',    'amount' => 0.0],
+                ['value' => 'e4',    'label' => 'E4',    'amount' => 0.0],
             ],
         ]);
 
@@ -259,7 +265,7 @@ if (!function_exists('sub_test_pdf')) {
             'ordering'         => 60,
             'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['pe12', 'pa20', 'p2', 'pe40', 'n3'],
+            'condition_values' => ['p1', 'pe40', 'p2', 'p3'],
             'choices'          => [
                 ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
             ],

@@ -24,6 +24,7 @@ final class CampaignsScreen
         add_action('admin_post_sub_campaign_save', [self::class, 'handleSave']);
         add_action('admin_post_sub_campaign_duplicate', [self::class, 'handleDuplicate']);
         add_action('admin_post_sub_campaign_status', [self::class, 'handleStatus']);
+        add_action('admin_post_sub_campaign_delete', [self::class, 'handleDelete']);
     }
 
     public static function renderTab(): void
@@ -108,6 +109,25 @@ final class CampaignsScreen
                                 'button'
                             );
                             ?>
+
+                            <?php // Une campagne dupliquée par mégarde restait là pour toujours.
+                                  // Le bouton n'apparaît que sur celles qui ne portent aucun
+                                  // dossier : dès le premier, la campagne est une pièce
+                                  // comptable, et elle se ferme au lieu de se supprimer. ?>
+                            <?php if ((int) $c['application_count'] === 0) : ?>
+                                <?php AdminUi::actionButton(
+                                    'sub_campaign_delete',
+                                    ['campaign_id' => (int) $c['id']],
+                                    'Supprimer',
+                                    'button-link-delete button-link',
+                                    sprintf(
+                                        'Supprimer « %s » ? Ses %d formule(s) et %d option(s) partent avec elle.',
+                                        (string) $c['title'],
+                                        (int) $c['plan_count'],
+                                        (int) $c['option_count']
+                                    )
+                                ); ?>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -279,6 +299,74 @@ final class CampaignsScreen
         Audit::log('campaign.status', 'campaign', $id, ['status' => $status]);
 
         self::back($status === 'open' ? 'Campagne ouverte.' : 'Campagne fermée.');
+    }
+
+    public static function handleDelete(): void
+    {
+        check_admin_referer('sub_campaign_delete');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        try {
+            $titre = self::delete(absint($_POST['campaign_id'] ?? 0));
+            self::back(sprintf('Campagne « %s » supprimée.', $titre));
+        } catch (\RuntimeException $e) {
+            self::back($e->getMessage(), true);
+        }
+    }
+
+    /**
+     * Supprime une campagne, ses formules, ses options et ses remises.
+     *
+     * La garde n'est pas l'état de la campagne mais ce qu'elle porte : dès le
+     * premier dossier déposé, elle devient une pièce comptable — les lignes
+     * figées de ce dossier renvoient à ses tarifs, et l'export du trésorier les
+     * relit. Une campagne qui a servi se ferme ; elle ne se supprime pas.
+     *
+     * Un brouillon vide, lui, n'est le souvenir de rien. La duplication en crée
+     * un à chaque clic, et jusqu'ici le clic de trop ne se rattrapait pas.
+     *
+     * @return string Le titre de la campagne supprimée.
+     */
+    public static function delete(int $campaignId): string
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $campaign = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, title, status FROM {$p}campaigns WHERE id = %d",
+            $campaignId
+        ), ARRAY_A);
+
+        if (!$campaign) {
+            throw new \RuntimeException('Campagne introuvable.');
+        }
+
+        // Recompté ici plutôt que cru sur parole : la liste affichée peut dater
+        // d'avant le dossier déposé entre-temps.
+        $dossiers = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$p}applications WHERE campaign_id = %d",
+            $campaignId
+        ));
+
+        if ($dossiers > 0) {
+            throw new \RuntimeException(sprintf(
+                'Cette campagne porte %d dossier(s) : elle ne se supprime pas, elle se ferme.',
+                $dossiers
+            ));
+        }
+
+        foreach (['plans', 'options', 'discount_rules'] as $table) {
+            $wpdb->delete("{$p}{$table}", ['campaign_id' => $campaignId]);
+        }
+
+        $wpdb->delete("{$p}campaigns", ['id' => $campaignId]);
+
+        Audit::log('campaign.deleted', 'campaign', $campaignId, [
+            'title'  => $campaign['title'],
+            'status' => $campaign['status'],
+        ]);
+
+        return (string) $campaign['title'];
     }
 
     private static function uniqueSlug(string $title): string

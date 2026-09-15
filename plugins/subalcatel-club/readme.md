@@ -1,7 +1,7 @@
 # subalcatel-club — extension métier du club
 
 Adhésions, événements et droits du club de plongée Sub Alcatel.
-Version **0.19.0** — jalon *démonstration*.
+Version **0.19.1** — jalon *démonstration*.
 
 ---
 
@@ -33,7 +33,7 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | `/espace-membre/agenda/mes-sorties-organisees/` | Ses inscrits — niveau, téléphone, personne à prévenir, validité des documents — et la feuille d'émargement à imprimer |
 | **Club → Adhésions → Dossiers** | Validation : paiement puis secrétariat, et **correction d'un dossier** avant activation |
 | **Club → Membres → Annuaire** | Liste, fiche, attribution des niveaux, historique des brevets |
-| **Club → Adhésions → Campagnes** | Liste, création et **duplication annuelle** |
+| **Club → Adhésions → Campagnes** | Liste, création, **duplication annuelle**, suppression d'une campagne sans dossier |
 | **Configurer une campagne** | Formules, options et remises — tout se règle ici |
 | **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes, origine des adhésions et délais d'encaissement |
 
@@ -92,7 +92,7 @@ docker exec sub_demo_wp wp --allow-root eval-file wp-content/plugins/subalcatel-
 ```
 
 Une suite par domaine, dans `tests/` — `smoke-eligibility`, `smoke-pricing`,
-`smoke-application`, `smoke-amendment`, `smoke-events`, `smoke-outing`, `smoke-roster`,
+`smoke-application`, `smoke-amendment`, `smoke-campaigns`, `smoke-events`, `smoke-outing`, `smoke-roster`,
 `smoke-charts`, `smoke-stats`, `smoke-widget`… Elles nettoient leurs données et se lancent de
 la même façon.
 

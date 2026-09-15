@@ -197,12 +197,12 @@ $scenario(
 //    fédération délivre elle-même.
 // ---------------------------------------------------------------------------
 $scenario(
-    'N3 préparé — la carte de niveau s’ajoute sans être demandée',
+    'P3 préparé — la carte de niveau s’ajoute sans être demandée',
     'plongee',
     [
         'origine_adhesion'       => 'exterieur',
         'assurance_individuelle' => 'aucune',
-        'niveau_prepare'         => 'n3',
+        'niveau_prepare'         => 'p3',
     ],
     226.00
 );

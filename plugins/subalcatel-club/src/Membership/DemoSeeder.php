@@ -146,13 +146,16 @@ final class DemoSeeder
             'ordering' => 50,
             'plans'    => ['plongee'],
             'choices'  => [
+                // L'ordre et la liste sont ceux que le club prépare vraiment
+                // (retour du bureau, 15/09/2026) : ni PE12 ni PA20, qu'il ne
+                // prépare pas, et les niveaux nommés comme le bureau les nomme —
+                // P3, pas N3. Deux noms pour un même brevet, et la moitié des
+                // adhérents cherchent lequel cocher.
                 ['value' => 'aucun', 'label' => 'Aucun', 'amount' => 0.0],
-                // Ni PE12 ni PA20 : le club ne prépare pas ces deux-là, et les
-                // laisser dans la liste faisait cocher un niveau qui n'existe
-                // nulle part dans sa saison (retour du bureau, 15/09/2026).
-                ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
+                ['value' => 'p1',    'label' => 'P1',    'amount' => 0.0],
                 ['value' => 'pe40',  'label' => 'PE40',  'amount' => 0.0],
-                ['value' => 'n3',    'label' => 'N3',    'amount' => 0.0],
+                ['value' => 'p2',    'label' => 'P2',    'amount' => 0.0],
+                ['value' => 'p3',    'label' => 'P3',    'amount' => 0.0],
                 ['value' => 'n4',    'label' => 'N4',    'amount' => 0.0],
                 ['value' => 'mf1',   'label' => 'MF1',   'amount' => 0.0],
             ],
@@ -169,7 +172,7 @@ final class DemoSeeder
             'ordering'         => 60,
             'plans'            => ['plongee'],
             'condition_option' => 'niveau_prepare',
-            'condition_values' => ['p2', 'pe40', 'n3'],
+            'condition_values' => ['p1', 'pe40', 'p2', 'p3'],
             'choices'          => [
                 ['value' => 'oui', 'label' => 'Oui', 'amount' => 16.00],
             ],

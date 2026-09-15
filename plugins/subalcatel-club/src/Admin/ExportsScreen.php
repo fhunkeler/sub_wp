@@ -168,7 +168,7 @@ final class ExportsScreen
                 ?>
                 <tr>
                     <td data-label="Quand">
-                        <?php echo esc_html(wp_date('d/m/Y H:i', (int) strtotime((string) $entry['created_at']))); ?>
+                        <?php echo AdminUi::localTime($entry['created_at']); ?>
                     </td>
                     <td data-label="Qui"><?php echo esc_html($user?->display_name ?? '—'); ?></td>
                     <td data-label="Export"><code><?php echo esc_html((string) ($details['export'] ?? '')); ?></code></td>

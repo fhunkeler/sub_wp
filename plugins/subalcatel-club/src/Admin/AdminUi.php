@@ -203,6 +203,31 @@ final class AdminUi
     }
 
     /**
+     * Horodatage d'un journal, réécrit dans le fuseau du navigateur.
+     *
+     * Le serveur pose l'heure du site en clair, avec la valeur UTC en attribut ;
+     * le script la réaffiche dans le fuseau de qui lit. Une secrétaire à Paris
+     * et un adhérent à Pointe-à-Pitre ne lisent pas la même heure sur la même
+     * ligne — c'est le but : « 21:03 » ne prouve rien si l'on ignore où.
+     * Sans JavaScript, l'heure du site reste affichée : jamais de case vide.
+     */
+    public static function localTime(mixed $raw): string
+    {
+        $value = trim((string) $raw);
+        $ts    = $value === '' ? false : strtotime($value);
+
+        if ($ts === false) {
+            return '—';
+        }
+
+        return sprintf(
+            '<time datetime="%s" data-sub-localtime>%s</time>',
+            esc_attr(gmdate('c', $ts)),
+            esc_html(wp_date('d/m/Y H:i', $ts))
+        );
+    }
+
+    /**
      * Date validée, ou chaîne vide si la saisie n'est pas exploitable.
      */
     public static function date(mixed $raw): string

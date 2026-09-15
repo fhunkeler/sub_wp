@@ -711,7 +711,7 @@ final class SettingsScreen
                       // entrée dont l'auteur a été supprimé émet un avertissement. ?>
                 <?php $user = $entry['user_id'] ? get_userdata((int) $entry['user_id']) ?: null : null; ?>
                 <tr>
-                    <td><?php echo esc_html(wp_date('d/m/Y H:i', strtotime((string) $entry['created_at']))); ?></td>
+                    <td><?php echo AdminUi::localTime($entry['created_at']); ?></td>
                     <td><?php echo esc_html($user?->display_name ?: ($entry['user_id'] ? '#' . (int) $entry['user_id'] : '—')); ?></td>
                     <td><code><?php echo esc_html((string) $entry['action']); ?></code></td>
                     <td>

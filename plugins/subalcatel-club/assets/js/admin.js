@@ -139,6 +139,41 @@
 
 	document.querySelectorAll('[data-visibility]').forEach(syncVisibility);
 
+	// ---------------------------------------------- Heures locales des journaux
+
+	/**
+	 * Les journaux sont horodatés côté serveur, dans le fuseau du site ; on
+	 * réécrit l'heure dans celui du navigateur.
+	 *
+	 * L'attribut `datetime` porte l'instant en UTC : c'est lui qui fait foi, le
+	 * texte n'est qu'un repli pour qui n'a pas de JavaScript. L'infobulle rappelle
+	 * le fuseau appliqué — sans elle, une trace opposable affiche une heure dont
+	 * personne ne sait à quel fuseau la rapporter.
+	 */
+	function showLocalTime(element) {
+		const instant = new Date(element.getAttribute('datetime'));
+
+		if (isNaN(instant.getTime())) {
+			return;
+		}
+
+		element.textContent = new Intl.DateTimeFormat('fr-FR', {
+			day: '2-digit',
+			month: '2-digit',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+		}).format(instant);
+
+		element.title = new Intl.DateTimeFormat('fr-FR', {
+			dateStyle: 'full',
+			timeStyle: 'long',
+		}).format(instant);
+	}
+
+	document.querySelectorAll('time[data-sub-localtime]').forEach(showLocalTime);
+
 	// ------------------------------------------------------- Lignes ajoutables
 
 	function clearInputs(row) {

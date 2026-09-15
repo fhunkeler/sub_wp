@@ -180,7 +180,7 @@ final class NotificationsScreen
                 <?php $sender = $entry['sender_id'] ? get_userdata((int) $entry['sender_id']) : null; ?>
                 <tr>
                     <td data-label="Quand">
-                        <?php echo esc_html(wp_date('d/m/Y H:i', (int) strtotime((string) $entry['sent_at']))); ?>
+                        <?php echo AdminUi::localTime($entry['sent_at']); ?>
                     </td>
                     <td data-label="Destinataire">
                         <?php // L'adresse part avec le compte supprimé ; la trace de l'envoi reste. ?>

@@ -98,7 +98,7 @@ final class ApplicationsScreen
                 <?php endforeach; ?>
             </ul>
 
-            <table class="wp-list-table widefat striped sub-cards">
+            <div class="sub-scroll"><table class="wp-list-table widefat striped sub-cards sub-table--wide">
                 <thead>
                     <tr>
                         <th style="width:140px;">Référence</th>
@@ -107,7 +107,7 @@ final class ApplicationsScreen
                         <th style="width:100px;">Montant</th>
                         <th style="width:130px;">Règlement annoncé</th>
                         <th style="width:170px;">État</th>
-                        <th style="width:320px;">Action</th>
+                        <th style="width:470px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -150,7 +150,7 @@ final class ApplicationsScreen
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
-            </table>
+            </table></div>
         <?php
     }
 
@@ -171,7 +171,7 @@ final class ApplicationsScreen
             && current_user_can('sub_manage_memberships')
         ) {
             printf(
-                '<a class="button button-small" href="%s">Corriger</a>',
+                '<a class="button" href="%s">Corriger</a>',
                 esc_url(ApplicationEditor::url((int) $row['id']))
             );
         }

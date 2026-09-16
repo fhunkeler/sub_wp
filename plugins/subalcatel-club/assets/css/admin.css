@@ -148,12 +148,18 @@
 }
 
 /* Barre d'actions d'une ligne de tableau : boutons sur une ligne de base
-   commune, espacés régulièrement, qui repassent à la ligne ensemble quand la
-   colonne devient trop étroite. */
+   commune, espacés régulièrement.
+
+   `nowrap` plutôt qu'une largeur de colonne devinée : les boutons d'une même
+   ligne sont une seule suite de choix, et un « Supprimer » relégué en dessous
+   se lit comme s'il portait sur autre chose. La cellule réclame alors la
+   largeur qu'il lui faut et le tableau la lui donne — inutile d'ajuster un
+   pixel à chaque libellé qui change. Le tableau déborde au besoin : il
+   défile. En dessous de 782 px, la règle s'inverse — voir plus bas. */
 
 .sub-admin .sub-row-actions {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	align-items: center;
 	gap: 6px;
 }
@@ -170,7 +176,7 @@
 
 .sub-admin .sub-step-form {
 	display: inline-flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	align-items: center;
 	gap: 8px;
 }
@@ -179,6 +185,26 @@
 .sub-admin .sub-step-form input[type='text'],
 .sub-admin .sub-step-form .button {
 	margin: 0;
+}
+
+/* Bouton de suppression.
+
+   `button-link-delete` ne repeint que le texte : WordPress l'a écrit pour un
+   lien nu, et sur un vrai bouton la bordure reste bleue. De loin, c'est la
+   bordure qu'on voit — le bouton se lit comme ses voisins et rien n'avertit
+   qu'il détruit. La bordure passe donc au rouge elle aussi, et le survol
+   remplit le bouton : l'action irréversible s'annonce avant le clic. */
+
+.sub-admin .button.button-link-delete {
+	color: #b32d2e;
+	border-color: #b32d2e;
+}
+
+.sub-admin .button.button-link-delete:hover,
+.sub-admin .button.button-link-delete:focus {
+	background: #b32d2e;
+	border-color: #b32d2e;
+	color: #fff;
 }
 
 .sub-admin .form-table th {
@@ -254,6 +280,14 @@
 	-webkit-overflow-scrolling: touch;
 }
 
+/* Un tableau dont les colonnes ne se compriment plus sans devenir illisibles :
+   il garde sa largeur et défile dans son `.sub-scroll` plutôt que d'écraser la
+   colonne des actions. Le mode carte la lève — voir la règle mobile. */
+
+.sub-admin .sub-table--wide {
+	min-width: 1340px;
+}
+
 @media screen and (max-width: 782px) {
 	/* --- Tableaux en cartes --- */
 
@@ -267,6 +301,13 @@
 
 	.sub-admin .sub-cards thead {
 		display: none;
+	}
+
+	/* Plus de colonnes à préserver une fois les lignes devenues des cartes :
+	   la largeur minimale n'aurait plus qu'un effet, faire défiler l'écran. */
+
+	.sub-admin .sub-table--wide {
+		min-width: 0;
 	}
 
 	.sub-admin .sub-cards tr {
@@ -445,6 +486,17 @@
 	.sub-admin .form-table th {
 		width: auto;
 		padding-bottom: 4px;
+	}
+
+	/* --- Barres d'actions --- */
+
+	/* Sur un téléphone, la ligne est devenue une carte : il n'y a plus de
+	   colonne à élargir, et une suite de boutons qui refuse de se couper
+	   sortirait de l'écran. Ils repassent donc à la ligne. */
+
+	.sub-admin .sub-row-actions,
+	.sub-admin .sub-step-form {
+		flex-wrap: wrap;
 	}
 }
 

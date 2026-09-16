@@ -171,7 +171,7 @@ final class ApplicationsScreen
             && current_user_can('sub_manage_memberships')
         ) {
             printf(
-                '<a class="button button-small" href="%s">Corriger</a>',
+                '<a class="button" href="%s">Corriger</a>',
                 esc_url(ApplicationEditor::url((int) $row['id']))
             );
         }

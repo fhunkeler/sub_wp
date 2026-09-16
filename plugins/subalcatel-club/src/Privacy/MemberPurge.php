@@ -334,15 +334,17 @@ final class MemberPurge
         // 4. Le reste de ce qui se conserve : dossiers, règlements, événements
         //    organisés. La liste vient du schéma, pour qu'une colonne ajoutée
         //    là-bas soit soldée ici sans qu'on y pense.
-        foreach (Schema::subjectColumns() as $table => $column) {
+        foreach (Schema::subjectColumns() as $table => $columns) {
             $name = $wpdb->prefix . 'sub_' . $table;
 
-            $wpdb->query(
-                "UPDATE `{$name}` t
-                 LEFT JOIN {$wpdb->users} u ON u.ID = t.`{$column}`
-                 SET t.`{$column}` = NULL
-                 WHERE t.`{$column}` IS NOT NULL AND t.`{$column}` <> 0 AND u.ID IS NULL"
-            );
+            foreach ($columns as $column) {
+                $wpdb->query(
+                    "UPDATE `{$name}` t
+                     LEFT JOIN {$wpdb->users} u ON u.ID = t.`{$column}`
+                     SET t.`{$column}` = NULL
+                     WHERE t.`{$column}` IS NOT NULL AND t.`{$column}` <> 0 AND u.ID IS NULL"
+                );
+            }
         }
 
         // 5. Ce qui ne se conserve pas : groupes de diffusion et brevets.

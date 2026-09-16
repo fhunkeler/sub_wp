@@ -329,4 +329,77 @@
 	if (memberForm) {
 		setupTabs(memberForm, 'subMemberTab');
 	}
+
+	// --- Création d'un événement : le formulaire suit le type choisi ---------
+	//
+	// Une assemblée générale n'a pas de niveau minimum, et une réunion du
+	// bureau pas de directeur de plongée. Laisser les deux champs visibles les
+	// faisait remplir au hasard, et laissait croire qu'une réunion pouvait se
+	// réserver aux P2.
+	//
+	// Le serveur reste juge : il refuse une personne désignée qui n'a pas le
+	// niveau. Ce qui suit ne fait qu'épargner la saisie d'un choix impossible.
+
+	function setupEventForm(typeSelect) {
+		let rules = {};
+		try {
+			rules = JSON.parse(typeSelect.getAttribute('data-event-types') || '{}');
+		} catch (e) {
+			return; // Sans les règles, tout reste visible : rien ne se perd.
+		}
+
+		const form = typeSelect.closest('form');
+		if (!form) {
+			return;
+		}
+
+		const leaderRow = form.querySelector('[data-event-row="leader"]');
+		const levelsRow = form.querySelector('[data-event-row="levels"]');
+		const leaderSelect = form.querySelector('#sub-dive-leader');
+
+		function apply() {
+			const rule = rules[typeSelect.value] || {};
+			const needsLeader = Boolean(rule.leader || rule.autonomous);
+
+			if (levelsRow) {
+				levelsRow.hidden = !rule.diving;
+			}
+
+			if (leaderRow) {
+				leaderRow.hidden = !needsLeader;
+			}
+
+			if (!leaderSelect) {
+				return;
+			}
+
+			// Un directeur de plongée convient partout où un autonome suffit ;
+			// l'inverse est faux. On masque donc les noms que ce type refuse,
+			// et on relâche la sélection si elle vient d'être écartée.
+			const besoin = rule.leader ? 'leader' : 'autonomous';
+
+			Array.prototype.forEach.call(leaderSelect.options, function (option) {
+				if (option.value === '') {
+					return;
+				}
+
+				const convient = option.getAttribute('data-' + besoin) === '1';
+				option.hidden = !convient;
+				option.disabled = !convient;
+
+				if (!convient && option.selected) {
+					leaderSelect.value = '';
+				}
+			});
+		}
+
+		typeSelect.addEventListener('change', apply);
+		apply();
+	}
+
+	const eventType = document.getElementById('sub-event-type');
+
+	if (eventType) {
+		setupEventForm(eventType);
+	}
 })();

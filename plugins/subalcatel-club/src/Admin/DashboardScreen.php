@@ -254,7 +254,7 @@ final class DashboardScreen
      */
     private static function upcomingEvents(): ?array
     {
-        $events = (new EventService())->upcoming(self::LIST_LIMIT);
+        $events = (new EventService())->upcoming(self::LIST_LIMIT, get_current_user_id());
 
         return self::block(
             'Prochaines sorties',

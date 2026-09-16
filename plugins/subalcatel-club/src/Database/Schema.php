@@ -16,7 +16,7 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 11;
+    private const VERSION        = 12;
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -28,11 +28,11 @@ final class Schema
      * distincts.
      */
     private const SUBJECT_COLUMNS = [
-        'event_registrations' => 'user_id',
-        'applications'        => 'user_id',
-        'payments'            => 'user_id',
-        'events'              => 'organizer_id',
-        'notification_log'    => 'recipient_id',
+        'event_registrations' => ['user_id'],
+        'applications'        => ['user_id'],
+        'payments'            => ['user_id'],
+        'events'              => ['organizer_id', 'dive_leader_id'],
+        'notification_log'    => ['recipient_id'],
     ];
 
     public static function migrateIfNeeded(): void
@@ -234,6 +234,7 @@ final class Schema
             default_capacity int(11) NOT NULL default 0,
             allow_waiting_list tinyint(1) NOT NULL default 1,
             registration_fields longtext,
+            visibility varchar(20) NOT NULL default 'members',
             PRIMARY KEY  (id),
             UNIQUE KEY slug (slug)
         ) {$charset};");
@@ -256,7 +257,9 @@ final class Schema
             requires_medical tinyint(1) NOT NULL default 1,
             requires_membership tinyint(1) NOT NULL default 1,
             accepted_levels longtext,
+            visibility varchar(20) NOT NULL default 'members',
             organizer_id bigint(20) unsigned default NULL,
+            dive_leader_id bigint(20) unsigned default NULL,
             status varchar(20) NOT NULL default 'published',
             created_at datetime NOT NULL default CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
@@ -430,18 +433,20 @@ final class Schema
     {
         global $wpdb;
 
-        foreach (self::SUBJECT_COLUMNS as $table => $column) {
+        foreach (self::SUBJECT_COLUMNS as $table => $columns) {
             $name = $wpdb->prefix . 'sub_' . $table;
 
-            $current = $wpdb->get_row($wpdb->prepare(
-                "SHOW COLUMNS FROM `{$name}` LIKE %s",
-                $column
-            ));
+            foreach ($columns as $column) {
+                $current = $wpdb->get_row($wpdb->prepare(
+                    "SHOW COLUMNS FROM `{$name}` LIKE %s",
+                    $column
+                ));
 
-            if ($current !== null && strtoupper((string) $current->Null) === 'NO') {
-                $wpdb->query(
-                    "ALTER TABLE `{$name}` MODIFY `{$column}` bigint(20) unsigned default NULL"
-                );
+                if ($current !== null && strtoupper((string) $current->Null) === 'NO') {
+                    $wpdb->query(
+                        "ALTER TABLE `{$name}` MODIFY `{$column}` bigint(20) unsigned default NULL"
+                    );
+                }
             }
         }
     }
@@ -449,7 +454,11 @@ final class Schema
     /**
      * Colonnes à détacher, pour [MemberPurge::repairOrphans].
      *
-     * @return array<string, string>
+     * Une table peut en porter plusieurs : une sortie désigne à la fois qui
+     * l'a ouverte et qui la dirige, et le départ d'un compte doit solder les
+     * deux.
+     *
+     * @return array<string, list<string>>
      */
     public static function subjectColumns(): array
     {

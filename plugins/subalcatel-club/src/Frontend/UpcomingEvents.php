@@ -37,7 +37,7 @@ final class UpcomingEvents
         ], is_array($atts) ? $atts : []);
 
         $limit  = max(1, min(12, (int) $atts['limite']));
-        $events = (new EventService())->upcoming($limit);
+        $events = (new EventService())->upcoming($limit, get_current_user_id());
 
         wp_enqueue_style(
             'subalcatel-membership',

@@ -264,7 +264,7 @@ final class MemberDashboard
         $service = new EventService();
         $open    = [];
 
-        foreach ($service->upcoming(20) as $event) {
+        foreach ($service->upcoming(20, get_current_user_id()) as $event) {
             $eventId = (int) $event['id'];
 
             if (self::isRegistered($eventId, $userId)) {

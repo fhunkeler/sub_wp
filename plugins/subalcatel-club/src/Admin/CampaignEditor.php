@@ -119,7 +119,7 @@ final class CampaignEditor
                     <th style="width:140px;">Identifiant</th>
                     <th style="width:120px;">Prix de base</th>
                     <th style="width:80px;">Ordre</th>
-                    <th style="width:120px;"></th>
+                    <th style="width:220px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -556,15 +556,20 @@ final class CampaignEditor
                 <tr>
                     <th scope="row">S’applique si…</th>
                     <td>
-                        <?php self::conditionField(
-                            $options,
-                            $rule?->conditionOption,
-                            $rule?->conditionValues ?? [],
-                            '— choisir une question —',
-                            'condition',
-                            '',
-                            'N’appliquer cette remise que si cette question reçoit…',
-                        ); ?>
+                        <?php // Même gabarit que la visibilité d'une option : une condition
+                              // se lit de la même façon, qu'elle ouvre un droit ou qu'elle
+                              // fasse tomber un prix. ?>
+                        <div class="sub-visibility">
+                            <?php self::conditionField(
+                                $options,
+                                $rule?->conditionOption,
+                                $rule?->conditionValues ?? [],
+                                '— choisir une question —',
+                                'condition',
+                                'inclusion',
+                                'N’appliquer cette remise que si cette question reçoit…',
+                            ); ?>
+                        </div>
                     </td>
                 </tr>
                 <tr>

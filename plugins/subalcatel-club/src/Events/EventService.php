@@ -8,6 +8,7 @@ use RuntimeException;
 use Subalcatel\Club\Communication\MailingLists;
 use Subalcatel\Club\Communication\Subscriptions;
 use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Policy\Decision;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use Subalcatel\Club\Notifications\EmailTemplates;
@@ -24,6 +25,30 @@ use Subalcatel\Club\Support\Audit;
  */
 final class EventService
 {
+    /**
+     * À qui un événement s'annonce.
+     *
+     * Le type porte la règle, l'événement la copie à sa création : changer le
+     * réglage d'un type ne réécrit pas ce qui a déjà été annoncé.
+     */
+    public const VISIBILITY_MEMBERS = 'members';
+    public const VISIBILITY_OFFICE  = 'office';
+    public const VISIBILITY_LEVELS  = 'levels';
+
+    /** @var list<string> */
+    public const VISIBILITIES = [
+        self::VISIBILITY_MEMBERS,
+        self::VISIBILITY_OFFICE,
+        self::VISIBILITY_LEVELS,
+    ];
+
+    /** @var array<string, string> */
+    public const VISIBILITY_LABELS = [
+        self::VISIBILITY_MEMBERS => 'Tous les membres',
+        self::VISIBILITY_OFFICE  => 'Les membres du bureau',
+        self::VISIBILITY_LEVELS  => 'Les niveaux acceptés par la sortie',
+    ];
+
     private string $prefix;
 
     public function __construct(
@@ -38,7 +63,7 @@ final class EventService
      *
      * @param array{title: string, starts_at: string, ends_at?: ?string, location?: string,
      *              description?: string, capacity?: int, accepted_levels?: list<string>,
-     *              registration_closes_at?: ?string} $data
+     *              dive_leader_id?: int, registration_closes_at?: ?string} $data
      */
     public function create(string $typeSlug, array $data, int $organizerId): int
     {
@@ -55,14 +80,28 @@ final class EventService
             );
         }
 
-        // Contraintes de niveau propres à l'encadrement : un plongeur autonome
-        // encadre une exploration, pas une formation.
-        if ((int) $type['requires_dive_leader'] === 1 && !$this->policy->isDiveLeader($organizerId)) {
-            throw new RuntimeException('Seul un directeur de plongée peut créer ce type d’événement.');
+        // Qui encadre n'est pas forcément qui saisit. Le secrétariat ouvre la
+        // sortie depuis le back-office et désigne son directeur de plongée ;
+        // faute de quoi il encadre lui-même, et se contrôle lui-même.
+        $leaderId = (int) ($data['dive_leader_id'] ?? 0) ?: $organizerId;
+
+        if ($leaderId !== $organizerId && !self::mayDelegate($organizerId)) {
+            throw new RuntimeException('Vous ne pouvez pas désigner quelqu’un d’autre à l’encadrement.');
         }
 
-        if ((int) $type['requires_autonomous'] === 1 && !$this->policy->isAutonomousDiver($organizerId)) {
-            throw new RuntimeException('Seul un plongeur autonome peut créer ce type d’événement.');
+        // Contraintes de niveau propres à l'encadrement : un plongeur autonome
+        // encadre une exploration, pas une formation. Elles pèsent sur la
+        // personne désignée — c'est elle qui sera au bord de l'eau.
+        if ((int) $type['requires_dive_leader'] === 1 && !$this->policy->isDiveLeader($leaderId)) {
+            throw new RuntimeException($leaderId === $organizerId
+                ? 'Seul un directeur de plongée peut créer ce type d’événement.'
+                : 'La personne désignée n’est pas directrice de plongée.');
+        }
+
+        if ((int) $type['requires_autonomous'] === 1 && !$this->policy->isAutonomousDiver($leaderId)) {
+            throw new RuntimeException($leaderId === $organizerId
+                ? 'Seul un plongeur autonome peut créer ce type d’événement.'
+                : 'La personne désignée n’est pas plongeuse autonome.');
         }
 
         // Cohérence des dates. Une fin avant le début ou une clôture après le
@@ -92,7 +131,9 @@ final class EventService
             'requires_medical'       => (int) $type['requires_medical'],
             'requires_membership'    => (int) $type['requires_membership'],
             'accepted_levels'        => wp_json_encode($data['accepted_levels'] ?? []),
+            'visibility'             => self::normalizeVisibility((string) ($type['visibility'] ?? '')),
             'organizer_id'           => $organizerId,
+            'dive_leader_id'         => $leaderId,
         ]);
 
         $eventId = (int) $wpdb->insert_id;
@@ -133,6 +174,16 @@ final class EventService
             return false;
         }
 
+        // Qui peut désigner l'encadrement n'a pas à l'assurer : le secrétariat
+        // ouvre une plongée sans être plongeur. Le contrôle de niveau ne
+        // disparaît pas, il se déplace sur la personne désignée, au moment de
+        // l'enregistrement. Sans cette porte, le compte d'administration — tous
+        // les droits WordPress, aucun niveau de plongée — ne pouvait ouvrir
+        // aucune plongée, et rien ne le lui permettait.
+        if (self::mayDelegate($userId)) {
+            return true;
+        }
+
         if ((int) $type['requires_dive_leader'] === 1 && !$this->policy->isDiveLeader($userId)) {
             return false;
         }
@@ -142,6 +193,89 @@ final class EventService
         }
 
         return true;
+    }
+
+    /**
+     * Ce membre peut-il confier l'encadrement à quelqu'un d'autre ?
+     *
+     * Le même droit que celui d'administrer les types d'événement : qui règle
+     * les règles d'une sortie peut dire qui la dirige.
+     */
+    public static function mayDelegate(int $userId): bool
+    {
+        return user_can($userId, 'sub_manage_event_types');
+    }
+
+    /**
+     * Les membres à qui l'encadrement d'un type peut être confié.
+     *
+     * Vide pour un type qui n'exige rien : il n'y a alors personne à désigner,
+     * l'organisateur suffit.
+     *
+     * @param array<string, mixed> $type
+     * @return list<array{id: int, name: string}>
+     */
+    public function eligibleLeaders(array $type): array
+    {
+        $needsLeader     = (int) $type['requires_dive_leader'] === 1;
+        $needsAutonomous = (int) $type['requires_autonomous'] === 1;
+
+        if (!$needsLeader && !$needsAutonomous) {
+            return [];
+        }
+
+        $found = [];
+
+        foreach (get_users(['fields' => ['ID', 'display_name'], 'orderby' => 'display_name']) as $user) {
+            $id = (int) $user->ID;
+
+            if ($needsLeader && !$this->policy->isDiveLeader($id)) {
+                continue;
+            }
+
+            if ($needsAutonomous && !$this->policy->isAutonomousDiver($id)) {
+                continue;
+            }
+
+            $found[] = ['id' => $id, 'name' => (string) $user->display_name];
+        }
+
+        return $found;
+    }
+
+    /**
+     * Tous les membres qui peuvent encadrer, avec leur qualité.
+     *
+     * Une seule liste pour le formulaire, où le type se choisit après : c'est
+     * l'écran qui masque les noms que le type retenu n'accepte pas, à partir
+     * des deux drapeaux. Recalculer la liste à chaque changement de type aurait
+     * demandé un aller-retour au serveur pour un formulaire qu'on remplit en
+     * une minute.
+     *
+     * @return list<array{id: int, name: string, leader: bool, autonomous: bool}>
+     */
+    public function potentialLeaders(): array
+    {
+        $found = [];
+
+        foreach (get_users(['fields' => ['ID', 'display_name'], 'orderby' => 'display_name']) as $user) {
+            $id         = (int) $user->ID;
+            $leader     = $this->policy->isDiveLeader($id);
+            $autonomous = $this->policy->isAutonomousDiver($id);
+
+            if (!$leader && !$autonomous) {
+                continue;
+            }
+
+            $found[] = [
+                'id'         => $id,
+                'name'       => (string) $user->display_name,
+                'leader'     => $leader,
+                'autonomous' => $autonomous,
+            ];
+        }
+
+        return $found;
     }
 
     /**
@@ -647,6 +781,10 @@ final class EventService
      *   faute d'adhésion, c'est écrire à un ancien.
      * - **compte validé** — un compte en attente n'est pas encore entré au club.
      * - **annonces acceptées** — le membre a pu dire stop sur son profil.
+     * - **visibilité « bureau »** — une réunion du bureau ne s'annonce pas au
+     *   club, quel que soit le public retenu. Les deux autres visibilités ne
+     *   filtrent pas ici : « les niveaux acceptés » est déjà ce que fait le
+     *   public « éligible », et le public « élargi » existe pour le dépasser.
      * - **niveau** (public « éligible » seulement) — la règle exacte de
      *   l'inscription, empruntée à `EligibilityPolicy` et non réécrite.
      *
@@ -685,6 +823,18 @@ final class EventService
 
         foreach (MailingLists::members(MailingLists::ACTIVE) as $userId) {
             if ($userId === $excludeUserId || in_array($userId, $registered, true)) {
+                continue;
+            }
+
+            // Une réunion du bureau ne s'annonce pas au club, quel que soit le
+            // public retenu : cette visibilité-là ne se contourne pas.
+            //
+            // La restriction de niveau, elle, reste au choix de l'organisateur —
+            // c'est précisément ce qui sépare le public « éligible » du public
+            // « élargi », et annoncer une sortie technique à tous est parfois
+            // ce qu'on veut : elle donne envie de passer le niveau.
+            if (self::normalizeVisibility((string) ($event['visibility'] ?? '')) === self::VISIBILITY_OFFICE
+                && !$this->mayView($event, $userId)) {
                 continue;
             }
 
@@ -881,17 +1031,106 @@ final class EventService
     /**
      * @return list<array<string, mixed>>
      */
-    public function upcoming(int $limit = 20): array
+    public function upcoming(int $limit = 20, int $viewerId = 0): array
     {
         global $wpdb;
 
-        return $wpdb->get_results($wpdb->prepare(
+        $events = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->prefix}events
              WHERE status = 'published' AND starts_at >= %s
              ORDER BY starts_at ASC LIMIT %d",
             current_time('mysql'),
             $limit
         ), ARRAY_A) ?: [];
+
+        if ($viewerId === 0) {
+            return $events;
+        }
+
+        return array_values(array_filter(
+            $events,
+            fn (array $event): bool => $this->mayView($event, $viewerId)
+        ));
+    }
+
+    /**
+     * Cet événement doit-il s'annoncer à ce membre ?
+     *
+     * Annoncer une réunion du bureau à cent trente adhérents, ou une plongée
+     * technique à qui n'a pas le niveau d'y venir, ce n'est pas informer : au
+     * bout de quelques envois, plus personne ne lit l'agenda. Trois règles
+     * suffisent, portées par le type et copiées sur l'événement :
+     *
+     *   `members`  tout le monde — l'assemblée générale, la fête du club
+     *   `office`   le bureau seul — ses réunions ne concernent que lui
+     *   `levels`   les niveaux acceptés, s'il y en a — sinon tout le monde
+     *
+     * Qui organise ou dirige voit toujours sa propre sortie : sans quoi le
+     * secrétariat perdrait de vue ce qu'il vient d'ouvrir.
+     *
+     * @param array<string, mixed> $event
+     */
+    public function mayView(array $event, int $userId): bool
+    {
+        if ($userId === 0) {
+            return false;
+        }
+
+        $organizer = (int) ($event['organizer_id'] ?? 0);
+        $leader    = (int) ($event['dive_leader_id'] ?? 0);
+
+        if ($userId === $organizer || $userId === $leader || self::mayDelegate($userId)) {
+            return true;
+        }
+
+        return match (self::normalizeVisibility((string) ($event['visibility'] ?? ''))) {
+            self::VISIBILITY_OFFICE => self::isOffice($userId),
+            self::VISIBILITY_LEVELS => $this->matchesAcceptedLevels($event, $userId),
+            default                 => true,
+        };
+    }
+
+    /**
+     * Le membre a-t-il l'un des niveaux acceptés ?
+     *
+     * Une sortie sans niveau déclaré s'adresse à tous : c'est le réglage par
+     * défaut, et il ne faut pas qu'oublier de cocher revienne à n'annoncer à
+     * personne.
+     *
+     * @param array<string, mixed> $event
+     */
+    private function matchesAcceptedLevels(array $event, int $userId): bool
+    {
+        $accepted = json_decode((string) ($event['accepted_levels'] ?? ''), true);
+        $accepted = is_array($accepted) ? array_filter(array_map('strval', $accepted)) : [];
+
+        if ($accepted === []) {
+            return true;
+        }
+
+        $level = DiveLevels::forUser($userId);
+
+        return $level !== null && in_array($level->slug, $accepted, true);
+    }
+
+    /**
+     * Membre du bureau, ou qui en tient les écrans.
+     */
+    private static function isOffice(int $userId): bool
+    {
+        return user_can($userId, 'sub_create_governance_event');
+    }
+
+    /**
+     * Une valeur de visibilité connue, quoi qu'on lui donne.
+     *
+     * Une base migrée depuis une version sans la colonne rend une chaîne vide :
+     * elle vaut « tout le monde », c'est-à-dire le comportement d'avant. Une
+     * diffusion ne se restreint jamais par accident.
+     */
+    public static function normalizeVisibility(string $value): string
+    {
+        return in_array($value, self::VISIBILITIES, true) ? $value : self::VISIBILITY_MEMBERS;
     }
 
     /**

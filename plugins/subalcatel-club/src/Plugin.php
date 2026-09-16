@@ -135,6 +135,7 @@ final class Plugin
         add_action('admin_init', [Roles::class, 'refreshIfNeeded']);
         add_action('admin_init', [EmailTemplates::class, 'seedIfNeeded']);
         add_action('admin_init', [\Subalcatel\Club\Events\EventTypeSeeder::class, 'backfillSharedFields']);
+        add_action('admin_init', [\Subalcatel\Club\Events\EventTypeSeeder::class, 'backfillVisibility']);
 
         // Un compte supprimé depuis l'écran natif de WordPress ne doit pas
         // laisser d'inscription, de document ni de dossier derrière lui.

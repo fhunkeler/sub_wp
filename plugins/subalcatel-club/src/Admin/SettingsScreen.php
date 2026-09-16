@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Content\Visibility;
+use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Frontend\Pages;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Setup\SiteBuilder;
@@ -241,6 +242,11 @@ final class SettingsScreen
                     <?php elseif ((int) $type['requires_autonomous'] === 1) : ?>
                         <span class="sub-tag">plongeur autonome requis</span>
                     <?php endif; ?>
+                    <span class="sub-tag"><?php echo esc_html(
+                        EventService::VISIBILITY_LABELS[
+                            EventService::normalizeVisibility((string) ($type['visibility'] ?? ''))
+                        ]
+                    ); ?></span>
                 </summary>
                 <?php self::eventTypeForm($type, $capabilities); ?>
             </details>
@@ -288,6 +294,29 @@ final class SettingsScreen
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">À qui il s’annonce</th>
+                    <td>
+                        <select name="visibility">
+                            <?php foreach (EventService::VISIBILITY_LABELS as $value => $label) : ?>
+                                <option value="<?php echo esc_attr($value); ?>"
+                                        <?php selected(
+                                            EventService::normalizeVisibility((string) ($type['visibility'] ?? '')),
+                                            $value
+                                        ); ?>>
+                                    <?php echo esc_html($label); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description">
+                            Qui voit l’événement dans l’agenda, et qui en reçoit l’annonce. Une
+                            réunion du bureau ne concerne que lui ; une sortie ne concerne que
+                            les niveaux qu’elle accepte — et tout le monde si elle n’en exige
+                            aucun. L’événement copie ce réglage à sa création : le changer ici
+                            ne rouvre pas ce qui a déjà été annoncé.
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -784,6 +813,9 @@ final class SettingsScreen
             'requires_membership'  => isset($_POST['requires_membership']) ? 1 : 0,
             'default_capacity'     => absint($_POST['default_capacity'] ?? 0),
             'allow_waiting_list'   => isset($_POST['allow_waiting_list']) ? 1 : 0,
+            'visibility'           => EventService::normalizeVisibility(
+                sanitize_key(wp_unslash((string) ($_POST['visibility'] ?? '')))
+            ),
         ];
 
         $typeId = absint($_POST['type_id'] ?? 0);

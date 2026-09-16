@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Events\EventService;
+use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Events\RegistrationFields;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Notifications\EmailTemplates;
@@ -127,8 +128,20 @@ final class EventsScreen
             EmailTemplates::EVENT_ANNOUNCEMENT
         ), ARRAY_A) ?: [];
 
-        $types  = self::creatableTypes();
-        $levels = DiveLevels::ordered();
+        $types   = self::creatableTypes();
+        $levels  = DiveLevels::ordered();
+        $service = new EventService();
+        $leaders = $service->potentialLeaders();
+
+        // Ce que chaque type attend, à destination du formulaire.
+        $typeRules = [];
+        foreach ($types as $type) {
+            $typeRules[(string) $type['slug']] = [
+                'diving'     => EventTypeSeeder::isDivingType($type),
+                'leader'     => (int) $type['requires_dive_leader'] === 1,
+                'autonomous' => (int) $type['requires_autonomous'] === 1,
+            ];
+        }
         ?>
         <div class="wrap sub-admin">
             <h1>Événements</h1>
@@ -222,7 +235,12 @@ final class EventsScreen
                     <tr>
                         <th scope="row">Type</th>
                         <td>
-                            <select name="type_slug" required>
+                            <?php // Chaque type dit ce qu'il attend : le formulaire s'y règle
+                                  // sans aller-retour au serveur. Un événement qui n'est pas une
+                                  // plongée ne demande pas de niveau, et seul un type qui exige un
+                                  // encadrement fait apparaître le choix du directeur de plongée. ?>
+                            <select name="type_slug" id="sub-event-type" required
+                                    data-event-types="<?php echo esc_attr((string) wp_json_encode($typeRules)); ?>">
                                 <?php foreach ($types as $type) : ?>
                                     <option value="<?php echo esc_attr((string) $type['slug']); ?>">
                                         <?php echo esc_html((string) $type['name']); ?>
@@ -269,7 +287,28 @@ final class EventsScreen
                             <p class="description">0 = pas de limite. Au-delà, les suivants passent en liste d’attente.</p>
                         </td>
                     </tr>
-                    <tr>
+                    <tr data-event-row="leader" hidden>
+                        <th scope="row">Directeur de plongée</th>
+                        <td>
+                            <select name="dive_leader_id" id="sub-dive-leader">
+                                <option value="">moi-même</option>
+                                <?php foreach ($leaders as $person) : ?>
+                                    <option value="<?php echo esc_attr((string) $person['id']); ?>"
+                                            data-leader="<?php echo $person['leader'] ? '1' : '0'; ?>"
+                                            data-autonomous="<?php echo $person['autonomous'] ? '1' : '0'; ?>">
+                                        <?php echo esc_html($person['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">
+                                Qui encadre n’est pas forcément qui saisit : le secrétariat ouvre la
+                                sortie et désigne son directeur de plongée. C’est sur la personne
+                                désignée que porte l’exigence de niveau. Laissé sur « moi-même »,
+                                c’est vous qui dirigez — et vous devez donc en avoir le niveau.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr data-event-row="levels">
                         <th scope="row">Niveau minimum</th>
                         <td>
                             <?php
@@ -660,7 +699,7 @@ final class EventsScreen
             $service = new EventService();
             $id      = $service->create(
                 sanitize_key(wp_unslash((string) ($_POST['type_slug'] ?? ''))),
-                $data,
+                $data + ['dive_leader_id' => absint($_POST['dive_leader_id'] ?? 0)],
                 get_current_user_id()
             );
         } catch (\RuntimeException $e) {

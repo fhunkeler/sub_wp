@@ -47,7 +47,7 @@ final class AgendaShortcode
         );
 
         $service = new EventService();
-        $events  = $service->upcoming();
+        $events  = $service->upcoming(20, get_current_user_id());
         $userId  = get_current_user_id();
 
         ob_start();

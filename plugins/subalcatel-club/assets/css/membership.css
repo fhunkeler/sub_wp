@@ -774,6 +774,33 @@
 	gap: 4px 24px;
 }
 
+/* Une rubrique longue — « Plongée », « Titres et habilitations » — alignait
+   une vingtaine de champs d'affilée. Le bloc porte le nom de ce qui le relie,
+   et un filet le tient : le numéro de TIV cesse de voisiner la licence
+   fédérale comme s'ils allaient ensemble. */
+
+.sub-profile .sub-section {
+	border: 0;
+	border-top: 1px solid var(--sub-brume, #d3dce3);
+	margin: 0 0 18px;
+	padding: 14px 0 0;
+}
+
+.sub-profile .sub-section:first-of-type {
+	border-top: 0;
+	padding-top: 0;
+}
+
+.sub-profile .sub-section__title {
+	padding: 0;
+	margin: 0 0 10px;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--sub-profond, #1d5480);
+}
+
 .sub-profile .sub-input {
 	display: flex;
 	flex-direction: column;

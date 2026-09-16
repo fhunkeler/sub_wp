@@ -256,19 +256,7 @@ final class MembersScreen
                          role="tabpanel"
                          aria-labelledby="sub-mtab-<?php echo esc_attr($group); ?>">
                         <h2 class="sub-panel__title"><?php echo esc_html((string) $data['label']); ?></h2>
-                        <table class="form-table" role="presentation">
-                            <?php foreach ((array) $data['fields'] as $name => $field) : ?>
-                                <tr>
-                                    <th scope="row"><?php echo esc_html((string) $field['label']); ?></th>
-                                    <td>
-                                        <?php self::renderInput($userId, (string) $name, $field); ?>
-                                        <?php if ($field['editable'] === ProfileFields::EDIT_OFFICE) : ?>
-                                            <span class="sub-tag">réservé au bureau</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </table>
+                        <?php self::renderGroupTable($userId, (array) $data['fields']); ?>
                     </div>
                 <?php endforeach; ?>
 
@@ -278,6 +266,55 @@ final class MembersScreen
             <?php self::renderLevelHistory($userId); ?>
         </div>
         <?php
+    }
+
+    /**
+     * Les champs d'une rubrique, en une table par section.
+     *
+     * `form-table` n'admet pas de <fieldset> autour de ses lignes — il se
+     * referme au parsage. Une section est donc un titre suivi de sa propre
+     * table, ce qui est la forme habituelle des écrans de réglages de
+     * WordPress. Une rubrique sans section garde sa table d'un seul tenant.
+     *
+     * @param array<string, array<string, mixed>> $fields
+     */
+    private static function renderGroupTable(int $userId, array $fields): void
+    {
+        $courante = null;
+        $ouverte  = false;
+
+        foreach ($fields as $name => $field) {
+            $section = (string) ($field['section'] ?? '');
+
+            if ($section !== $courante) {
+                if ($ouverte) {
+                    echo '</table>';
+                }
+
+                if ($section !== '') {
+                    printf('<h3 class="sub-section__title">%s</h3>', esc_html($section));
+                }
+
+                echo '<table class="form-table" role="presentation">';
+                $courante = $section;
+                $ouverte  = true;
+            }
+            ?>
+            <tr>
+                <th scope="row"><?php echo esc_html((string) $field['label']); ?></th>
+                <td>
+                    <?php self::renderInput($userId, (string) $name, $field); ?>
+                    <?php if ($field['editable'] === ProfileFields::EDIT_OFFICE) : ?>
+                        <span class="sub-tag">réservé au bureau</span>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php
+        }
+
+        if ($ouverte) {
+            echo '</table>';
+        }
     }
 
     /**

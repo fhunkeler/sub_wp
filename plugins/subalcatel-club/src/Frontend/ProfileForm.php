@@ -114,11 +114,7 @@ final class ProfileForm
                           role="tabpanel"
                           aria-labelledby="sub-tab-<?php echo esc_attr($group); ?>">
                     <legend><?php echo esc_html((string) $data['label']); ?></legend>
-                    <div class="sub-grid">
-                        <?php foreach ((array) $data['fields'] as $name => $field) : ?>
-                            <?php self::renderField($userId, (string) $name, $field, $canEditOthers); ?>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php self::renderGroupFields($userId, (array) $data['fields'], $canEditOthers); ?>
                 </fieldset>
             <?php endforeach; ?>
 
@@ -135,6 +131,52 @@ final class ProfileForm
         }
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Les champs d'une rubrique, coupés en sections quand elle en déclare.
+     *
+     * « Plongée » et « Titres et habilitations » alignaient une vingtaine de
+     * champs d'affilée, où le numéro de TIV voisinait la licence FFESSM sans que
+     * rien ne dise lequel allait avec quoi. Une section ouvre dès que la clé
+     * change, et se referme sur la suivante : l'ordre de déclaration fait la
+     * mise en page, il n'y a pas de second endroit à tenir à jour.
+     *
+     * Une rubrique sans section garde sa grille d'un seul tenant.
+     *
+     * @param array<string, array<string, mixed>> $fields
+     */
+    private static function renderGroupFields(int $userId, array $fields, bool $canEditOthers): void
+    {
+        $courante = null;
+        $ouverte  = false;
+
+        foreach ($fields as $name => $field) {
+            $section = (string) ($field['section'] ?? '');
+
+            if ($section !== $courante) {
+                if ($ouverte) {
+                    echo '</div>' . ($courante === '' ? '' : '</fieldset>');
+                }
+
+                if ($section !== '') {
+                    printf(
+                        '<fieldset class="sub-section"><legend class="sub-section__title">%s</legend>',
+                        esc_html($section)
+                    );
+                }
+
+                echo '<div class="sub-grid">';
+                $courante = $section;
+                $ouverte  = true;
+            }
+
+            self::renderField($userId, (string) $name, $field, $canEditOthers);
+        }
+
+        if ($ouverte) {
+            echo '</div>' . ($courante === '' ? '' : '</fieldset>');
+        }
     }
 
     /**

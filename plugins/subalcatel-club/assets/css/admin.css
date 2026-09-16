@@ -211,6 +211,28 @@
 	width: 200px;
 }
 
+/* Titre de section dans une rubrique de profil. `form-table` ne supporte pas
+   de <fieldset> autour de ses lignes — il se referme au parsage —, donc une
+   section est un titre suivi de sa propre table. Le filet remplace la boîte
+   qu'on ne peut pas dessiner. */
+
+.sub-admin .sub-section__title {
+	margin: 22px 0 0;
+	padding: 12px 0 0;
+	border-top: 1px solid #dcdcde;
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	color: #50575e;
+}
+
+.sub-admin .sub-panel__title + .sub-section__title {
+	margin-top: 4px;
+	padding-top: 0;
+	border-top: 0;
+}
+
 /* Niveaux admis : grille compacte de cases à cocher. */
 .sub-admin .sub-levels {
 	display: grid;

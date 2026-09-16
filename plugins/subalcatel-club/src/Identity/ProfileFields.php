@@ -23,8 +23,14 @@ final class ProfileFields
     public const EDIT_OFFICE = 'office'; // le bureau seul
 
     /**
+     * `section` découpe une rubrique trop longue en blocs thématiques ; les
+     * champs d'une même section se suivent dans la déclaration, et c'est cet
+     * ordre qui fait la mise en page. `default` sert aux préférences dont
+     * l'absence de réponse doit valoir oui.
+     *
      * @return array<string, array{
      *     label: string, group: string, type: string, editable: string,
+     *     section?: string, default?: string,
      *     required?: bool, help?: string, options?: array<string, string>, placeholder?: string
      * }>
      */
@@ -106,92 +112,112 @@ final class ProfileFields
             // l'accès aux plongées, donc la sécurité.
             'dive_level_id' => [
                 'label' => 'Niveau de plongée', 'group' => 'diving', 'type' => 'dive_level',
+                'section' => 'Niveau et qualifications',
                 'editable' => self::EDIT_OFFICE,
                 'help' => 'Attribué par le bureau sur présentation du brevet.',
             ],
             'nitrox' => [
                 'label' => 'Qualification Nitrox', 'group' => 'diving', 'type' => 'select',
+                'section' => 'Niveau et qualifications',
                 'editable' => self::EDIT_OFFICE,
                 'options' => ['' => 'Aucune', 'nitrox' => 'Nitrox élémentaire', 'nitrox_conf' => 'Nitrox confirmé'],
             ],
             'trimix' => [
                 'label' => 'Qualification Trimix', 'group' => 'diving', 'type' => 'select',
+                'section' => 'Niveau et qualifications',
                 'editable' => self::EDIT_OFFICE,
                 'options' => ['' => 'Aucune', 'trimix_elem' => 'Trimix élémentaire', 'trimix' => 'Trimix'],
             ],
             'rifap' => [
                 'label' => 'RIFAP', 'group' => 'diving', 'type' => 'checkbox',
+                'section' => 'Niveau et qualifications',
                 'editable' => self::EDIT_OFFICE,
                 'help' => 'Réactions et intervention face à un accident de plongée.',
             ],
             'tiv' => [
                 'label' => 'Technicien en inspection visuelle (TIV)', 'group' => 'diving', 'type' => 'checkbox',
+                'section' => 'Inspection visuelle',
                 'editable' => self::EDIT_OFFICE,
                 'help' => 'Habilité à réaliser l’inspection visuelle des blocs.',
             ],
             'tiv_number' => [
                 'label' => 'Numéro TIV', 'group' => 'diving', 'type' => 'text',
+                'section' => 'Inspection visuelle',
                 'editable' => self::EDIT_OFFICE,
             ],
             'tiv_date' => [
                 'label' => 'Date de délivrance TIV', 'group' => 'diving', 'type' => 'date',
+                'section' => 'Inspection visuelle',
                 'editable' => self::EDIT_OFFICE,
             ],
             'non_ffessm_certificate' => [
                 'label' => 'Brevet non-FFESSM', 'group' => 'diving', 'type' => 'text',
+                'section' => 'Licences et cartes',
                 'editable' => self::EDIT_OFFICE,
                 'help' => 'Équivalence PADI, SSI, CMAS… le cas échéant.',
             ],
             'licence_number' => [
                 'label' => 'Numéro de licence FFESSM', 'group' => 'diving', 'type' => 'text',
+                'section' => 'Licences et cartes',
                 'editable' => self::EDIT_SELF,
                 'placeholder' => 'A-03-000000',
             ],
             'asac_card' => [
                 'label' => 'Numéro de carte ASAC', 'group' => 'diving', 'type' => 'text',
+                'section' => 'Licences et cartes',
                 'editable' => self::EDIT_OFFICE,
             ],
 
             // --- Titres et habilitations ---------------------------------------
             'boat_licence' => [
                 'label' => 'Permis bateau', 'group' => 'credentials', 'type' => 'checkbox',
+                'section' => 'Permis bateau',
                 'editable' => self::EDIT_OFFICE,
             ],
             'boat_licence_number' => [
                 'label' => 'Numéro du permis mer', 'group' => 'credentials', 'type' => 'text',
+                'section' => 'Permis bateau',
                 'editable' => self::EDIT_OFFICE,
             ],
             'boat_licence_date' => [
                 'label' => 'Date du permis bateau', 'group' => 'credentials', 'type' => 'date',
+                'section' => 'Permis bateau',
                 'editable' => self::EDIT_OFFICE,
             ],
             'boat_licence_district' => [
                 'label' => 'Quartier maritime', 'group' => 'credentials', 'type' => 'text',
+                'section' => 'Permis bateau',
                 'editable' => self::EDIT_OFFICE,
             ],
             'radio_certificate' => [
                 'label' => 'Certificat restreint de radiotéléphoniste (CRR)', 'group' => 'credentials', 'type' => 'checkbox',
+                'section' => 'Radiotéléphonie',
                 'editable' => self::EDIT_OFFICE,
             ],
             'radio_certificate_number' => [
                 'label' => 'Numéro du CRR', 'group' => 'credentials', 'type' => 'text',
+                'section' => 'Radiotéléphonie',
                 'editable' => self::EDIT_OFFICE,
             ],
             'radio_certificate_date' => [
                 'label' => 'Date du CRR', 'group' => 'credentials', 'type' => 'date',
+                'section' => 'Radiotéléphonie',
                 'editable' => self::EDIT_OFFICE,
             ],
             'compressor_clearance' => [
                 'label' => 'Habilitation compresseur', 'group' => 'credentials', 'type' => 'checkbox',
+                'section' => 'Gonflage',
                 'editable' => self::EDIT_OFFICE,
                 'help' => 'Autorise le gonflage des blocs.',
             ],
             'compressor_clearance_date' => [
                 'label' => 'Date d’habilitation compresseur', 'group' => 'credentials', 'type' => 'date',
+                'section' => 'Gonflage',
                 'editable' => self::EDIT_OFFICE,
             ],
             'compressor_trainer' => [
                 'label' => 'Entretien et formation gonflage', 'group' => 'credentials', 'type' => 'checkbox',
+                'section' => 'Gonflage',
                 'editable' => self::EDIT_OFFICE,
             ],
 
@@ -236,7 +262,7 @@ final class ProfileFields
             // --- Préférences ---------------------------------------------------
             'directory_visible' => [
                 'label' => 'Figurer dans l’annuaire des membres', 'group' => 'preferences', 'type' => 'checkbox',
-                'editable' => self::EDIT_SELF,
+                'editable' => self::EDIT_SELF, 'default' => '1',
                 'help' => 'Votre nom, votre niveau et votre courriel seront visibles des autres membres.',
             ],
         ];
@@ -289,9 +315,23 @@ final class ProfileFields
         return 'sub_' . $field;
     }
 
+    /**
+     * La valeur d'un champ, ou son défaut tant que personne n'y a touché.
+     *
+     * `metadata_exists` plutôt qu'un test sur la chaîne vide : `get_user_meta`
+     * rend la même chaîne vide pour « jamais répondu » et pour « répondu non ».
+     * Les confondre ferait recocher l'annuaire à chaque visite du membre qui
+     * vient de s'en retirer.
+     */
     public static function get(int $userId, string $field): string
     {
-        return (string) get_user_meta($userId, self::metaKey($field), true);
+        $key = self::metaKey($field);
+
+        if (!metadata_exists('user', $userId, $key)) {
+            return (string) (self::all()[$field]['default'] ?? '');
+        }
+
+        return (string) get_user_meta($userId, $key, true);
     }
 
     /**

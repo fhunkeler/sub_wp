@@ -159,6 +159,8 @@ final class ApplicationsScreen
      */
     private static function renderActions(array $row): void
     {
+        echo '<div class="sub-row-actions">';
+
         self::renderStepAction($row);
 
         // Corriger reste possible tant que le dossier n'est pas activé, quelle
@@ -169,10 +171,12 @@ final class ApplicationsScreen
             && current_user_can('sub_manage_memberships')
         ) {
             printf(
-                '<a class="button button-small" style="margin-left:8px;" href="%s">Corriger</a>',
+                '<a class="button button-small" href="%s">Corriger</a>',
                 esc_url(ApplicationEditor::url((int) $row['id']))
             );
         }
+
+        echo '</div>';
     }
 
     /**
@@ -218,7 +222,7 @@ final class ApplicationsScreen
             }
             ?>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
-                  style="display:flex;gap:8px;align-items:center;">
+                  class="sub-step-form">
                 <input type="hidden" name="action" value="sub_record_payment">
                 <input type="hidden" name="application_id" value="<?php echo esc_attr((string) $id); ?>">
                 <?php wp_nonce_field('sub_record_payment_' . $id); ?>
@@ -248,7 +252,7 @@ final class ApplicationsScreen
             }
             ?>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
-                  style="display:flex;gap:8px;align-items:center;">
+                  class="sub-step-form">
                 <input type="hidden" name="action" value="sub_validate_secretariat">
                 <input type="hidden" name="application_id" value="<?php echo esc_attr((string) $id); ?>">
                 <?php wp_nonce_field('sub_validate_secretariat_' . $id); ?>

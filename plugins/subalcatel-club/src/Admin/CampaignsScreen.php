@@ -57,7 +57,7 @@ final class CampaignsScreen
                         <th style="width:200px;">Validité de l’adhésion</th>
                         <th style="width:160px;">Contenu</th>
                         <th style="width:110px;">État</th>
-                        <th style="width:260px;">Actions</th>
+                        <th style="width:320px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>

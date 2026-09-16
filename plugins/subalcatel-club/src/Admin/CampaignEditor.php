@@ -162,14 +162,16 @@ final class CampaignEditor
                                value="<?php echo esc_attr((string) $plan->ordering); ?>" class="small-text">
                     </td>
                     <td data-label="Actions">
-                        <button class="button button-primary" form="<?php echo esc_attr($formId); ?>">Enregistrer</button>
-                        <?php AdminUi::actionButton(
-                            'sub_plan_delete',
-                            ['campaign_id' => $campaignId, 'plan_id' => $plan->id],
-                            'Supprimer',
-                            'button-link-delete button-link',
-                            'Supprimer cette formule ?'
-                        ); ?>
+                        <div class="sub-row-actions">
+                            <button class="button button-primary" form="<?php echo esc_attr($formId); ?>">Enregistrer</button>
+                            <?php AdminUi::actionButton(
+                                'sub_plan_delete',
+                                ['campaign_id' => $campaignId, 'plan_id' => $plan->id],
+                                'Supprimer',
+                                'button button-link-delete',
+                                'Supprimer cette formule ?'
+                            ); ?>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -479,7 +481,7 @@ final class CampaignEditor
                 'sub_option_delete',
                 ['campaign_id' => $campaignId, 'option_name' => $option->name],
                 'Supprimer cette option',
-                'button-link-delete button-link',
+                'button button-link-delete',
                 'Supprimer cette option ?'
             );
         }
@@ -650,7 +652,7 @@ final class CampaignEditor
                 'sub_discount_delete',
                 ['campaign_id' => $campaignId, 'rule_label' => $rule->label],
                 'Supprimer cette remise',
-                'button-link-delete button-link',
+                'button button-link-delete',
                 'Supprimer cette remise ?'
             );
         }

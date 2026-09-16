@@ -72,7 +72,7 @@ final class AdminUi
     ): void {
         ?>
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
-              style="display:inline;"
+              class="sub-inline-form"
               <?php if ($confirm !== '') : ?>
                   onsubmit="return confirm(<?php echo esc_attr(wp_json_encode($confirm)); ?>);"
               <?php endif; ?>>

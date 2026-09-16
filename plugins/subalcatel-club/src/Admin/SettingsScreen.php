@@ -176,7 +176,7 @@ final class SettingsScreen
                                 'sub_level_delete',
                                 ['term_id' => $level->term_id],
                                 'Supprimer',
-                                'button-link-delete button-link',
+                                'button button-link-delete',
                                 'Supprimer ce niveau ?'
                             ); ?>
                         <?php endif; ?>
@@ -350,7 +350,7 @@ final class SettingsScreen
                 'sub_event_type_delete',
                 ['type_id' => (int) $type['id']],
                 'Supprimer ce type',
-                'button-link-delete button-link',
+                'button button-link-delete',
                 'Supprimer ce type ? Les événements déjà créés ne sont pas affectés.'
             );
         }

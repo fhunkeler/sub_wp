@@ -140,7 +140,7 @@ final class EventsScreen
                         <th style="width:170px;">Type</th>
                         <th style="width:180px;">Date</th>
                         <th style="width:130px;">Inscrits</th>
-                        <th style="width:220px;">Actions</th>
+                        <th style="width:260px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -184,19 +184,21 @@ final class EventsScreen
                             ?>
                         </td>
                         <td data-label="Actions">
-                            <a class="button button-primary"
-                               href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG_ROSTER . '&event_id=' . (int) $e['id'])); ?>">
-                                Liste des inscrits
-                            </a>
-                            <?php if (current_user_can('sub_manage_event_types')) : ?>
-                                <?php AdminUi::actionButton(
-                                    'sub_event_delete',
-                                    ['event_id' => (int) $e['id']],
-                                    'Supprimer',
-                                    'button-link-delete button-link',
-                                    'Supprimer cet événement et toutes ses inscriptions ?'
-                                ); ?>
-                            <?php endif; ?>
+                            <div class="sub-row-actions">
+                                <a class="button button-primary"
+                                   href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG_ROSTER . '&event_id=' . (int) $e['id'])); ?>">
+                                    Liste des inscrits
+                                </a>
+                                <?php if (current_user_can('sub_manage_event_types')) : ?>
+                                    <?php AdminUi::actionButton(
+                                        'sub_event_delete',
+                                        ['event_id' => (int) $e['id']],
+                                        'Supprimer',
+                                        'button button-link-delete',
+                                        'Supprimer cet événement et toutes ses inscriptions ?'
+                                    ); ?>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -529,7 +531,7 @@ final class EventsScreen
                                     'sub_event_unregister',
                                     ['event_id' => $eventId, 'user_id' => (int) $person['user_id']],
                                     'Désinscrire',
-                                    'button-link-delete button-link',
+                                    'button button-link-delete',
                                     'Retirer cette personne de la liste ?'
                                 ); ?>
                             </td>

@@ -163,6 +163,24 @@
 	margin: 0;
 }
 
+/* Formulaire d'étape : une liste, un champ et un bouton qui se lisent comme
+   une seule action et ne doivent pas se séparer. Il reste donc groupé, mais
+   prend sa place dans la barre au lieu de la traverser — ce qui renvoyait
+   « Corriger » à la ligne, décalé sous le champ au lieu de la marge gauche. */
+
+.sub-admin .sub-step-form {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.sub-admin .sub-step-form select,
+.sub-admin .sub-step-form input[type='text'],
+.sub-admin .sub-step-form .button {
+	margin: 0;
+}
+
 .sub-admin .form-table th {
 	width: 200px;
 }

@@ -49,7 +49,7 @@ final class CampaignsScreen
                 Pour ouvrir la saison suivante, dupliquez la précédente et ajustez ce qui a changé.
             </p>
 
-            <div class="sub-scroll"><table class="wp-list-table widefat striped" style="margin-top:16px;min-width:900px;">
+            <div class="sub-scroll"><table class="wp-list-table widefat striped" style="margin-top:16px;min-width:1180px;">
                 <thead>
                     <tr>
                         <th>Campagne</th>
@@ -57,7 +57,7 @@ final class CampaignsScreen
                         <th style="width:200px;">Validité de l’adhésion</th>
                         <th style="width:160px;">Contenu</th>
                         <th style="width:110px;">État</th>
-                        <th style="width:320px;">Actions</th>
+                        <th style="width:390px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>

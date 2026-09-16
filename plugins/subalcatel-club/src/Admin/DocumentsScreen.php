@@ -297,7 +297,7 @@ final class DocumentsScreen
                     'sub_document_type_delete',
                     ['type_id' => (int) $type['id']],
                     'Supprimer ce type',
-                    'button-link-delete button-link',
+                    'button button-link-delete',
                     'Supprimer ce type de document ?'
                 );
                 ?>

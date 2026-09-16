@@ -89,45 +89,47 @@ final class CampaignsScreen
                         </td>
                         <td><?php echo AdminUi::statusBadge((string) $c['status']); ?></td>
                         <td>
-                            <a class="button button-primary"
-                               href="<?php echo esc_url(CampaignEditor::url((int) $c['id'])); ?>">Configurer</a>
+                            <div class="sub-row-actions">
+                                <a class="button button-primary"
+                                   href="<?php echo esc_url(CampaignEditor::url((int) $c['id'])); ?>">Configurer</a>
 
-                            <?php AdminUi::actionButton(
-                                'sub_campaign_duplicate',
-                                ['campaign_id' => (int) $c['id']],
-                                'Dupliquer',
-                                'button',
-                                'Créer une nouvelle campagne à partir de celle-ci — plans, options et remises compris ?'
-                            ); ?>
-
-                            <?php
-                            $next = $c['status'] === 'open' ? 'closed' : 'open';
-                            AdminUi::actionButton(
-                                'sub_campaign_status',
-                                ['campaign_id' => (int) $c['id'], 'status' => $next],
-                                $next === 'open' ? 'Ouvrir' : 'Fermer',
-                                'button'
-                            );
-                            ?>
-
-                            <?php // Une campagne dupliquée par mégarde restait là pour toujours.
-                                  // Le bouton n'apparaît que sur celles qui ne portent aucun
-                                  // dossier : dès le premier, la campagne est une pièce
-                                  // comptable, et elle se ferme au lieu de se supprimer. ?>
-                            <?php if ((int) $c['application_count'] === 0) : ?>
                                 <?php AdminUi::actionButton(
-                                    'sub_campaign_delete',
+                                    'sub_campaign_duplicate',
                                     ['campaign_id' => (int) $c['id']],
-                                    'Supprimer',
-                                    'button-link-delete button-link',
-                                    sprintf(
-                                        'Supprimer « %s » ? Ses %d formule(s) et %d option(s) partent avec elle.',
-                                        (string) $c['title'],
-                                        (int) $c['plan_count'],
-                                        (int) $c['option_count']
-                                    )
+                                    'Dupliquer',
+                                    'button',
+                                    'Créer une nouvelle campagne à partir de celle-ci — plans, options et remises compris ?'
                                 ); ?>
-                            <?php endif; ?>
+
+                                <?php
+                                $next = $c['status'] === 'open' ? 'closed' : 'open';
+                                AdminUi::actionButton(
+                                    'sub_campaign_status',
+                                    ['campaign_id' => (int) $c['id'], 'status' => $next],
+                                    $next === 'open' ? 'Ouvrir' : 'Fermer',
+                                    'button'
+                                );
+                                ?>
+
+                                <?php // Une campagne dupliquée par mégarde restait là pour toujours.
+                                      // Le bouton n'apparaît que sur celles qui ne portent aucun
+                                      // dossier : dès le premier, la campagne est une pièce
+                                      // comptable, et elle se ferme au lieu de se supprimer. ?>
+                                <?php if ((int) $c['application_count'] === 0) : ?>
+                                    <?php AdminUi::actionButton(
+                                        'sub_campaign_delete',
+                                        ['campaign_id' => (int) $c['id']],
+                                        'Supprimer',
+                                        'button button-link-delete',
+                                        sprintf(
+                                            'Supprimer « %s » ? Ses %d formule(s) et %d option(s) partent avec elle.',
+                                            (string) $c['title'],
+                                            (int) $c['plan_count'],
+                                            (int) $c['option_count']
+                                        )
+                                    ); ?>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

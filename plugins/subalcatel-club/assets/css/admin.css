@@ -135,10 +135,32 @@
 	color: #50575e;
 }
 
-/* Formulaires en ligne dans les tableaux de liste. */
+/* Formulaires en ligne dans les tableaux de liste.
+
+   Chaque action POST porte son propre <form> : sans cette règle, une cellule
+   « Actions » aligne des blocs de formulaires, pas des boutons. Le
+   `display: contents` efface le formulaire de la mise en page et laisse son
+   bouton devenir enfant direct de la barre d'actions, qui peut alors les
+   espacer tous de la même façon. */
 
 .sub-admin .sub-inline-form {
 	display: contents;
+}
+
+/* Barre d'actions d'une ligne de tableau : boutons sur une ligne de base
+   commune, espacés régulièrement, qui repassent à la ligne ensemble quand la
+   colonne devient trop étroite. */
+
+.sub-admin .sub-row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.sub-admin .sub-row-actions > .button,
+.sub-admin .sub-row-actions > .sub-inline-form .button {
+	margin: 0;
 }
 
 .sub-admin .form-table th {

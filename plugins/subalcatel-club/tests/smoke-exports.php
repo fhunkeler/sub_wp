@@ -13,7 +13,6 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Exports\CsvWriter;
 use Subalcatel\Club\Exports\ExportRegistry;
-use Subalcatel\Club\Exports\Members;
 use Subalcatel\Club\Exports\XlsxWriter;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Membership\ApplicationService;
@@ -216,13 +215,30 @@ $bureauService->refuse($refusedApplicationId, $office, 'Dossier incomplet');
 
 $bureau = ExportRegistry::find('membership-detail');
 $check('Export « détail des adhésions » disponible', $bureau !== null);
-$check('19 colonnes, dans l’ordre demandé par le bureau',
+// Les colonnes de l'ancien site, à l'identique : le bureau y branche des
+// tableaux qui désignent leurs colonnes par leur rang. L'ordre EST la donnée —
+// d'où la comparaison stricte, et non une simple présence.
+$check('46 colonnes, dans l’ordre de l’extrait de l’ancien site',
     $bureau->columns() === [
-        'Licence FFESSM', 'Date d’adhésion', 'Username', 'Prénom', 'Nom', 'N° carte ASAC',
-        'Type Adhésion', 'Origine adhésion', 'Moins-value Licence', 'Moins-value Nokia',
-        'Assurance', 'Piscine', 'Bloc', 'Stab', 'Détendeur', 'Carte niveau',
-        'Supp inscription tardive', 'Type paiement', 'Montant cotisation site',
+        'id', 'category', 'plan', 'user_id', 'username', 'first_name', 'last_name',
+        'address', 'zip', 'city', 'phone', 'osm_telephone_professionnel',
+        'osm_telephone_mobile', 'osm_Date_de_naissance', 'birthcity', 'birthdepartment',
+        'birthcountry', 'email', 'osm_Courriel_Secondaire', 'osm_Piscine', 'osm_Jeune',
+        'osm_Origine_Adhesion', 'osm_carte_niveau', 'osm_Niveau_prepare', 'osm_Pret_Bloc',
+        'osm_Pret_Detendeur', 'osm_Pret_Gilet', 'osm_Assurance_Individuelle',
+        'osm_Moins_Value_Licence_FFESSM_Adulte', 'osm_Paiement', 'Paiement_messages_CB',
+        'Paiement_messages_Cheque', 'comment', 'created_date', 'payment_date',
+        'from_date', 'to_date', 'published', 'amount', 'tax_amount', 'discount_amount',
+        'gross_amount', 'payment_method', 'transaction_id', 'membership_id',
+        'invoice_number',
     ]);
+
+$check('Chaque ligne a autant de cellules que de colonnes',
+    array_reduce(
+        $bureau->rows(['campaign_id' => $bureauCampaignId]),
+        static fn (bool $ok, array $row): bool => $ok && count($row) === 46,
+        true
+    ));
 
 $saisons = \Subalcatel\Club\Exports\MembershipDetailExport::campaigns();
 $check('La saison de test figure dans le choix des saisons',
@@ -233,7 +249,7 @@ $check('Seuls les deux dossiers non refusés sortent', count($bureauRows) === 2,
 
 $byUsername = [];
 foreach ($bureauRows as $row) {
-    $byUsername[$row[2]] = $row;
+    $byUsername[$row[4]] = $row;
 }
 
 $dive = $byUsername['pcabon_test'] ?? null;
@@ -242,39 +258,58 @@ $nap  = $byUsername['mrenard_test'] ?? null;
 $check('Le dossier Plongée figure dans l’export', $dive !== null);
 $check('Le dossier NAP figure dans l’export', $nap !== null);
 
-$today = Members::frDate(current_time('Y-m-d'));
 
 if ($dive !== null) {
-    $check('Licence FFESSM', $dive[0] === 'A-22-000123', $dive[0]);
-    $check('Date d’adhésion = date de dépôt du dossier', $dive[1] === $today, $dive[1]);
-    $check('N° carte ASAC', $dive[5] === 'A-22-9999', $dive[5]);
-    $check('Type Adhésion', $dive[6] === 'Plongée', $dive[6]);
-    $check('Origine adhésion', $dive[7] === 'Nokia', $dive[7]);
+    $check('category constante, comme dans l’ancien fichier',
+        $dive[1] === 'Adhésion Sub Alcatel', $dive[1]);
+    $check('Type Adhésion', $dive[2] === 'Plongée', $dive[2]);
+    $check('Prénom', $dive[5] === 'Patrick', $dive[5]);
+    $check('Nom', $dive[6] === 'Cabon', $dive[6]);
+    $check('Adresse postale', $dive[7] === '3 rue des Ancres', $dive[7]);
+    $check('Code postal', $dive[8] === '22300', $dive[8]);
+    $check('Date de naissance au format de l’ancien extrait',
+        $dive[13] === '1980-05-14', $dive[13]);
+    $check('Ville de naissance', $dive[14] === 'Lannion', $dive[14]);
+    $check('Courriel', $dive[17] === 'pcabon.test@subalcatel.test', $dive[17]);
+    $check('Piscine vide en Plongée', $dive[19] === '', "'{$dive[19]}'");
+    // Le tarif jeune a disparu en septembre 2026 : la colonne reste, vide, pour
+    // que les suivantes gardent leur rang.
+    $check('osm_Jeune vide, colonne conservée', $dive[20] === '', "'{$dive[20]}'");
+    $check('Origine adhésion', $dive[21] === 'Nokia', $dive[21]);
+    $check('Carte niveau', $dive[22] === 'Oui', $dive[22]);
+    $check('Niveau préparé', $dive[23] === 'P2', $dive[23]);
+    $check('Bloc', $dive[24] === 'Oui', $dive[24]);
+    $check('Détendeur', $dive[25] === 'Oui', $dive[25]);
+    $check('Stab', $dive[26] === 'Non', $dive[26]);
+    $check('Assurance', $dive[27] === 'Loisir 2', $dive[27]);
     // Postée par le dossier, écartée par l'exclusion : le tarif Nokia couvre
     // déjà la licence, et la déduire ici rendait 20 € de trop.
-    $check('Moins-value Licence écartée pour un Nokia', abs((float) $dive[8]) < 0.005, (string) $dive[8]);
-    $check('Moins-value Nokia', abs((float) $dive[9] - (-108.00)) < 0.005, (string) $dive[9]);
-    $check('Assurance', $dive[10] === 'Loisir 2', $dive[10]);
-    $check('Piscine vide en Plongée', $dive[11] === '', "'{$dive[11]}'");
-    $check('Bloc', $dive[12] === 'Oui', $dive[12]);
-    $check('Stab', $dive[13] === 'Non', $dive[13]);
-    $check('Détendeur', $dive[14] === 'Oui', $dive[14]);
-    $check('Carte niveau', $dive[15] === 'Oui', $dive[15]);
-    $check('Type paiement', $dive[17] === 'HelloAsso', $dive[17]);
-    $check('Montant cotisation site', abs((float) $dive[18] - 273.00) < 0.005, (string) $dive[18]);
+    $check('Moins-value Licence écartée pour un Nokia', $dive[28] === '', "'{$dive[28]}'");
+    $check('Mode de règlement en clair', $dive[29] === 'HelloAsso', $dive[29]);
+    $check('Date de règlement', $dive[34] === '22/09/2026', $dive[34]);
+    $check('published à 1, comme l’ancien extrait', (int) $dive[37] === 1, (string) $dive[37]);
+    $check('Montant', abs((float) $dive[38] - 273.00) < 0.005, (string) $dive[38]);
+    $check('tax_amount à 0.00', $dive[39] === '0.00', (string) $dive[39]);
+    // La remise Nokia vaut -108 € dans les lignes figées ; l'ancien fichier
+    // l'écrivait sans signe.
+    $check('Remise en valeur absolue', abs((float) $dive[40] - 108.00) < 0.005, (string) $dive[40]);
+    $check('gross_amount = amount', abs((float) $dive[41] - 273.00) < 0.005, (string) $dive[41]);
+    $check('payment_method en code technique', $dive[42] === 'helloasso', $dive[42]);
+    $check('invoice_number = référence du dossier',
+        str_starts_with((string) $dive[45], 'ADH-'), (string) $dive[45]);
 }
 
 if ($nap !== null) {
-    $check('Date d’adhésion = soumission (pas encore validé)', $nap[1] === $today, $nap[1]);
-    $check('Type Adhésion NAP', $nap[6] === 'Nage Avec Palmes', $nap[6]);
-    $check('Origine adhésion extérieure', $nap[7] === 'Extérieur / Autre', $nap[7]);
-    $check('Aucune remise Nokia', (float) $nap[9] === 0.0, (string) $nap[9]);
-    $check('Moins-value Licence retenue hors Nokia', abs((float) $nap[8] - (-49.00)) < 0.005, (string) $nap[8]);
-    $check('Assurance « Aucune »', $nap[10] === 'Aucune', $nap[10]);
-    $check('Piscine', $nap[11] === 'Oui', $nap[11]);
-    $check('Bloc jamais demandé sur ce dossier', $nap[12] === '', "'{$nap[12]}'");
-    $check('Type paiement chèque', $nap[17] === 'Chèque', $nap[17]);
-    $check('Montant cotisation site', abs((float) $nap[18] - 131.00) < 0.005, (string) $nap[18]);
+    $check('Type Adhésion NAP', $nap[2] === 'Nage Avec Palmes', $nap[2]);
+    $check('Piscine', $nap[19] === 'Oui', $nap[19]);
+    $check('Origine adhésion extérieure', $nap[21] === 'Extérieur / Autre', $nap[21]);
+    $check('Bloc jamais demandé sur ce dossier', $nap[24] === '', "'{$nap[24]}'");
+    $check('Assurance « Aucune »', $nap[27] === 'Aucune', $nap[27]);
+    $check('Moins-value Licence retenue hors Nokia',
+        $nap[28] === 'Oui', $nap[28]);
+    $check('Type paiement chèque', $nap[29] === 'Chèque', $nap[29]);
+    $check('Aucune remise Nokia', abs((float) $nap[40]) < 0.005, (string) $nap[40]);
+    $check('Montant', abs((float) $nap[38] - 131.00) < 0.005, (string) $nap[38]);
 }
 
 $check('Le secrétariat voit aussi le détail des adhésions',

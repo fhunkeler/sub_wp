@@ -192,12 +192,13 @@ $scenario(
     161.00
 );
 
-// Le tarif Nokia couvre déjà la licence. La déduire une seconde fois rendait
-// 20 € de trop à l'adhérent — d'où l'exclusion posée sur l'option, qui la
-// retire du formulaire ET du calcul. Une réponse forgée ne la ramène pas :
-// 210 - 58 = 152 €, et non 103 €.
+// La remise Nokia porte sur l'adhésion ENTIÈRE, licence comprise : un adhérent
+// Nokia n'a pas acquitté les mêmes 49 € de licence qu'un autre. Lui en
+// rembourser 49 rendait 19 € que le club n'avait jamais encaissés (retour du
+// bureau, 15/09/2026). L'option ordinaire est donc écartée pour lui — du
+// formulaire ET du calcul : une réponse forgée ne la ramène pas.
 $scenario(
-    'Nokia — la licence déjà détenue ne se déduit pas',
+    'Nokia — la moins-value ordinaire ne s’applique pas, même postée',
     'plongee',
     [
         'origine_adhesion'       => 'nokia',
@@ -206,6 +207,36 @@ $scenario(
         'niveau_prepare'         => 'aucun',
     ],
     152.00
+);
+
+// Il garde pourtant le droit de déclarer une licence prise ailleurs : c'est sa
+// propre option qui la déduit, au montant qu'il a réellement payé.
+// 210 - 58 - 30 = 122 €.
+$scenario(
+    'Nokia — sa licence déjà détenue se déduit de 30 €',
+    'plongee',
+    [
+        'origine_adhesion'          => 'nokia',
+        'assurance_individuelle'    => 'aucune',
+        'moins_value_licence_nokia' => 'oui',
+        'niveau_prepare'            => 'aucun',
+    ],
+    122.00
+);
+
+// Et la réciproque : hors Nokia, l'option Nokia ne s'applique pas davantage.
+// 210 - 49 = 161 €, et non 131 €.
+$scenario(
+    'Extérieur — la moins-value Nokia ne s’applique pas, même postée',
+    'plongee',
+    [
+        'origine_adhesion'          => 'exterieur',
+        'assurance_individuelle'    => 'aucune',
+        'moins_value_licence'       => 'oui',
+        'moins_value_licence_nokia' => 'oui',
+        'niveau_prepare'            => 'aucun',
+    ],
+    161.00
 );
 
 // ---------------------------------------------------------------------------

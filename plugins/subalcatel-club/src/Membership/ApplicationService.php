@@ -44,6 +44,23 @@ final class ApplicationService
         self::STATUS_PAYMENT_CONFIRMED,
     ];
 
+    /**
+     * Les états dans lesquels un dossier occupe encore la place de l'adhérent
+     * sur sa campagne.
+     *
+     * Un refus et une annulation n'en font pas partie : ils libèrent la place,
+     * et c'est tout leur intérêt — la correction d'une saisie passe par là.
+     *
+     * @var list<string>
+     */
+    public const STANDING_STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_SUBMITTED,
+        self::STATUS_AWAITING_PAYMENT,
+        self::STATUS_PAYMENT_CONFIRMED,
+        self::STATUS_ACTIVE,
+    ];
+
     private string $prefix;
 
     public function __construct(
@@ -76,6 +93,22 @@ final class ApplicationService
 
         if (!$account->allowed) {
             throw new RuntimeException($account->reason);
+        }
+
+        // Seconde porte : un dossier par personne et par campagne. Rien ne
+        // l'empêchait, et le bureau a vu arriver des doublons — un adhérent qui
+        // se croit mal enregistré redépose, et le trésorier se retrouve avec
+        // deux cotisations à rapprocher d'un seul chèque (retour du bureau,
+        // 17/09/2026). Pour corriger une saisie, on annule et on redépose : la
+        // place se libère, et le journal garde les deux gestes.
+        $standing = $this->currentFor($userId, $campaignId);
+
+        if ($standing !== null) {
+            throw new RuntimeException(sprintf(
+                'Vous avez déjà un dossier sur cette campagne (%s). '
+                . 'Annulez-le depuis « Mon adhésion » avant d’en déposer un autre.',
+                (string) $standing['reference']
+            ));
         }
 
         $plan = $this->campaigns->planBySlug($campaignId, $planSlug);
@@ -455,6 +488,117 @@ final class ApplicationService
         }
 
         return $missing;
+    }
+
+    /**
+     * Le dossier qui occupe la place de cette personne sur cette campagne.
+     *
+     * Un seul peut l'occuper à la fois : c'est la règle que `submit()` fait
+     * respecter, et celle qui décide si le formulaire d'adhésion se montre ou
+     * s'efface devant le dossier déjà déposé.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function currentFor(int $userId, int $campaignId): ?array
+    {
+        global $wpdb;
+
+        $placeholders = implode(',', array_fill(0, count(self::STANDING_STATUSES), '%s'));
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->prefix}applications
+                 WHERE user_id = %d AND campaign_id = %d AND status IN ({$placeholders})
+                 ORDER BY id DESC LIMIT 1",
+                array_merge([$userId, $campaignId], self::STANDING_STATUSES)
+            ),
+            ARRAY_A
+        );
+
+        return $row ?: null;
+    }
+
+    /**
+     * Un dossier s'annule-t-il encore, et par qui ?
+     *
+     * L'activation est la borne commune : passé elle, le dossier a produit une
+     * licence, des droits d'emprunt et une écriture comptable — il ne s'efface
+     * plus, il se traite. Avant elle, deux régimes.
+     *
+     * L'adhérent annule tant que rien n'est encaissé. Son geste répare une
+     * erreur de saisie, pas une transaction : une fois le chèque enregistré,
+     * l'annulation touche à la trésorerie, et cela regarde le bureau. Le
+     * bureau, lui, annule jusqu'à l'activation — c'est lui qui aura rendu le
+     * chèque.
+     */
+    public function canCancel(int $applicationId, int $actorId): bool
+    {
+        $application = $this->find($applicationId);
+
+        if ($application === null || !self::isEditable((string) $application['status'])) {
+            return false;
+        }
+
+        if (user_can($actorId, 'sub_manage_memberships')) {
+            return true;
+        }
+
+        return (int) $application['user_id'] === $actorId
+            && $application['status'] !== self::STATUS_PAYMENT_CONFIRMED;
+    }
+
+    /**
+     * Annule un dossier non activé.
+     *
+     * Annuler n'est pas supprimer : le dossier reste, ses lignes figées avec
+     * lui, et son statut dit ce qui lui est arrivé. Le bureau doit pouvoir
+     * répondre six mois plus tard à « qu'est devenu ce dossier ? », et une
+     * ligne effacée ne répond rien. Les exports et les statistiques, eux,
+     * écartent déjà les annulations : elles ne comptent pas pour des adhésions.
+     *
+     * Rien à révoquer au passage : les droits d'emprunt et le rôle d'adhérent
+     * ne sont posés qu'à l'activation, et un dossier activé ne passe pas ici.
+     */
+    public function cancel(int $applicationId, int $actorId, string $reason = ''): void
+    {
+        $application = $this->find($applicationId);
+
+        if ($application === null) {
+            throw new RuntimeException('Dossier introuvable.');
+        }
+
+        if (!$this->canCancel($applicationId, $actorId)) {
+            throw new RuntimeException(
+                'Ce dossier ne peut plus être annulé ici. Contactez le bureau.'
+            );
+        }
+
+        $byOwner = (int) $application['user_id'] === $actorId;
+
+        $this->setStatus($applicationId, self::STATUS_CANCELLED);
+        $this->recordValidation(
+            $applicationId,
+            $byOwner ? 'member' : 'secretariat',
+            'cancelled',
+            $actorId,
+            $reason
+        );
+
+        Audit::log('membership.cancelled', 'application', $applicationId, [
+            'reference' => (string) $application['reference'],
+            'par'       => $byOwner ? 'adhérent' : 'bureau',
+            'motif'     => $reason,
+        ], $actorId);
+
+        // Prévenir qui n'a pas agi : l'adhérent qui annule son propre dossier
+        // vient de le faire à l'écran, un courriel ne lui apprend rien. Celui
+        // dont le bureau annule le dossier, lui, ne le saurait pas.
+        if (!$byOwner) {
+            Mailer::toUser(EmailTemplates::MEMBERSHIP_CANCELLED, (int) $application['user_id'], [
+                'reference' => (string) $application['reference'],
+                'motif'     => $reason !== '' ? $reason : 'Aucun motif précisé.',
+            ], ['entity_type' => 'application', 'entity_id' => $applicationId, 'sender_id' => $actorId]);
+        }
     }
 
     /**

@@ -34,6 +34,7 @@ final class EmailTemplates
     public const MEMBERSHIP_PAID      = 'membership.paid';
     public const MEMBERSHIP_ACTIVATED = 'membership.activated';
     public const MEMBERSHIP_REFUSED   = 'membership.refused';
+    public const MEMBERSHIP_CANCELLED = 'membership.cancelled';
     public const MEMBERSHIP_EXPIRING  = 'membership.expiring';
 
     // Documents
@@ -204,6 +205,19 @@ final class EmailTemplates
                     . "N’hésitez pas à nous contacter si quelque chose n’est pas clair.\n\n"
                     . "— {club}",
                 'variables'   => ['reference' => 'Référence du dossier', 'motif' => 'Motif du refus'],
+            ],
+            [
+                'code'        => self::MEMBERSHIP_CANCELLED,
+                'label'       => 'Dossier annulé par le bureau',
+                'description' => 'Envoyé quand le bureau annule un dossier non activé. '
+                    . 'L’adhérent ne le saurait pas autrement, et sa place est de nouveau libre.',
+                'subject'     => '[{club}] Votre dossier {reference} a été annulé',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "Votre dossier d’adhésion {reference} a été annulé par le bureau.\n\n"
+                    . "{motif}\n\n"
+                    . "Vous pouvez déposer un nouveau dossier depuis votre espace membre.\n\n"
+                    . "— {club}",
+                'variables'   => ['reference' => 'Référence du dossier', 'motif' => 'Motif de l’annulation'],
             ],
             [
                 'code'        => self::MEMBERSHIP_EXPIRING,
@@ -397,7 +411,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 4;
+    private const VERSION        = 5;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void

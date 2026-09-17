@@ -229,16 +229,28 @@ if (!function_exists('sub_test_pdf')) {
             ],
         ]);
 
+        // La licence déjà détenue se déduit en deux options dont une seule est
+        // visible : la remise Nokia porte sur l'adhésion entière, licence
+        // comprise, et un adhérent Nokia n'a donc pas payé la même part de
+        // licence qu'un autre. Chacune rembourse ce qui a réellement été payé.
         $option([
             'name'       => 'moins_value_licence',
             'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
             'input_type' => \Subalcatel\Club\Membership\Option::INPUT_CHECK,
             'ordering'   => 40,
             'choices'    => $yesNo(-49.00),
-            // Le tarif Nokia couvre déjà la licence : la déduire une seconde fois
-            // rendait 20 € de trop à l'adhérent.
             'exclude_option' => 'origine_adhesion',
             'exclude_values' => ['nokia'],
+        ]);
+
+        $option([
+            'name'       => 'moins_value_licence_nokia',
+            'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
+            'input_type' => \Subalcatel\Club\Membership\Option::INPUT_CHECK,
+            'ordering'   => 41,
+            'choices'    => $yesNo(-30.00),
+            'condition_option' => 'origine_adhesion',
+            'condition_values' => ['nokia'],
         ]);
 
         $option([

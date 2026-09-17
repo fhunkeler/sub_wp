@@ -19,6 +19,7 @@ final class MyMembership
     public static function register(): void
     {
         add_shortcode('subalcatel_mon_adhesion', [self::class, 'render']);
+        add_action('admin_post_sub_cancel_application', [self::class, 'handleCancel']);
     }
 
     public static function render(): string
@@ -72,6 +73,7 @@ final class MyMembership
         $current = array_shift($applications);
 
         echo '<div class="sub-membership-view">';
+        echo self::feedback(); // déjà échappé
         self::renderCurrent($current, $service);
 
         if ($applications !== []) {
@@ -126,6 +128,17 @@ final class MyMembership
                     <strong>Adhésion active</strong>
                     <p>Valable jusqu’au <?php echo esc_html(MemberDashboard::frDate((string) $application['valid_until'])); ?>.</p>
                 </div>
+            <?php elseif ($status === ApplicationService::STATUS_CANCELLED) : ?>
+                <div class="sub-notice">
+                    <strong>Dossier annulé</strong>
+                    <p>
+                        Ce dossier ne suit plus son cours.
+                        <?php if (Pages::exists(Pages::SUBSCRIBE)) : ?>
+                            Vous pouvez en
+                            <a href="<?php echo esc_url(Pages::url(Pages::SUBSCRIBE)); ?>">déposer un nouveau</a>.
+                        <?php endif; ?>
+                    </p>
+                </div>
             <?php endif; ?>
 
             <h3 class="sub-membership-view__subtitle">Détail de votre cotisation</h3>
@@ -156,8 +169,85 @@ final class MyMembership
             </table>
 
             <?php self::renderPayments((int) $application['id']); ?>
+
+            <?php self::renderCancel((int) $application['id'], $service); ?>
         </section>
         <?php
+    }
+
+    /**
+     * L'annulation de son propre dossier, tant qu'elle est ouverte.
+     *
+     * Elle l'est jusqu'à l'encaissement : passé lui, l'annulation touche à la
+     * trésorerie et c'est au bureau de la prononcer. Le service tranche —
+     * l'écran ne fait que lui demander, et se tait quand il dit non.
+     */
+    private static function renderCancel(int $applicationId, ApplicationService $service): void
+    {
+        if (!$service->canCancel($applicationId, get_current_user_id())) {
+            return;
+        }
+
+        ?>
+        <form class="sub-membership-view__cancel"
+              method="post"
+              action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+              onsubmit="return confirm('Annuler ce dossier ? Vous pourrez en déposer un nouveau ensuite.');">
+            <input type="hidden" name="action" value="sub_cancel_application">
+            <input type="hidden" name="application_id" value="<?php echo esc_attr((string) $applicationId); ?>">
+            <?php wp_nonce_field('sub_cancel_application_' . $applicationId); ?>
+            <button type="submit" class="sub-button sub-button--danger">Annuler ce dossier</button>
+            <small>
+                Une erreur de saisie&nbsp;? Annulez, puis déposez un nouveau dossier.
+                Le bureau en garde la trace.
+            </small>
+        </form>
+        <?php
+    }
+
+    /**
+     * Annulation demandée par l'adhérent lui-même.
+     */
+    public static function handleCancel(): void
+    {
+        $applicationId = isset($_POST['application_id']) ? absint($_POST['application_id']) : 0;
+
+        if (!is_user_logged_in() || !check_admin_referer('sub_cancel_application_' . $applicationId)) {
+            wp_die('Requête non autorisée.', 403);
+        }
+
+        $redirect = wp_get_referer() ?: home_url('/');
+
+        try {
+            (new ApplicationService())->cancel($applicationId, get_current_user_id());
+            $args = ['sub_cancelled' => 1];
+        } catch (\RuntimeException $e) {
+            $args = ['sub_error' => rawurlencode($e->getMessage())];
+        }
+
+        wp_safe_redirect(add_query_arg($args, $redirect));
+        exit;
+    }
+
+    /**
+     * Ce que la redirection a laissé dans l'URL, remis à l'écran.
+     */
+    private static function feedback(): string
+    {
+        if (isset($_GET['sub_cancelled'])) {
+            return '<div class="sub-notice sub-notice--success">'
+                . '<strong>Dossier annulé</strong>'
+                . '<p>Vous pouvez en déposer un nouveau dès maintenant.</p></div>';
+        }
+
+        if (isset($_GET['sub_error'])) {
+            return sprintf(
+                '<div class="sub-notice sub-notice--error"><strong>Annulation impossible</strong><p>%s</p></div>',
+                esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['sub_error']))))
+            );
+        }
+
+        return '';
     }
 
     /**

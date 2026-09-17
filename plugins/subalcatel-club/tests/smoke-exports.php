@@ -289,9 +289,13 @@ if ($dive !== null) {
     $check('Détendeur', $dive[25] === 'Oui', $dive[25]);
     $check('Stab', $dive[26] === 'Non', $dive[26]);
     $check('Assurance', $dive[27] === 'Loisir 2', $dive[27]);
-    // Postée par le dossier, écartée par l'exclusion : le tarif Nokia couvre
-    // déjà la licence, et la déduire ici rendait 20 € de trop.
-    $check('Moins-value Licence écartée pour un Nokia', $dive[28] === '', "'{$dive[28]}'");
+    // La colonne unique de l'ancien fichier reçoit celle des deux options qui a
+    // été posée. Ce dossier Nokia a bien posté la moins-value ordinaire, mais
+    // elle est écartée pour lui — c'est sa propre question, restée décochée,
+    // qui répond « Non ». Une réponse forgée ne ramène donc pas la déduction des
+    // 49 € dans l'extrait, et le bureau lit ce qui a réellement été demandé.
+    $check('Moins-value Licence : la question posée aux Nokia, pas l’autre',
+        $dive[28] === 'Non', "'{$dive[28]}'");
     $check('Mode de règlement en clair', $dive[29] === 'HelloAsso', $dive[29]);
     $check('Date de règlement', $dive[34] === '22/09/2026', $dive[34]);
     $check('published à 1, comme l’ancien extrait', (int) $dive[37] === 1, (string) $dive[37]);

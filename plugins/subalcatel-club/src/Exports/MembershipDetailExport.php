@@ -317,7 +317,15 @@ final class MembershipDetailExport extends Export
             $this->answerLabel($optionsByName, $answers, 'pret_detendeur'),
             $this->answerLabel($optionsByName, $answers, 'pret_gilet'),
             $this->answerLabel($optionsByName, $answers, 'assurance_individuelle'),
-            $this->answerLabel($optionsByName, $answers, 'moins_value_licence'),
+            // La licence déjà détenue se pose en deux options — l'ordinaire et
+            // celle des adhérents Nokia, au montant qu'ils ont réellement
+            // acquitté. Une seule est visible à la fois, et l'ancien fichier
+            // n'avait qu'une colonne : c'est celle qui a répondu qui s'y écrit.
+            $this->firstAnswerLabel(
+                $optionsByName,
+                $answers,
+                ['moins_value_licence', 'moins_value_licence_nokia']
+            ),
             PaymentMethods::label($method),
             // Messages que l'ancien module affichait à l'adhérent selon son mode
             // de règlement. Le nouveau site les porte dans ses gabarits de
@@ -387,6 +395,31 @@ final class MembershipDetailExport extends Export
             static fn (array $pair): string => (string) $pair[0],
             $resolved
         ));
+    }
+
+    /**
+     * Le libellé de la première option qui a répondu, parmi plusieurs.
+     *
+     * Sert aux questions posées en plusieurs options dont une seule est visible
+     * — la licence déjà détenue, dont le montant diffère selon l'origine de
+     * l'adhésion. L'ancien fichier n'avait qu'une colonne pour elles ; il n'en
+     * a toujours qu'une.
+     *
+     * @param array<string, Option> $optionsByName
+     * @param array<string, string|list<string>> $answers
+     * @param list<string> $names
+     */
+    private function firstAnswerLabel(array $optionsByName, array $answers, array $names): string
+    {
+        foreach ($names as $name) {
+            $label = $this->answerLabel($optionsByName, $answers, $name);
+
+            if ($label !== '') {
+                return $label;
+            }
+        }
+
+        return '';
     }
 
     /**

@@ -130,6 +130,27 @@ final class DemoSeeder
             ],
         ]);
 
+        // La licence déjà détenue se déduit — mais pas du même montant selon
+        // l'origine, et c'est là que le club se faisait avoir.
+        //
+        // Le bureau a signalé le 15/09/2026 qu'un adhérent Nokia cochant la case
+        // rendait 20 € de trop. La cause : la remise Nokia porte sur l'adhésion
+        // ENTIÈRE, licence comprise. Sur le plan Plongée, les 49 € de licence
+        // n'en coûtent que 30 à un adhérent Nokia — la remise de 58 € en
+        // subventionne 19. Lui en rembourser 49 revient à lui rendre 19 € que le
+        // club n'a jamais encaissés.
+        //
+        // La première réponse avait été d'écarter l'option pour Nokia. Elle
+        // protégeait la caisse, mais au prix d'une injustice symétrique :
+        // l'adhérent Nokia qui détient vraiment une licence prise ailleurs la
+        // payait une seconde fois, sans pouvoir le dire. Deux options plutôt
+        // qu'une, donc, dont une seule est visible à la fois : chacune rembourse
+        // ce que son adhérent a réellement payé.
+        //
+        // Deux montants, deux lignes dans l'écran de campagne : le trésorier
+        // ajuste l'un sans toucher à l'autre, et voit du même coup pourquoi ils
+        // diffèrent.
+        //
         // Une case à cocher, pas deux boutons : la réponse est « non » pour la
         // quasi-totalité des dossiers, et la question ne se pose vraiment qu'à
         // qui détient déjà une licence prise ailleurs.
@@ -140,13 +161,27 @@ final class DemoSeeder
             'input_type' => Option::INPUT_CHECK,
             'ordering'   => 40,
             'choices'    => $yesNo(-49.00, 'Oui, j’ai déjà une licence valide', 'Non'),
-            // Pas aux adhérents Nokia : leur tarif couvre déjà la licence, et la
-            // déduire une seconde fois rendait 20 € de trop (retour du bureau,
-            // 15/09/2026). Une exclusion plutôt qu'une liste des origines
-            // admises : une origine créée plus tard ne doit pas perdre l'option
-            // sans que personne l'ait décidé.
+            // Une exclusion plutôt qu'une liste des origines admises : une
+            // origine créée plus tard doit garder l'option ordinaire sans que
+            // personne ait à y penser. Seul Nokia en sort, parce que seul Nokia
+            // a sa remise.
             'exclude_option' => 'origine_adhesion',
             'exclude_values' => ['nokia'],
+        ]);
+
+        // La même question pour les adhérents Nokia, au montant qu'ils ont
+        // réellement acquitté. Le libellé est le leur : côté adhérent, une seule
+        // case apparaît, et rien ne trahit qu'il en existe deux.
+        $option([
+            'name'       => 'moins_value_licence_nokia',
+            'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
+            'help'       => 'Cochez seulement si vous en détenez déjà une. La remise Nokia couvre '
+                . 'déjà une partie de la licence : la déduction porte sur ce qui reste à votre charge.',
+            'input_type' => Option::INPUT_CHECK,
+            'ordering'   => 41,
+            'choices'    => $yesNo(-30.00, 'Oui, j’ai déjà une licence valide', 'Non'),
+            'condition_option' => 'origine_adhesion',
+            'condition_values' => ['nokia'],
         ]);
 
         $option([

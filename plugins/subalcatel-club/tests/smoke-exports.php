@@ -218,7 +218,7 @@ $check('Export « détail des adhésions » disponible', $bureau !== null);
 // Les colonnes de l'ancien site, à l'identique : le bureau y branche des
 // tableaux qui désignent leurs colonnes par leur rang. L'ordre EST la donnée —
 // d'où la comparaison stricte, et non une simple présence.
-$check('46 colonnes, dans l’ordre de l’extrait de l’ancien site',
+$check('49 colonnes : les 46 de l’ancien site, puis les trois ajoutées',
     $bureau->columns() === [
         'id', 'category', 'plan', 'user_id', 'username', 'first_name', 'last_name',
         'address', 'zip', 'city', 'phone', 'osm_telephone_professionnel',
@@ -231,12 +231,19 @@ $check('46 colonnes, dans l’ordre de l’extrait de l’ancien site',
         'from_date', 'to_date', 'published', 'amount', 'tax_amount', 'discount_amount',
         'gross_amount', 'payment_method', 'transaction_id', 'membership_id',
         'invoice_number',
+        'Licence FFESSM', 'N° carte ASAC', 'Supp inscription tardive',
     ]);
+
+// Les ajouts vont APRÈS la quarante-sixième, jamais entre : c'est ce qui permet
+// à un tableau du bureau de continuer à lire ses colonnes par leur rang. Le
+// contrôle porte sur la frontière, celle qu'un ajout futur déplacerait.
+$check('La 46e colonne reste « invoice_number », fin de l’ancien format',
+    $bureau->columns()[45] === 'invoice_number', $bureau->columns()[45]);
 
 $check('Chaque ligne a autant de cellules que de colonnes',
     array_reduce(
         $bureau->rows(['campaign_id' => $bureauCampaignId]),
-        static fn (bool $ok, array $row): bool => $ok && count($row) === 46,
+        static fn (bool $ok, array $row): bool => $ok && count($row) === 49,
         true
     ));
 
@@ -297,6 +304,11 @@ if ($dive !== null) {
     $check('payment_method en code technique', $dive[42] === 'helloasso', $dive[42]);
     $check('invoice_number = référence du dossier',
         str_starts_with((string) $dive[45], 'ADH-'), (string) $dive[45]);
+    $check('Licence FFESSM, en colonne ajoutée', $dive[46] === 'A-22-000123', $dive[46]);
+    $check('N° carte ASAC, en colonne ajoutée', $dive[47] === 'A-22-9999', $dive[47]);
+    // Aucune campagne du club ne facture encore l'inscription tardive : la
+    // colonne existe pour le jour où le bureau en créera une.
+    $check('Supplément tardif vide faute d’option', $dive[48] === '', "'{$dive[48]}'");
 }
 
 if ($nap !== null) {

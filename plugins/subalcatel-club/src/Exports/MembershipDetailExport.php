@@ -32,6 +32,13 @@ use Subalcatel\Club\Membership\PaymentMethods;
  *    `published`, `Paiement_messages_*`. Elles gardent la valeur constante
  *    qu'elles avaient dans l'ancien fichier, pour la même raison.
  *
+ * Trois colonnes s'ajoutent en fin de ligne, que l'ancien format ne portait
+ * pas : la licence FFESSM, le numéro de carte ASAC et le supplément
+ * d'inscription tardive. Le président les avait demandées le 08/09/2026, le
+ * dernier en « indispensable ». Elles arrivent après la quarante-sixième,
+ * jamais entre : les colonnes de l'ancien fichier gardent ainsi leur rang, et
+ * un tableau qui s'arrête à `invoice_number` ne voit pas la différence.
+ *
  * Une ligne = un dossier de la campagne choisie. Un dossier encore brouillon ne
  * compte pas : rien n'a été soumis. Un dossier refusé ou annulé non plus : ce
  * ne sont pas des adhésions.
@@ -67,7 +74,9 @@ final class MembershipDetailExport extends Export
     {
         return 'Une ligne par dossier de la saison choisie, aux colonnes exactes de '
             . 'l’extrait de l’ancien site : identité, options souscrites, montants '
-            . 'et règlement. Reprenable tel quel dans les tableaux du bureau.';
+            . 'et règlement. Reprenable tel quel dans les tableaux du bureau. '
+            . 'Trois colonnes s’ajoutent à la fin — licence FFESSM, carte ASAC et '
+            . 'supplément d’inscription tardive.';
     }
 
     public function capability(): string
@@ -76,11 +85,13 @@ final class MembershipDetailExport extends Export
     }
 
     /**
-     * Les 46 colonnes de l'extrait OSMembership, dans leur ordre d'origine.
+     * Les 46 colonnes de l'extrait OSMembership dans leur ordre d'origine,
+     * puis les trois que le bureau a demandées en plus.
      *
      * L'ordre est la donnée : les tableaux du bureau désignent leurs colonnes
-     * par leur rang. Ne rien y insérer, ne rien y retirer — une colonne devenue
-     * sans objet sort vide.
+     * par leur rang. Ne rien insérer dans les quarante-six premières, ne rien
+     * y retirer — une colonne devenue sans objet sort vide, et ce qui s'ajoute
+     * s'ajoute à la fin.
      */
     public function columns(): array
     {
@@ -131,6 +142,12 @@ final class MembershipDetailExport extends Export
             'transaction_id',
             'membership_id',
             'invoice_number',
+            // Au-delà de l'ancien format : demandées le 08/09/2026, et sans
+            // équivalent OSMembership. D'où les libellés du bureau plutôt que
+            // des noms techniques — personne n'a de tableau bâti dessus.
+            'Licence FFESSM',
+            'N° carte ASAC',
+            'Supp inscription tardive',
         ];
     }
 
@@ -242,9 +259,19 @@ final class MembershipDetailExport extends Export
         // d'origine.
         $discount = 0.0;
 
+        // Pas encore une option du club : si le bureau crée un jour un
+        // supplément d'inscription tardive depuis l'écran de campagne, la
+        // colonne le retrouve sans modification de code, du moment que son
+        // libellé le dit.
+        $lateFee = 0.0;
+
         foreach ($service->lines($applicationId) as $line) {
             if ($line['line_type'] === 'discount') {
                 $discount += (float) $line['amount'];
+            }
+
+            if (stripos((string) $line['label'], 'tardiv') !== false) {
+                $lateFee += (float) $line['amount'];
             }
         }
 
@@ -315,6 +342,9 @@ final class MembershipDetailExport extends Export
             // sortir vide et de casser les rapprochements qui s'en servent.
             $applicationId,
             (string) $application['reference'],
+            $profile('licence_number'),
+            $profile('asac_card'),
+            $lateFee !== 0.0 ? round($lateFee, 2) : '',
         ];
     }
 

@@ -1526,6 +1526,29 @@
 	border-left-color: var(--sub-sable);
 }
 
+/* Annuler son dossier : l'action existe, mais elle ne se dispute pas la place
+   avec le récapitulatif. D'où le bouton à sa largeur, poussé en fin de bloc. */
+.sub-membership-view__cancel {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid var(--sub-brume);
+}
+
+.sub-membership-view__cancel .sub-button {
+	width: auto;
+	min-height: 40px;
+	font-size: 15px;
+}
+
+.sub-membership-view__cancel small {
+	flex: 1 1 240px;
+	color: var(--sub-ardoise);
+}
+
 /* --- Mes inscriptions --- */
 
 .sub-registration {

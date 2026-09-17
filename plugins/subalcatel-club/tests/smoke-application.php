@@ -88,13 +88,80 @@ $check('Le mode de règlement choisi est conservé',
 $check('Statut « en attente de paiement »', $application['status'] === ApplicationService::STATUS_AWAITING_PAYMENT);
 $check('Lignes figées enregistrées', count($service->lines($applicationId)) === 6);
 
-// Une réponse obligatoire manquante doit bloquer, et dire laquelle.
+// Une réponse obligatoire manquante doit bloquer, et dire laquelle. Sur un
+// compte neuf : celui d'au-dessus occupe désormais sa place sur la campagne, et
+// c'est ce refus-là qu'on verrait, pas celui qu'on teste.
+$incomplete = $makeUser('sub_member');
+sub_test_complete_identity($incomplete);
+
 try {
-    $service->submit($member, $campaignId, 'plongee', ['origine_adhesion' => 'nokia'], 'cheque');
+    $service->submit($incomplete, $campaignId, 'plongee', ['origine_adhesion' => 'nokia'], 'cheque');
     $check('Refus si réponse obligatoire manquante', false);
 } catch (IncompleteApplication $e) {
     $check('Refus si réponse obligatoire manquante',
         array_key_exists('pret_bloc', $e->fields), $e->getMessage());
+}
+
+// --- Un seul dossier par campagne -------------------------------------------
+echo "\n--- Un seul dossier par campagne ---\n";
+
+// Le bureau ramassait des doublons : un adhérent qui se croit mal enregistré
+// redépose, et le trésorier se retrouve avec deux cotisations pour un chèque.
+try {
+    $service->submit($member, $campaignId, 'plongee', $answers, 'cheque');
+    $check('Un second dossier est refusé', false);
+} catch (RuntimeException $e) {
+    $check('Un second dossier est refusé', true, $e->getMessage());
+}
+
+$check('Le dossier en cours se retrouve depuis le compte',
+    (int) ($service->currentFor($member, $campaignId)['id'] ?? 0) === $applicationId);
+
+// --- Annulation -------------------------------------------------------------
+echo "\n--- Annulation ---\n";
+
+$quitter = $makeUser('sub_member');
+sub_test_complete_identity($quitter);
+
+$quitterId = $service->submit($quitter, $campaignId, 'plongee', $answers, 'cheque');
+
+$check('L’adhérent peut annuler son dossier tant que rien n’est encaissé',
+    $service->canCancel($quitterId, $quitter));
+$check('Un autre adhérent ne peut pas l’annuler',
+    !$service->canCancel($quitterId, $intruder));
+
+$service->cancel($quitterId, $quitter);
+
+$check('Statut « annulée »',
+    $service->find($quitterId)['status'] === ApplicationService::STATUS_CANCELLED);
+$check('Le dossier annulé libère la place',
+    $service->currentFor($quitter, $campaignId) === null);
+$check('Les lignes figées restent : annuler n’est pas supprimer',
+    count($service->lines($quitterId)) > 0);
+
+// La place libérée, un nouveau dossier passe.
+$replacementId = $service->submit($quitter, $campaignId, 'plongee', $answers, 'helloasso');
+$check('Un nouveau dossier peut être déposé après annulation', $replacementId > 0);
+
+// Une fois le règlement encaissé, l'annulation regarde le bureau : elle touche
+// à la trésorerie, et c'est lui qui aura rendu le chèque.
+$service->recordPayment($replacementId, 273.00, 'helloasso', null, $treasurer);
+
+$check('L’adhérent ne peut plus annuler après encaissement',
+    !$service->canCancel($replacementId, $quitter));
+$check('Le bureau, lui, le peut encore',
+    $service->canCancel($replacementId, $treasurer));
+
+$service->validateSecretariat($replacementId, $treasurer);
+
+$check('Un dossier activé ne s’annule plus',
+    !$service->canCancel($replacementId, $treasurer));
+
+try {
+    $service->cancel($replacementId, $treasurer);
+    $check('L’annulation d’un dossier activé est refusée', false);
+} catch (RuntimeException $e) {
+    $check('L’annulation d’un dossier activé est refusée', true, $e->getMessage());
 }
 
 // Le bloc de l'encadrant ne coûte rien, mais ouvre le droit d'emprunt.
@@ -181,7 +248,7 @@ $check('Journal d’audit alimenté', $audits >= 3, "{$audits} entrées");
 
 // --- Nettoyage ----------------------------------------------------------------
 require_once ABSPATH . 'wp-admin/includes/user.php';
-foreach ([$member, $treasurer, $intruder, $encadrant] as $id) {
+foreach ([$member, $treasurer, $intruder, $encadrant, $incomplete, $quitter] as $id) {
     wp_delete_user($id);
 }
 

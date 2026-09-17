@@ -79,6 +79,18 @@ final class MembershipForm
         }
 
         $campaignId = (int) $campaign['id'];
+
+        // Un dossier déjà déposé sur cette campagne prend la place du
+        // formulaire. Le laisser affiché derrière la confirmation invitait à
+        // resoumettre, et le bureau ramassait les doublons (retour du bureau,
+        // 17/09/2026). Pour en déposer un autre, il faut d'abord annuler
+        // celui-là — le récapitulatif ci-dessous y mène.
+        $standing = (new ApplicationService())->currentFor($userId, $campaignId);
+
+        if ($standing !== null) {
+            return self::standingApplication($standing);
+        }
+
         $plans      = $repo->plans($campaignId);
         $options    = $repo->options($campaignId);
 
@@ -161,6 +173,39 @@ final class MembershipForm
         <?php
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Ce qui s'affiche à la place du formulaire quand un dossier occupe déjà la
+     * place : où il en est, et par où le reprendre.
+     *
+     * @param array<string, mixed> $application
+     */
+    private static function standingApplication(array $application): string
+    {
+        $status = (string) $application['status'];
+
+        $where = $status === ApplicationService::STATUS_ACTIVE
+            ? 'Votre adhésion est active pour cette saison.'
+            : 'Il suit son cours : le bureau vous tiendra informé de chaque étape.';
+
+        $link = Pages::exists(Pages::MEMBERSHIP)
+            ? sprintf(
+                ' <a href="%s">Voir mon adhésion</a>.',
+                esc_url(Pages::url(Pages::MEMBERSHIP))
+            )
+            : '';
+
+        return self::notice(
+            'Vous avez déjà un dossier pour cette campagne',
+            sprintf(
+                'Dossier <code>%s</code> — %s.<br>%s%s',
+                esc_html((string) $application['reference']),
+                esc_html(self::euro((float) $application['total_amount'])),
+                esc_html($where),
+                $link
+            )
+        );
     }
 
     /**

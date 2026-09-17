@@ -33,6 +33,7 @@ final class ApplicationsScreen
     {
         add_action('admin_post_sub_record_payment', [self::class, 'handlePayment']);
         add_action('admin_post_sub_validate_secretariat', [self::class, 'handleValidation']);
+        add_action('admin_post_sub_cancel_membership', [self::class, 'handleCancel']);
     }
 
     public static function render(): void
@@ -174,9 +175,59 @@ final class ApplicationsScreen
                 '<a class="button" href="%s">Corriger</a>',
                 esc_url(ApplicationEditor::url((int) $row['id']))
             );
+
+            self::renderCancel((int) $row['id']);
         }
 
         echo '</div>';
+    }
+
+    /**
+     * Annuler un dossier non activé.
+     *
+     * L'écran de correction promettait déjà cette sortie — « pour corriger un
+     * dossier validé, il faut l'annuler et en déposer une nouvelle » — sans que
+     * rien ne la propose : le statut existait en base, aucun geste ne le posait.
+     * Le bureau y arrive par deux chemins : le doublon déposé par un adhérent
+     * inquiet, et le dossier de test resté dans la liste.
+     */
+    private static function renderCancel(int $applicationId): void
+    {
+        ?>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+              class="sub-step-form"
+              onsubmit="return confirm('Annuler ce dossier ? Il restera visible, marqué « annulée ».');">
+            <input type="hidden" name="action" value="sub_cancel_membership">
+            <input type="hidden" name="application_id" value="<?php echo esc_attr((string) $applicationId); ?>">
+            <?php wp_nonce_field('sub_cancel_membership_' . $applicationId); ?>
+            <input type="text" name="reason" placeholder="Motif" style="width:120px;">
+            <button class="button">Annuler</button>
+        </form>
+        <?php
+    }
+
+    /**
+     * Annulation prononcée par le bureau.
+     */
+    public static function handleCancel(): void
+    {
+        $applicationId = isset($_POST['application_id']) ? absint($_POST['application_id']) : 0;
+
+        check_admin_referer('sub_cancel_membership_' . $applicationId);
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $reason = isset($_POST['reason'])
+            ? sanitize_text_field(wp_unslash($_POST['reason']))
+            : '';
+
+        try {
+            (new ApplicationService())->cancel($applicationId, get_current_user_id(), $reason);
+        } catch (\RuntimeException $e) {
+            wp_die(esc_html($e->getMessage()), 409);
+        }
+
+        wp_safe_redirect(AdminUi::tabUrl(self::SLUG, self::TAB));
+        exit;
     }
 
     /**

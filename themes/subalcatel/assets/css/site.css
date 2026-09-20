@@ -565,6 +565,94 @@
 	padding: var(--wp--preset--spacing--30);
 }
 
+/* Cinq cartes de front sur 1200 px, ce sont cinq colonnes de 220 px : le titre
+   « Nage avec palmes » y passe à la ligne, et les quatre cartes qui tenaient
+   très bien à quatre y perdent un quart de leur largeur. On garde donc la
+   largeur d'une carte sur trois, et la cinquième passe à la ligne — 3 + 2,
+   centrées, plutôt que 5 à l'étroit.
+
+   `flex-grow: 0` vaut pour tous les rangs incomplets, ici comme à la largeur
+   d'une tablette où les cartes vont déjà par deux : sans lui, celles qui
+   ferment la grille s'étirent pour remplir leur ligne et ne ressemblent plus à
+   leurs voisines du dessus. */
+@media (min-width: 600px) {
+	.sub-cartes--cinq.wp-block-columns {
+		justify-content: center;
+	}
+
+	.sub-cartes--cinq.wp-block-columns > .wp-block-column {
+		flex-grow: 0;
+	}
+}
+
+@media (min-width: 982px) {
+	/* `!important` : au-delà de 782px, WordPress interdit lui-même le retour à
+	   la ligne des colonnes, avec la même arme. */
+	.sub-cartes--cinq.wp-block-columns {
+		flex-wrap: wrap !important;
+	}
+
+	.sub-cartes--cinq.wp-block-columns > .wp-block-column {
+		flex-basis: calc((100% - 2 * var(--wp--style--block-gap, 24px)) / 3);
+	}
+}
+
+/* À la une — voir le motif `subalcatel/une-actualite`.
+
+   L'encart n'utilise pas `is-style-sub-carte` : ce style pose une marge
+   intérieure sur chacun de ses enfants directs, or ici les enfants directs sont
+   les deux colonnes, et la photo doit toucher le bord du cadre. */
+.sub-une {
+	background: var(--sub-blanc);
+	border-radius: var(--sub-r-carte);
+	box-shadow: var(--sub-ombre-1);
+	overflow: hidden;
+	gap: 0;
+}
+
+.sub-une .wp-block-post-featured-image {
+	height: 100%;
+	margin: 0;
+}
+
+/* La photo remplit la hauteur du texte voisin. La hauteur minimale tient le
+   cadre quand l'article est court : sans elle, un extrait de deux lignes
+   écraserait l'image à une bande. */
+.sub-une .wp-block-post-featured-image img,
+.sub-une .sub-vignette--repli {
+	width: 100%;
+	height: 100%;
+	min-height: 260px;
+	border-radius: 0;
+}
+
+.sub-une .wp-block-post-featured-image img {
+	object-fit: cover;
+}
+
+/* Le repli se cale sur la hauteur du cadre, et non sur son 3/2 habituel. */
+.sub-une .sub-vignette--repli {
+	aspect-ratio: auto;
+}
+
+.sub-une > .wp-block-column:last-child {
+	padding: var(--wp--preset--spacing--40);
+}
+
+/* Empilé, l'encart redevient une carte ordinaire : photo en tête, texte
+   dessous, et une image qui ne mange plus la moitié de l'écran. */
+@media (max-width: 781px) {
+	.sub-une .wp-block-post-featured-image img,
+	.sub-une .sub-vignette--repli {
+		min-height: 0;
+		aspect-ratio: 3 / 2;
+	}
+
+	.sub-une > .wp-block-column:last-child {
+		padding: var(--wp--preset--spacing--30);
+	}
+}
+
 /* Grille de cartes : les colonnes de WordPress passent en une seule
    colonne sous 782px, ce qui est brutal pour 3 ou 4 cartes. */
 @media (min-width: 600px) and (max-width: 981px) {

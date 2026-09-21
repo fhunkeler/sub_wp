@@ -54,6 +54,7 @@ use Subalcatel\Club\Support\Hardening;
 use Subalcatel\Club\Support\LoginAudit;
 use Subalcatel\Club\Support\LoginThrottle;
 use Subalcatel\Club\Support\LoginUrl;
+use Subalcatel\Club\Support\TwoFactorGate;
 use Subalcatel\Club\Support\PasswordPolicy;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
@@ -109,6 +110,12 @@ final class Plugin
         // y compris sur les écrans natifs de réinitialisation et de profil.
         LoginAudit::register();
         PasswordPolicy::register();
+
+        // Impose le second facteur aux comptes qui voient les données des
+        // adhérents. Inerte tant que l'extension `two-factor` n'est pas active :
+        // elle seule sait en poser un, et une exigence sans moyen de s'y
+        // conformer ferme l'administration à tout le monde.
+        TwoFactorGate::register();
 
         // Signale les versions publiées sur le dépôt du club, et ferme au
         // passage la porte des mises à jour venues de wordpress.org par

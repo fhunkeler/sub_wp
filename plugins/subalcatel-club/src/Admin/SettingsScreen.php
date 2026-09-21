@@ -12,6 +12,7 @@ use Subalcatel\Club\Setup\SiteBuilder;
 use Subalcatel\Club\Setup\SiteMap;
 use Subalcatel\Club\Support\Audit;
 use Subalcatel\Club\Support\SecuritySettings;
+use Subalcatel\Club\Support\TwoFactorGate;
 
 /**
  * Réglages du club : les référentiels que le bureau fait vivre.
@@ -546,6 +547,67 @@ final class SettingsScreen
                 </tr>
             </table>
 
+            <h2>Double authentification</h2>
+            <p class="description">
+                Le second facteur est le seul rempart qui tienne quand un mot de passe est
+                connu de l’attaquant — ce qui était le cas sur l’ancien site. Il est porté par
+                l’extension <code>two-factor</code> ; le club décide seulement à qui il s’impose.
+            </p>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">Comptes concernés</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="two_factor_required" value="1"
+                                <?php checked($s['two_factor_required']); ?>>
+                            Exiger un second facteur des comptes qui accèdent aux données des adhérents
+                        </label>
+                        <p class="description">
+                            Certificats médicaux, annuaire, exports, gestion des comptes, administration
+                            du site. Tant que son second facteur n’est pas activé, un tel compte n’atteint
+                            que son propre profil. <strong>Les autres membres ne sont pas concernés.</strong>
+                        </p>
+                        <?php if (!TwoFactorGate::extensionDisponible()) : ?>
+                            <p class="description" style="color:#b32d2e">
+                                L’extension <code>two-factor</code> n’est pas active : la règle reste sans
+                                effet, personne n’est bloqué. <a href="<?php echo esc_url(admin_url('plugin-install.php?s=two-factor&tab=search&type=term')); ?>">Installer l’extension</a>.
+                            </p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php $concernes = TwoFactorGate::comptesConcernes(); ?>
+                <?php if ($concernes !== []) : ?>
+                    <tr>
+                        <th scope="row">État des comptes</th>
+                        <td>
+                            <table class="widefat striped" style="max-width:40em">
+                                <thead>
+                                    <tr><th scope="col">Compte</th><th scope="col">Second facteur</th></tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($concernes as $ligne) : ?>
+                                    <tr>
+                                        <td><?php echo esc_html($ligne['user']->display_name); ?>
+                                            <span class="description">(<?php echo esc_html($ligne['user']->user_login); ?>)</span>
+                                        </td>
+                                        <td><?php echo $ligne['protege']
+                                            ? '<span style="color:#00734c">activé</span>'
+                                            : '<strong style="color:#b32d2e">pas encore</strong>'; ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <p class="description">
+                                Chacun l’active depuis <em>son</em> profil : personne, pas même un
+                                administrateur, ne peut poser le second facteur d’un autre — ce serait
+                                le connaître.
+                            </p>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </table>
+
             <h2>Ralentisseur de connexion</h2>
             <p class="description">
                 Contre la devinette de mot de passe. Ce n’est pas un pare-feu : un vrai WAF
@@ -624,6 +686,7 @@ final class SettingsScreen
             'password_min_length'      => $_POST['password_min_length'] ?? 12,
             'password_similarity'      => $_POST['password_similarity'] ?? '',
             'password_breach_check'    => $_POST['password_breach_check'] ?? '',
+            'two_factor_required'      => $_POST['two_factor_required'] ?? '',
             'throttle_enabled'         => $_POST['throttle_enabled'] ?? '',
             'throttle_max_attempts'    => $_POST['throttle_max_attempts'] ?? 8,
             'throttle_max_ip_attempts' => $_POST['throttle_max_ip_attempts'] ?? 30,

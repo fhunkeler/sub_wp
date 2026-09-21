@@ -93,6 +93,30 @@ forfait de -58 €, puis 14 € sur le prêt de bloc et 40 % sur le détendeur e
 gilet. C'est l'exact équivalent de la formule OSMembership
 `-58 - [BLOC]*14/36 - [DETENDEUR]*0.40 - [GILET]*0.40`, saisissable à la souris.
 
+## Double authentification
+
+Le second facteur vient de l'extension **`two-factor`** de WordPress.org (TOTP +
+codes de secours) ; elle n'est pas embarquée et doit être installée sur le site :
+
+```bash
+wp plugin install two-factor --activate
+```
+
+L'extension fournit le facteur mais ne l'impose à personne. La règle du club est
+portée par `Support\TwoFactorGate` : tout compte détenant `manage_options`,
+`sub_manage_accounts`, `sub_view_medical_certificate` ou `sub_export_members`
+n'atteint que son propre profil tant qu'il n'a pas activé son second facteur.
+Les autres membres ne sont pas concernés.
+
+Trois garde-fous, parce qu'un durcissement qui enferme dehors ne sert personne :
+la règle est **inerte tant que l'extension n'est pas active**, l'écran de profil
+reste toujours ouvert, et l'exigence se coupe depuis *Club → Réglages →
+Sécurité* — ou, porte claquée, en ligne de commande :
+
+```bash
+wp option patch update subalcatel_security two_factor_required 0
+```
+
 ## Tests
 
 ```bash
@@ -101,7 +125,7 @@ docker exec sub_demo_wp wp --allow-root eval-file wp-content/plugins/subalcatel-
 
 Une suite par domaine, dans `tests/` — `smoke-eligibility`, `smoke-pricing`,
 `smoke-application`, `smoke-amendment`, `smoke-campaigns`, `smoke-events`, `smoke-outing`, `smoke-roster`,
-`smoke-charts`, `smoke-stats`, `smoke-widget`… Elles nettoient leurs données et se lancent de
+`smoke-charts`, `smoke-stats`, `smoke-widget`, `smoke-two-factor`… Elles nettoient leurs données et se lancent de
 la même façon.
 
 Ce sont des tests de fumée, pas des tests unitaires : ils vérifient que les
@@ -124,6 +148,7 @@ sera stabilisé.
 | Campagnes : création, duplication, ouverture | Livré |
 | Formules, options et remises configurables | Livré |
 | Journal d'audit | Livré |
+| Double authentification exigée du bureau et des administrateurs | Livré |
 | Diagnostic des mises à jour — quota GitHub, dernier appel, jeton | Livré |
 | Tableau de bord : 6 blocs actionnables et 4 courbes | Livré |
 | Bloc « Club » sur le tableau de bord de WordPress : compteurs et raccourcis | Livré |

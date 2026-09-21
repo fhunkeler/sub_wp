@@ -35,6 +35,7 @@ final class SecuritySettings
      *   password_min_length: int,
      *   password_similarity: bool,
      *   password_breach_check: bool,
+     *   two_factor_required: bool,
      *   throttle_enabled: bool,
      *   throttle_max_attempts: int,
      *   throttle_max_ip_attempts: int,
@@ -48,6 +49,10 @@ final class SecuritySettings
             'password_min_length'      => 12,
             'password_similarity'      => true,
             'password_breach_check'    => true,
+            // Armée par défaut, mais sans effet tant que l'extension `two-factor`
+            // n'est pas active : voir [TwoFactorGate]. Un durcissement qui
+            // s'applique sans moyen de s'y conformer enferme dehors.
+            'two_factor_required'      => true,
             'throttle_enabled'         => true,
             'throttle_max_attempts'    => 8,
             'throttle_max_ip_attempts' => 30,
@@ -79,6 +84,11 @@ final class SecuritySettings
     public static function breachCheckEnabled(): bool
     {
         return (bool) self::all()['password_breach_check'];
+    }
+
+    public static function twoFactorRequired(): bool
+    {
+        return (bool) self::all()['two_factor_required'];
     }
 
     public static function throttleEnabled(): bool
@@ -148,6 +158,7 @@ final class SecuritySettings
             ),
             'password_similarity'      => !empty($input['password_similarity']),
             'password_breach_check'    => !empty($input['password_breach_check']),
+            'two_factor_required'      => !empty($input['two_factor_required']),
             'throttle_enabled'         => !empty($input['throttle_enabled']),
             'throttle_max_attempts'    => self::clamp(
                 (int) ($input['throttle_max_attempts'] ?? 8),

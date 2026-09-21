@@ -16,7 +16,7 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 12;
+    private const VERSION        = 13;
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -91,6 +91,7 @@ final class Schema
             valid_until date NOT NULL,
             reminder_days varchar(100) NOT NULL default '30',
             status varchar(20) NOT NULL default 'draft',
+            payment_links longtext,
             created_at datetime NOT NULL default CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             UNIQUE KEY slug (slug),
@@ -419,7 +420,67 @@ final class Schema
         // que les suppressions de comptes d'avant ont laissé derrière elles.
         MemberPurge::repairOrphans();
 
+        self::movePaymentLinksToCampaign();
+
         update_option(self::VERSION_OPTION, self::VERSION, false);
+    }
+
+    /**
+     * Porte les liens de paiement des réglages du site sur la campagne.
+     *
+     * La version 0.24 les tenait dans une option unique. C'était une erreur de
+     * rattachement : HelloAsso ouvre une campagne d'adhésion et une boutique CE
+     * Orange par saison, exactement comme le club ouvre une campagne par saison.
+     * Un réglage global n'a qu'une valeur à la fois — pendant la quinzaine où
+     * deux campagnes se chevauchent, l'une des deux encaisse au mauvais endroit.
+     *
+     * Ce qu'avait saisi le bureau n'est pas perdu : il revient sur la campagne
+     * ouverte, ou à défaut la plus récente — celle pour laquelle il l'avait
+     * saisi. L'option est ensuite retirée, pour qu'aucun écran ne puisse la
+     * relire et croire qu'elle fait encore foi.
+     */
+    private static function movePaymentLinksToCampaign(): void
+    {
+        $stored = get_option('subalcatel_payment_links', null);
+
+        if (!is_array($stored)) {
+            return;
+        }
+
+        $links = array_filter(array_map('strval', $stored));
+
+        if ($links !== []) {
+            global $wpdb;
+            $p = $wpdb->prefix . 'sub_';
+
+            // La campagne ouverte d'abord ; sinon la plus récente. Les closes
+            // gardent le vide : leurs dossiers sont soldés, et un lien de
+            // paiement n'y sert plus qu'à égarer.
+            $campaignId = (int) $wpdb->get_var(
+                "SELECT id FROM {$p}campaigns
+                 ORDER BY status = 'open' DESC, valid_from DESC, id DESC LIMIT 1"
+            );
+
+            if ($campaignId > 0) {
+                // Le « n'a pas déjà ses liens » se teste ici, pas dans le
+                // WHERE : `wpdb` y écrirait `payment_links = NULL`, qui ne
+                // rapproche jamais rien.
+                $already = (string) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(payment_links, '') FROM {$p}campaigns WHERE id = %d",
+                    $campaignId
+                ));
+
+                if ($already === '') {
+                    $wpdb->update(
+                        "{$p}campaigns",
+                        ['payment_links' => (string) wp_json_encode($links)],
+                        ['id' => $campaignId]
+                    );
+                }
+            }
+        }
+
+        delete_option('subalcatel_payment_links');
     }
 
     /**

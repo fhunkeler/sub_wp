@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\Option;
+use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -30,6 +31,7 @@ final class CampaignEditor
         add_action('admin_post_sub_option_delete', [self::class, 'handleOptionDelete']);
         add_action('admin_post_sub_discount_save', [self::class, 'handleDiscountSave']);
         add_action('admin_post_sub_discount_delete', [self::class, 'handleDiscountDelete']);
+        add_action('admin_post_sub_campaign_payment_links', [self::class, 'handlePaymentLinksSave']);
     }
 
     public static function url(int $campaignId, string $tab = 'plans'): string
@@ -61,7 +63,7 @@ final class CampaignEditor
 
         $tab   = sanitize_key($_GET['tab'] ?? 'plans');
         $repo  = new CampaignRepository();
-        $tabs  = ['plans' => 'Formules', 'options' => 'Options', 'discounts' => 'Remises'];
+        $tabs  = ['plans' => 'Formules', 'options' => 'Options', 'discounts' => 'Remises', 'payment' => 'Règlement'];
         ?>
         <div class="wrap sub-admin">
             <h1>
@@ -94,6 +96,7 @@ final class CampaignEditor
                 match ($tab) {
                     'options'   => self::renderOptions($campaignId, $repo),
                     'discounts' => self::renderDiscounts($campaignId, $repo),
+                    'payment'   => self::renderPaymentLinks($campaignId, $repo),
                     default     => self::renderPlans($campaignId, $repo),
                 };
                 ?>
@@ -663,6 +666,72 @@ final class CampaignEditor
         }
     }
 
+    // --------------------------------------------------------------- Règlement
+
+    /**
+     * Où l'adhérent paie cette campagne.
+     *
+     * HelloAsso ouvre une campagne d'adhésion et une boutique CE Orange par
+     * saison, sous une adresse neuve à chaque fois. Le lien appartient donc à
+     * la campagne, au même titre que ses tarifs : c'est elle qu'il encaisse.
+     */
+    private static function renderPaymentLinks(int $campaignId, CampaignRepository $repo): void
+    {
+        $links = $repo->paymentLinks($campaignId);
+        ?>
+        <p class="description">
+            Ces adresses s’affichent à l’adhérent dès que son dossier est déposé :
+            dans la confirmation à l’écran, dans son espace membre tant que le
+            règlement est attendu, et dans le courriel d’accusé de réception.
+            Chacune suit le mode de règlement qu’il a choisi — celui qui paie par
+            chèque ne voit pas le lien HelloAsso.
+        </p>
+
+        <p class="description">
+            Elles ne sont pas reprises à la <strong>duplication</strong> d’une campagne :
+            la saison suivante a ses propres pages HelloAsso, et recopier celles de
+            l’an passé enverrait les règlements sur la campagne close.
+            Une case vide n’affiche aucun lien — la consigne écrite reste, seule.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_campaign_payment_links">
+            <input type="hidden" name="campaign_id" value="<?php echo esc_attr((string) $campaignId); ?>">
+            <?php wp_nonce_field('sub_campaign_payment_links'); ?>
+
+            <table class="form-table" role="presentation">
+                <?php foreach (PaymentMethods::linkFields() as $method => $field) : ?>
+                    <?php $fieldId = 'sub-payment-link-' . $method; ?>
+                    <tr>
+                        <th scope="row">
+                            <label for="<?php echo esc_attr($fieldId); ?>">
+                                <?php echo esc_html($field['label']); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <input type="url" id="<?php echo esc_attr($fieldId); ?>"
+                                   name="links[<?php echo esc_attr($method); ?>]"
+                                   value="<?php echo esc_attr($links[$method] ?? ''); ?>"
+                                   class="large-text code" placeholder="https://www.helloasso.com/…">
+                            <p class="description"><?php echo esc_html($field['help']); ?></p>
+                            <?php if (($links[$method] ?? '') !== '') : ?>
+                                <p class="description">
+                                    <a href="<?php echo esc_url($links[$method]); ?>"
+                                       rel="noopener" target="_blank">Ouvrir la page pour vérifier</a>
+                                </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+
+            <p class="submit">
+                <button type="submit" class="button button-primary">Enregistrer les liens</button>
+            </p>
+        </form>
+        <?php
+    }
+
     // ---------------------------------------------------------------- Actions
 
     public static function handlePlanSave(): void
@@ -900,6 +969,43 @@ final class CampaignEditor
         Audit::log('discount.deleted', 'discount_rule', null, ['label' => $label]);
 
         AdminUi::redirect(self::SLUG, 'Remise supprimée.', false, ['campaign_id' => $campaignId, 'tab' => 'discounts']);
+    }
+
+    public static function handlePaymentLinksSave(): void
+    {
+        check_admin_referer('sub_campaign_payment_links');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $campaignId = absint($_POST['campaign_id'] ?? 0);
+        $posted     = wp_unslash($_POST['links'] ?? []);
+        $result     = PaymentMethods::sanitizeLinks(is_array($posted) ? $posted : []);
+
+        (new CampaignRepository())->savePaymentLinks($campaignId, $result['links']);
+
+        Audit::log('campaign.payment_links_saved', 'campaign', $campaignId, [
+            'liens_actifs' => count(array_filter($result['links'])),
+        ]);
+
+        // Une adresse refusée est vidée, pas retenue à moitié : on le dit, sinon
+        // le bureau repart en croyant son lien en place.
+        if ($result['rejected'] !== []) {
+            AdminUi::redirect(
+                self::SLUG,
+                sprintf(
+                    'Liens enregistrés, sauf : %s. Une adresse doit commencer par http:// ou https://.',
+                    implode(', ', array_map([PaymentMethods::class, 'label'], $result['rejected']))
+                ),
+                true,
+                ['campaign_id' => $campaignId, 'tab' => 'payment']
+            );
+        }
+
+        AdminUi::redirect(
+            self::SLUG,
+            'Liens de paiement enregistrés.',
+            false,
+            ['campaign_id' => $campaignId, 'tab' => 'payment']
+        );
     }
 
     /**

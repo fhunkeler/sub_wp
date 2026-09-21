@@ -413,6 +413,13 @@ final class MembershipForm
             if ($application !== null && (int) $application['user_id'] === get_current_user_id()) {
                 $method = (string) ($application['payment_method'] ?? '');
 
+                // Le lien vient de la campagne du dossier, pas de celle qui se
+                // trouve ouverte aujourd'hui : pendant la quinzaine où deux
+                // campagnes se chevauchent, elles n'encaissent pas au même
+                // endroit.
+                $link = (new CampaignRepository())
+                    ->paymentLink((int) $application['campaign_id'], $method);
+
                 // `instructionsHtml` rend déjà du HTML échappé, lien de
                 // paiement compris : le repasser à `esc_html` afficherait la
                 // balise au lieu du lien.
@@ -422,7 +429,7 @@ final class MembershipForm
                     esc_html((string) $application['reference']),
                     esc_html(self::euro((float) $application['total_amount'])),
                     esc_html(PaymentMethods::label($method)),
-                    PaymentMethods::instructionsHtml($method)
+                    PaymentMethods::instructionsHtml($method, $link)
                 );
             }
         }

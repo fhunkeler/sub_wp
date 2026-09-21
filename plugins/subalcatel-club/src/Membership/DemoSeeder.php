@@ -46,6 +46,14 @@ final class DemoSeeder
             'valid_until'   => '2027-12-31',
             'reminder_days' => '30',
             'status'        => 'open',
+            // Les pages HelloAsso que le bureau a ouvertes pour cette saison :
+            // la campagne d'adhésion, et la boutique du CE Orange qui porte la
+            // carte de niveau et l'assurance. Elles appartiennent à la campagne
+            // — la saison suivante aura les siennes, sous d'autres adresses.
+            'payment_links' => (string) wp_json_encode([
+                'helloasso' => 'https://www.helloasso.com/associations/asac-tregor-subalcatel/adhesions/adhesion-2026-2027',
+                'ce_orange' => 'https://www.helloasso.com/associations/asac-tregor-subalcatel/boutiques/ce-orange-saison-2026-2027',
+            ]),
         ]);
         $campaignId = (int) $wpdb->insert_id;
 

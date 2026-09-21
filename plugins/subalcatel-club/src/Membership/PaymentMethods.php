@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Membership;
 
 /**
- * Modes de règlement d'une adhésion, et l'adresse où l'on paie.
+ * Modes de règlement d'une adhésion, et ce qu'on dit à l'adhérent pour chacun.
  *
  * Le club en écarte deux volontairement : l'espèce, qui ne laisse pas de trace
  * exploitable pour la trésorerie d'une association, et le virement, dont le
@@ -13,11 +13,11 @@ namespace Subalcatel\Club\Membership;
  * Ils restent nommés plus bas, parce que des règlements anciens les portent et
  * qu'un export ne doit pas afficher un code technique à leur place.
  *
- * Les adresses de paiement en ligne, elles, changent chaque saison : HelloAsso
- * ouvre une campagne d'adhésion et une boutique CE Orange par exercice, avec
- * une URL neuve à chaque fois. Les écrire en dur obligerait le club à demander
- * une livraison pour un lien — elles sont donc en réglage, les adresses de la
- * saison en cours servant seulement de valeurs de départ.
+ * Les adresses de paiement en ligne, elles, ne sont pas ici : HelloAsso ouvre
+ * une campagne d'adhésion et une boutique CE Orange **par saison**, comme le
+ * club ouvre une campagne par saison. Elles vivent donc sur la campagne, avec
+ * les tarifs et les options qu'elles encaissent — voir [CampaignRepository].
+ * Cette classe ne fait que les mettre en forme, quand on les lui donne.
  */
 final class PaymentMethods
 {
@@ -32,20 +32,6 @@ final class PaymentMethods
     private const RETIRED = [
         'virement' => 'Virement',
         'especes'  => 'Espèces',
-    ];
-
-    private const LINKS_OPTION = 'subalcatel_payment_links';
-
-    /**
-     * Adresses de la saison 2026-2027, telles que le bureau les a ouvertes.
-     *
-     * Dès que le bureau enregistre l'onglet « Règlement », c'est sa saisie qui
-     * fait foi — y compris quand elle vide un lien.
-     */
-    private const DEFAULT_LINKS = [
-        'helloasso' => 'https://www.helloasso.com/associations/asac-tregor-subalcatel/adhesions/adhesion-2026-2027',
-        'cheque'    => '',
-        'ce_orange' => 'https://www.helloasso.com/associations/asac-tregor-subalcatel/boutiques/ce-orange-saison-2026-2027',
     ];
 
     /**
@@ -75,39 +61,7 @@ final class PaymentMethods
     }
 
     /**
-     * Les adresses de paiement en ligne, mode par mode.
-     *
-     * Un mode sans adresse — le chèque — rend une chaîne vide : l'absence de
-     * lien est un état normal, pas une configuration manquante.
-     *
-     * @return array<string, string>
-     */
-    public static function links(): array
-    {
-        $stored = get_option(self::LINKS_OPTION, null);
-
-        if (!is_array($stored)) {
-            return self::DEFAULT_LINKS;
-        }
-
-        $links = [];
-
-        foreach (array_keys(self::OFFERED) as $method) {
-            $links[$method] = array_key_exists($method, $stored)
-                ? (string) $stored[$method]
-                : (self::DEFAULT_LINKS[$method] ?? '');
-        }
-
-        return $links;
-    }
-
-    public static function link(string $method): string
-    {
-        return self::links()[$method] ?? '';
-    }
-
-    /**
-     * Ce que l'onglet « Règlement » propose de remplir, mode par mode.
+     * Ce que l'onglet « Règlement » d'une campagne propose de remplir.
      *
      * Le chèque y figure comme les autres : rien n'interdit au club d'ouvrir un
      * jour une page pour lui, et l'écarter d'avance obligerait à rouvrir le code
@@ -121,8 +75,7 @@ final class PaymentMethods
         return [
             'helloasso' => [
                 'label' => 'HelloAsso — adhésion',
-                'help'  => 'La page de la campagne d’adhésion de la saison. '
-                    . 'Elle change d’adresse à chaque saison : reprenez celle que HelloAsso affiche.',
+                'help'  => 'La page de la campagne d’adhésion HelloAsso qui encaisse cette saison.',
             ],
             'cheque'    => [
                 'label' => 'Chèque',
@@ -137,17 +90,19 @@ final class PaymentMethods
     }
 
     /**
-     * Enregistre les adresses saisies par le bureau.
+     * Ramène une saisie à ce qu'on accepte d'enregistrer.
      *
      * Une adresse mal recopiée est écartée plutôt que retenue : un lien de
      * paiement cassé se remarque trop tard, quand l'adhérent a déjà renoncé.
      * Seules http(s) passent — un `javascript:` collé par mégarde n'a rien à
      * faire dans un lien qu'on donne à cliquer.
      *
+     * Ne touche à rien : c'est l'appelant qui enregistre, sur la campagne.
+     *
      * @param array<string, mixed> $links
-     * @return array{saved: array<string, string>, rejected: list<string>}
+     * @return array{links: array<string, string>, rejected: list<string>}
      */
-    public static function saveLinks(array $links): array
+    public static function sanitizeLinks(array $links): array
     {
         $clean    = [];
         $rejected = [];
@@ -169,9 +124,39 @@ final class PaymentMethods
             $clean[$method] = esc_url_raw($url);
         }
 
-        update_option(self::LINKS_OPTION, $clean, false);
+        return ['links' => $clean, 'rejected' => $rejected];
+    }
 
-        return ['saved' => $clean, 'rejected' => $rejected];
+    /**
+     * Les adresses d'une campagne, lues depuis sa colonne `payment_links`.
+     *
+     * Un mode sans adresse rend une chaîne vide : l'absence de lien est un état
+     * normal — le chèque n'en aura jamais, et une campagne en brouillon n'en a
+     * pas encore.
+     *
+     * @return array<string, string>
+     */
+    public static function decodeLinks(mixed $json): array
+    {
+        $stored = is_string($json) && $json !== ''
+            ? (array) (json_decode($json, true) ?: [])
+            : [];
+
+        $links = [];
+
+        foreach (array_keys(self::OFFERED) as $method) {
+            $links[$method] = (string) ($stored[$method] ?? '');
+        }
+
+        return $links;
+    }
+
+    /**
+     * @param array<string, string> $links
+     */
+    public static function encodeLinks(array $links): string
+    {
+        return (string) wp_json_encode(array_filter($links, static fn (string $url): bool => $url !== ''));
     }
 
     private static function isWebUrl(string $url): bool
@@ -186,10 +171,9 @@ final class PaymentMethods
      * En texte : c'est la version qui part en courriel, où l'adresse doit se
      * lire telle quelle. La version cliquable est [instructionsHtml].
      */
-    public static function instructions(string $method): string
+    public static function instructions(string $method, string $link = ''): string
     {
         $text = self::sentence($method);
-        $link = self::link($method);
 
         return $link === '' ? $text : $text . ' ' . $link;
     }
@@ -200,10 +184,9 @@ final class PaymentMethods
      * Rendue déjà échappée : les appelants l'insèrent telle quelle, sans
      * repasser par `esc_html` qui afficherait la balise au lieu du lien.
      */
-    public static function instructionsHtml(string $method): string
+    public static function instructionsHtml(string $method, string $link = ''): string
     {
         $html = esc_html(self::sentence($method));
-        $link = self::link($method);
 
         if ($link === '') {
             return $html;

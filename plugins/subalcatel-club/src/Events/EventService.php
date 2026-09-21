@@ -833,8 +833,7 @@ final class EventService
             // c'est précisément ce qui sépare le public « éligible » du public
             // « élargi », et annoncer une sortie technique à tous est parfois
             // ce qu'on veut : elle donne envie de passer le niveau.
-            if (self::normalizeVisibility((string) ($event['visibility'] ?? '')) === self::VISIBILITY_OFFICE
-                && !$this->mayView($event, $userId)) {
+            if (self::isOfficeOnly($event) && !$this->mayView($event, $userId)) {
                 continue;
             }
 
@@ -1029,6 +1028,17 @@ final class EventService
     }
 
     /**
+     * Les prochains événements publiés, tels que ce lecteur doit les voir.
+     *
+     * Un visiteur non connecté n'a pas d'éligibilité : on ne lui demande ni
+     * niveau ni fonction, et une sortie technique s'annonce à lui comme aux
+     * autres — la voir donne parfois envie de passer le niveau. C'est le même
+     * arbitrage que pour les annonces par courriel : seule la réunion du
+     * bureau lui reste cachée, cette visibilité-là ne se contourne nulle part.
+     *
+     * Une fois connecté, il est jugé par `mayView()`, qui tient compte de son
+     * niveau et de ses fonctions : le public se resserre, il ne s'élargit pas.
+     *
      * @return list<array<string, mixed>>
      */
     public function upcoming(int $limit = 20, int $viewerId = 0): array
@@ -1044,7 +1054,10 @@ final class EventService
         ), ARRAY_A) ?: [];
 
         if ($viewerId === 0) {
-            return $events;
+            return array_values(array_filter(
+                $events,
+                static fn (array $event): bool => !self::isOfficeOnly($event)
+            ));
         }
 
         return array_values(array_filter(
@@ -1119,6 +1132,21 @@ final class EventService
     private static function isOffice(int $userId): bool
     {
         return user_can($userId, 'sub_create_governance_event');
+    }
+
+    /**
+     * Une réunion du bureau, qui ne s'annonce qu'à lui.
+     *
+     * La seule visibilité infranchissable : elle ne dépend de personne qui
+     * regarde, seulement de l'événement, et vaut donc aussi pour un visiteur
+     * dont on ne sait rien.
+     *
+     * @param array<string, mixed> $event
+     */
+    private static function isOfficeOnly(array $event): bool
+    {
+        return self::normalizeVisibility((string) ($event['visibility'] ?? ''))
+            === self::VISIBILITY_OFFICE;
     }
 
     /**

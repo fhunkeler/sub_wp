@@ -76,8 +76,10 @@ final class MyMembership
         echo self::feedback(); // déjà échappé
         self::renderCurrent($current, $service);
 
-        if ($applications !== []) {
-            self::renderHistory($applications);
+        $history = self::pastMemberships($applications);
+
+        if ($history !== []) {
+            self::renderHistory($history);
         }
 
         echo '</div>';
@@ -322,6 +324,34 @@ final class MyMembership
             <?php endforeach; ?>
         </ul>
         <?php
+    }
+
+    /**
+     * Ce qui a droit de figurer sous « Adhésions précédentes ».
+     *
+     * Un dossier annulé ou refusé n'a jamais été une adhésion. Il porte pourtant
+     * une date de fin de validité — celle de sa campagne, recopiée au dépôt —,
+     * si bien que l'historique l'affichait comme les vraies saisons, date de
+     * validité comprise : l'adhérent y lisait une année réglée là où il n'y
+     * avait qu'une saisie abandonnée. Le bureau en garde la trace côté
+     * administration, où elle sert ; ici, elle ne fait qu'induire en erreur.
+     *
+     * @param list<array<string, mixed>> $applications
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function pastMemberships(array $applications): array
+    {
+        $abandonnes = [
+            ApplicationService::STATUS_CANCELLED,
+            ApplicationService::STATUS_REFUSED,
+        ];
+
+        return array_values(array_filter(
+            $applications,
+            static fn (array $application): bool
+                => !in_array((string) $application['status'], $abandonnes, true)
+        ));
     }
 
     /**

@@ -97,7 +97,9 @@ Le corps reste libre, et c'est là que se dit le pourquoi — le sujet ne fait
 qu'annoncer la nature du changement.
 
 Tant que la majeure est `0`, une rupture ne monte qu'en mineure : annoncer 1.0
-dit « cette interface est stable », ce qui se décide et ne se déduit pas.
+dit « cette interface est stable », ce qui se décide et ne se déduit pas. Cette
+décision-là s'écrit dans `version.py`, au `PLANCHER` — voir *Publier une
+version*.
 
 Le contrôle est **bloquant** sur une pull request. Le hook `commit-msg` le
 rejoue en local, où corriger coûte encore un `git commit --amend`.
@@ -112,6 +114,14 @@ dans les en-têtes, commité, étiqueté, et l'archive part en release.
 
 Publier l'extension seule, ou le thème seul, ne se décide donc pas : cela
 découle de ce que les commits ont touché.
+
+**La seule chose qui se décide, c'est le passage d'un cap.** Un palier majeur
+ne sort jamais du calcul tant que la majeure vaut `0` : « cette interface est
+stable » ne s'attend pas d'un point d'exclamation dans un message. Cela
+s'écrit dans le `PLANCHER` de `version.py` — un numéro au-dessous duquel la
+prochaine version ne descendra pas. L'extension y est passée en `1.0.0` au
+départ en production ; le calcul l'a franchi une fois, et le plancher n'a plus
+d'effet depuis.
 
 **Ce qui « a changé » se juge sur l'archive, pas sur le dépôt.** Un commit qui
 ne touche que `tests/` ou `.github/` ne publie rien : ces fichiers ne partent

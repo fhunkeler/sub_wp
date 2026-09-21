@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
+use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -261,6 +262,10 @@ final class CampaignsScreen
 
         $newId = (int) $wpdb->insert_id;
 
+        // `payment_links` n'est pas de la partie : la saison suivante ouvre ses
+        // propres pages HelloAsso, et recopier celles de l'an passé enverrait
+        // les règlements sur une campagne close — sans que rien ne se voie, ni
+        // du bureau ni de l'adhérent.
         foreach (['plans', 'options', 'discount_rules'] as $table) {
             $rows = $wpdb->get_results(
                 $wpdb->prepare("SELECT * FROM {$p}{$table} WHERE campaign_id = %d", $id),
@@ -300,7 +305,21 @@ final class CampaignsScreen
         $wpdb->update($wpdb->prefix . 'sub_campaigns', ['status' => $status], ['id' => $id]);
         Audit::log('campaign.status', 'campaign', $id, ['status' => $status]);
 
-        self::back($status === 'open' ? 'Campagne ouverte.' : 'Campagne fermée.');
+        if ($status !== 'open') {
+            self::back('Campagne fermée.');
+        }
+
+        // Ouvrir une campagne dont aucune page de paiement n'est renseignée
+        // n'est pas une faute — le club peut n'encaisser que par chèque. Mais
+        // c'est presque toujours l'oubli qui suit une duplication, qui ne
+        // reprend pas les liens de la saison passée. D'où le rappel, sans
+        // blocage : les inscriptions ne peuvent pas attendre une URL.
+        $links = (new CampaignRepository())->paymentLinks($id);
+
+        self::back(array_filter($links) === []
+            ? 'Campagne ouverte. Aucun lien de paiement n’y est renseigné : '
+                . 'les adhérents ne verront que la consigne écrite. Onglet « Règlement ».'
+            : 'Campagne ouverte.');
     }
 
     public static function handleDelete(): void

@@ -141,6 +141,52 @@ final class CampaignRepository
     }
 
     /**
+     * Les adresses de paiement en ligne de la campagne, mode par mode.
+     *
+     * Elles sont rattachées à la campagne et non aux réglages du site parce
+     * qu'elles en suivent le rythme : HelloAsso ouvre une campagne d'adhésion
+     * et une boutique CE Orange par saison, sous une adresse neuve à chaque
+     * fois. Un réglage global aurait fait pointer les dossiers de la saison
+     * passée vers la page de la saison en cours — et l'inverse pendant la
+     * quinzaine où les deux campagnes se chevauchent.
+     *
+     * @return array<string, string>
+     */
+    public function paymentLinks(int $campaignId): array
+    {
+        global $wpdb;
+
+        $json = $wpdb->get_var($wpdb->prepare(
+            "SELECT payment_links FROM {$this->prefix}campaigns WHERE id = %d",
+            $campaignId
+        ));
+
+        return PaymentMethods::decodeLinks($json);
+    }
+
+    /**
+     * L'adresse d'un mode, ou une chaîne vide s'il n'en a pas.
+     */
+    public function paymentLink(int $campaignId, string $method): string
+    {
+        return $this->paymentLinks($campaignId)[$method] ?? '';
+    }
+
+    /**
+     * @param array<string, string> $links Déjà passées par `PaymentMethods::sanitizeLinks`.
+     */
+    public function savePaymentLinks(int $campaignId, array $links): void
+    {
+        global $wpdb;
+
+        $wpdb->update(
+            "{$this->prefix}campaigns",
+            ['payment_links' => PaymentMethods::encodeLinks($links)],
+            ['id' => $campaignId]
+        );
+    }
+
+    /**
      * @return list<DiscountRule>
      */
     public function discountRules(int $campaignId): array

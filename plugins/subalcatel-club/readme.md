@@ -35,9 +35,9 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | **Club → Membres → Annuaire** | Liste, fiche, attribution des niveaux, historique des brevets |
 | **Club → Adhésions → Campagnes** | Liste, création, **duplication annuelle**, suppression d'une campagne sans dossier |
 | **Configurer une campagne** | Formules, options et remises — tout se règle ici |
+| **Configurer une campagne → Règlement** | Les liens HelloAsso — adhésion, boutique CE Orange — que l'adhérent suit pour payer. Ils appartiennent à la campagne, comme les tarifs qu'ils encaissent |
 | **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes, origine des adhésions et délais d'encaissement |
 | **Club → Réglages → Mises à jour** | Pourquoi le site se met à jour, ou ne se met pas à jour : quota GitHub, dernier appel, jeton |
-| **Club → Réglages → Règlement** | Les liens HelloAsso — adhésion, boutique CE Orange — que l'adhérent suit pour payer : ils changent chaque saison, le bureau les change seul |
 
 ## Dérouler la démonstration
 
@@ -81,6 +81,12 @@ suivante est créée en brouillon, dates décalées d'un an, avec ses formules,
 options et remises. Ouvrir l'onglet *Options*, changer le tarif d'un prêt :
 seule la nouvelle campagne bouge, l'ancienne garde ses montants — donc la
 comptabilité de l'an passé aussi.
+
+L'onglet *Règlement* porte les pages HelloAsso qui encaissent cette campagne —
+l'adhésion, et la boutique du CE Orange pour la carte de niveau et l'assurance.
+La duplication ne les reprend pas, volontairement : la saison suivante ouvre ses
+propres pages, et recopier celles de l'an passé enverrait les règlements sur une
+campagne close. Ouvrir une campagne sans lien le rappelle, sans l'interdire.
 
 L'onglet *Remises* montre la remise Nokia telle qu'elle se configure : un
 forfait de -58 €, puis 14 € sur le prêt de bloc et 40 % sur le détendeur et le

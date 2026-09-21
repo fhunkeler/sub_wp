@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Membership\ApplicationService;
+use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\PaymentMethods;
 
 /**
@@ -107,7 +108,14 @@ final class MyMembership
             <?php self::renderStepper($status); ?>
 
             <?php if ($status === ApplicationService::STATUS_AWAITING_PAYMENT) : ?>
-                <?php $method = (string) ($application['payment_method'] ?? ''); ?>
+                <?php
+                $method = (string) ($application['payment_method'] ?? '');
+                // Le lien de la campagne DU dossier, pas de celle ouverte
+                // aujourd'hui : un dossier de la saison passée qui attend encore
+                // son règlement doit pointer sur la page qui l'encaisse.
+                $paymentLink = (new CampaignRepository())
+                    ->paymentLink((int) $application['campaign_id'], $method);
+                ?>
                 <div class="sub-notice sub-notice--waiting">
                     <strong>En attente de votre règlement</strong>
                     <p>
@@ -117,7 +125,7 @@ final class MyMembership
                         <?php else : ?>
                             .
                         <?php endif; ?>
-                        <?php echo PaymentMethods::instructionsHtml($method); // déjà échappé ?>
+                        <?php echo PaymentMethods::instructionsHtml($method, $paymentLink); // déjà échappé ?>
                     </p>
                 </div>
             <?php elseif ($status === ApplicationService::STATUS_REFUSED) : ?>

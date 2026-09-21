@@ -171,7 +171,10 @@ final class ApplicationService
             'montant'    => number_format($quote->total(), 2, ',', ' ') . ' €',
             'formule'    => $plan->title,
             'reglement'  => PaymentMethods::label($paymentMethod),
-            'consignes'  => PaymentMethods::instructions($paymentMethod),
+            'consignes'  => PaymentMethods::instructions(
+                $paymentMethod,
+                $this->campaigns->paymentLink($campaignId, $paymentMethod)
+            ),
         ], ['entity_type' => 'application', 'entity_id' => $applicationId]);
 
         return $applicationId;

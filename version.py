@@ -36,7 +36,9 @@ et un calcul qui échouerait dessus ne publierait plus rien du tout.
 
 **Tant que la majeure est 0**, une rupture ne monte qu'en mineure. Passer en
 1.0 dit « cette interface est stable » : c'est une décision, pas la
-conséquence d'un point d'exclamation.
+conséquence d'un point d'exclamation. Elle s'écrit donc ici, dans `PLANCHER` :
+un numéro au-dessous duquel la prochaine version ne descendra pas, que le
+calcul franchit une fois puis oublie.
 """
 
 from __future__ import annotations
@@ -170,6 +172,23 @@ def palier(messages: list[tuple[str, str]]) -> tuple[str, list[str]]:
             niveau = "mineure"
 
     return niveau, hors_convention
+
+
+# La décision de 1.0, écrite là où le calcul la lit.
+#
+# Le palier ne la produira jamais : {@see suivante} refuse de faire passer le
+# cap sur un point d'exclamation, tant que la majeure vaut 0. Annoncer 1.0 dit
+# « cette interface est stable » — cela se décide, et une décision se pose en
+# toutes lettres plutôt que de s'attendre d'un message de commit.
+#
+# Le plancher ne sert qu'une fois : dès que l'étiquette de la dernière release
+# l'a dépassé, le calcul repasse devant lui et il devient inerte. Il reste ici
+# comme trace de la décision, et parce que le retirer redonnerait au dépôt un
+# état où plus rien ne dit pourquoi le numéro a sauté.
+PLANCHER = {
+    "plugin": (1, 0, 0),  # mise en production du site du club, septembre 2026
+    "theme": None,        # déjà passé en 1.0 avant que ce calcul n'existe
+}
 
 
 def suivante(actuelle: tuple[int, int, int], niveau: str) -> tuple[int, int, int]:
@@ -359,7 +378,15 @@ def main() -> int:
         return 0
 
     niveau, hors_convention = palier(messages)
-    nouvelle = suivante(actuelle, niveau)
+    calculee = suivante(actuelle, niveau)
+    nouvelle = calculee
+    plancher = PLANCHER.get(paquet)
+
+    # Le plancher passe devant le palier, et une seule fois : voir {@see PLANCHER}.
+    if plancher is not None and calculee < plancher:
+        nouvelle = plancher
+        niveau = "plancher"
+
     texte = ".".join(str(nombre) for nombre in nouvelle)
 
     print(
@@ -368,6 +395,14 @@ def main() -> int:
         f"{'.'.join(str(n) for n in actuelle)} → {texte}",
         file=sys.stderr,
     )
+
+    if niveau == "plancher":
+        print(
+            f"  les commits donnaient {'.'.join(str(n) for n in calculee)} ; "
+            "le plancher déclaré passe devant — la stabilité s'annonce, elle ne "
+            "se déduit pas.",
+            file=sys.stderr,
+        )
 
     for sujet in hors_convention:
         print(f"  hors convention, compté comme correctif : {sujet}", file=sys.stderr)

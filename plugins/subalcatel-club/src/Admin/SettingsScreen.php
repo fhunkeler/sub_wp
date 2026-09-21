@@ -8,6 +8,7 @@ use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Frontend\Pages;
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Setup\SiteBuilder;
 use Subalcatel\Club\Setup\SiteMap;
 use Subalcatel\Club\Support\Audit;
@@ -38,6 +39,7 @@ final class SettingsScreen
         add_action('admin_post_sub_event_type_delete', [self::class, 'handleTypeDelete']);
         add_action('admin_post_sub_level_save', [self::class, 'handleLevelSave']);
         add_action('admin_post_sub_level_delete', [self::class, 'handleLevelDelete']);
+        add_action('admin_post_sub_payment_links_save', [self::class, 'handlePaymentLinksSave']);
         add_action('admin_post_sub_security_save', [self::class, 'handleSecuritySave']);
     }
 
@@ -53,6 +55,11 @@ final class SettingsScreen
                 'label'  => 'Types d’événement',
                 'cap'    => 'sub_manage_event_types',
                 'render' => [self::class, 'renderEventTypes'],
+            ],
+            'payment_links'              => [
+                'label'  => 'Règlement',
+                'cap'    => 'sub_manage_memberships',
+                'render' => [self::class, 'renderPaymentLinks'],
             ],
             DocumentsScreen::TAB_TYPES   => [
                 'label'  => 'Types de documents',
@@ -492,6 +499,104 @@ final class SettingsScreen
             admin_url('admin.php')
         ));
         exit;
+    }
+
+    // ------------------------------------------------------------- Règlement
+
+    /**
+     * Où l'adhérent paie, mode par mode.
+     *
+     * HelloAsso ouvre une campagne d'adhésion et une boutique CE Orange par
+     * saison, chacune sous une adresse neuve. Sans cet écran, le club devait
+     * demander une livraison pour changer deux liens en septembre.
+     */
+    public static function renderPaymentLinks(): void
+    {
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $links = PaymentMethods::links();
+        ?>
+        <h2>Liens de paiement en ligne</h2>
+
+        <p class="description">
+            Ces adresses s’affichent à l’adhérent dès que son dossier est déposé :
+            dans la confirmation à l’écran, dans son espace membre tant que le
+            règlement est attendu, et dans le courriel d’accusé de réception.
+            Chacune suit le mode de règlement que l’adhérent a choisi — celui qui
+            paie par chèque ne voit pas le lien HelloAsso.
+        </p>
+
+        <p class="description">
+            Laissez une case vide pour qu’aucun lien ne soit proposé : la consigne
+            écrite reste affichée, seule.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_payment_links_save">
+            <?php wp_nonce_field('sub_payment_links_save'); ?>
+
+            <table class="form-table" role="presentation">
+                <?php foreach (PaymentMethods::linkFields() as $method => $field) : ?>
+                    <?php $fieldId = 'sub-payment-link-' . $method; ?>
+                    <tr>
+                        <th scope="row">
+                            <label for="<?php echo esc_attr($fieldId); ?>">
+                                <?php echo esc_html($field['label']); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <input type="url" id="<?php echo esc_attr($fieldId); ?>"
+                                   name="links[<?php echo esc_attr($method); ?>]"
+                                   value="<?php echo esc_attr($links[$method] ?? ''); ?>"
+                                   class="large-text code" placeholder="https://www.helloasso.com/…">
+                            <p class="description"><?php echo esc_html($field['help']); ?></p>
+                            <?php if (($links[$method] ?? '') !== '') : ?>
+                                <p class="description">
+                                    <a href="<?php echo esc_url($links[$method]); ?>"
+                                       rel="noopener" target="_blank">Ouvrir la page pour vérifier</a>
+                                </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+
+            <p class="submit">
+                <button type="submit" class="button button-primary">Enregistrer les liens</button>
+            </p>
+        </form>
+        <?php
+    }
+
+    public static function handlePaymentLinksSave(): void
+    {
+        check_admin_referer('sub_payment_links_save');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $posted = wp_unslash($_POST['links'] ?? []);
+        $result = PaymentMethods::saveLinks(is_array($posted) ? $posted : []);
+
+        Audit::log('membership.payment_links_saved', 'membership', null, [
+            'liens_actifs' => count(array_filter($result['saved'])),
+        ]);
+
+        // Une adresse refusée est vidée, pas retenue à moitié : on le dit, sinon
+        // le bureau repart en croyant son lien en place.
+        if ($result['rejected'] !== []) {
+            $labels = array_map([PaymentMethods::class, 'label'], $result['rejected']);
+
+            AdminUi::redirect(
+                self::SLUG,
+                sprintf(
+                    'Liens enregistrés, sauf : %s. Une adresse doit commencer par http:// ou https://.',
+                    implode(', ', $labels)
+                ),
+                true,
+                ['tab' => 'payment_links']
+            );
+        }
+
+        AdminUi::redirect(self::SLUG, 'Liens de paiement enregistrés.', false, ['tab' => 'payment_links']);
     }
 
     // -------------------------------------------------------------- Sécurité

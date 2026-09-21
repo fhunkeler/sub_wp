@@ -115,7 +115,7 @@ final class MyMembership
                         <?php else : ?>
                             .
                         <?php endif; ?>
-                        <?php echo esc_html(PaymentMethods::instructions($method)); ?>
+                        <?php echo PaymentMethods::instructionsHtml($method); // déjà échappé ?>
                     </p>
                 </div>
             <?php elseif ($status === ApplicationService::STATUS_REFUSED) : ?>

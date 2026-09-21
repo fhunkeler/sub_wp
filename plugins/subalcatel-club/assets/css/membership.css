@@ -371,6 +371,15 @@
 	text-decoration: underline;
 }
 
+/* Le lien de paiement est l'action attendue de l'adhérent : il se détache de
+   la consigne qui le porte, sans devenir un bouton — il ferait alors doublon
+   avec ceux du dossier. */
+.sub-payment-link {
+	display: inline-block;
+	margin-top: 4px;
+	font-weight: 600;
+}
+
 .sub-notice ul {
 	margin: 8px 0 0;
 	padding-left: 20px;

@@ -37,6 +37,7 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | **Configurer une campagne** | Formules, options et remises — tout se règle ici |
 | **Club → Statistiques** | Renouvellement, niveaux, âges, participation ; recettes, origine des adhésions et délais d'encaissement |
 | **Club → Réglages → Mises à jour** | Pourquoi le site se met à jour, ou ne se met pas à jour : quota GitHub, dernier appel, jeton |
+| **Club → Réglages → Règlement** | Les liens HelloAsso — adhésion, boutique CE Orange — que l'adhérent suit pour payer : ils changent chaque saison, le bureau les change seul |
 
 ## Dérouler la démonstration
 

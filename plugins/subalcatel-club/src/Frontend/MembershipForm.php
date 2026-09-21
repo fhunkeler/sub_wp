@@ -413,13 +413,16 @@ final class MembershipForm
             if ($application !== null && (int) $application['user_id'] === get_current_user_id()) {
                 $method = (string) ($application['payment_method'] ?? '');
 
+                // `instructionsHtml` rend déjà du HTML échappé, lien de
+                // paiement compris : le repasser à `esc_html` afficherait la
+                // balise au lieu du lien.
                 $html .= sprintf(
                     '<div class="sub-notice sub-notice--success" role="status"><strong>Dossier %s enregistré</strong>'
                     . '<p>Montant à régler : <strong>%s</strong>, par %s. %s</p></div>',
                     esc_html((string) $application['reference']),
                     esc_html(self::euro((float) $application['total_amount'])),
                     esc_html(PaymentMethods::label($method)),
-                    esc_html(PaymentMethods::instructions($method))
+                    PaymentMethods::instructionsHtml($method)
                 );
             }
         }

@@ -10,7 +10,7 @@
 # Trois contrôles, du moins cher au plus utile :
 #
 #   1. `code`       — syntaxe PHP, et archives constructibles sans fuite d'identifiant ;
-#   2. `fumee`      — les 28 suites du plugin, sur un WordPress neuf ;
+#   2. `fumee`      — toutes les suites du plugin, sur un WordPress neuf ;
 #   3. `convention` — les messages de commit, dont le numéro de la prochaine
 #                     version se déduit désormais.
 #
@@ -154,7 +154,7 @@ jobs:
           wp plugin activate subalcatel-club
           wp theme activate subalcatel
 
-      - name: Les 28 suites
+      - name: Toutes les suites
         run: |
           wp() {
             docker run --rm --network subalcatel \
@@ -163,10 +163,12 @@ jobs:
               wordpress:cli-php8.3 wp --allow-root "$@"
           }
 
+          total=0
           echecs=0
 
           for fichier in site/wp-content/plugins/subalcatel-club/tests/smoke-*.php; do
             suite=$(basename "$fichier")
+            total=$((total + 1))
 
             if sortie=$(wp eval-file "wp-content/plugins/subalcatel-club/tests/$suite" 2>&1); then
               echo "OK    $suite"
@@ -181,7 +183,7 @@ jobs:
             fi
           done
 
-          echo "$echecs suite(s) en échec." >> "$GITHUB_STEP_SUMMARY"
+          echo "${total} suites exécutées, ${echecs} en échec." >> "$GITHUB_STEP_SUMMARY"
           exit $(( echecs > 0 ))
 
   convention:

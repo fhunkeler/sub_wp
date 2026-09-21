@@ -374,6 +374,54 @@ function subalcatel_placeholder_tint( int $post_id ): int {
 }
 
 /**
+ * Illustration d'une carte d'activité, prise sur la page qu'elle annonce.
+ *
+ * Les cartes de l'accueil ouvraient sur un aplat dégradé de 150 px — une case
+ * vide, juste au-dessous des cartes d'article qui montrent, elles, une photo.
+ *
+ * Plutôt que d'écrire une photo par carte dans le motif, chaque carte prend
+ * l'image mise en avant de la page vers laquelle elle pointe. Le club change
+ * une illustration depuis l'écran de cette page, comme pour n'importe quel
+ * article, sans qu'il faille livrer une version du thème ; et le gabarit ne
+ * dépend d'aucun identifiant de médiathèque, qui ne survivrait pas au passage
+ * d'une installation à l'autre.
+ *
+ * La page est retrouvée par son chemin — celui-là même qui est déjà écrit dans
+ * le lien de la carte. Rien à tenir à jour en double.
+ *
+ * Sans image mise en avant, on retombe sur l'aplat de la charte, houles et
+ * filigrane compris : exactement ce que reçoit une carte d'article sans photo.
+ * Le club n'a pas de cliché de son bateau ; c'est un état durable, pas un trou
+ * à combler plus tard.
+ *
+ * @param string $path Chemin de la page, sans barre initiale — « activites/piscine ».
+ * @return string Markup de bloc, à placer en tête de carte.
+ */
+function subalcatel_activity_illustration( string $path ): string {
+	$page  = get_page_by_path( $path );
+	$thumb = $page instanceof WP_Post ? get_post_thumbnail_id( $page ) : 0;
+
+	if ( $thumb ) {
+		// L'alternative textuelle vient de la médiathèque : c'est le club qui
+		// décrit ses photos, et il l'a déjà fait à la reprise du site.
+		return sprintf(
+			'<!-- wp:image {"sizeSlug":"subalcatel-carte"} -->'
+				. '<figure class="wp-block-image size-subalcatel-carte">%s</figure>'
+				. '<!-- /wp:image -->',
+			wp_get_attachment_image( $thumb, 'subalcatel-carte' )
+		);
+	}
+
+	// `wp-block-post-featured-image` n'est pas décoratif ici : c'est la classe
+	// que la carte exclut de sa marge intérieure, pour que l'aplat touche les
+	// bords du cadre comme le ferait une photo.
+	return sprintf(
+		'<div class="wp-block-post-featured-image sub-vignette sub-vignette--repli sub-vignette--t%d"></div>',
+		subalcatel_placeholder_tint( $page instanceof WP_Post ? (int) $page->ID : 0 )
+	);
+}
+
+/**
  * Image mise en avant masquée quand l'article la contient déjà.
  *
  * Les articles repris de Joomla portent leurs photos dans le corps du texte :

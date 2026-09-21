@@ -6,6 +6,10 @@
  * Description: Cinq cartes d'activité avec image, titre, description et lien.
  * Keywords: activités, cartes, grille
  *
+ * L'illustration de chaque carte n'est pas écrite ici : elle vient de l'image
+ * mise en avant de la page annoncée — voir `subalcatel_activity_illustration()`.
+ * Le club en change depuis l'écran de la page, sans livraison de thème.
+ *
  * La nage avec palmes ferme la série. Elle n'est pas de la plongée, et c'est
  * justement pourquoi elle a sa carte : sans elle, la vitrine laisse croire
  * qu'il faut mettre la tête sous l'eau pour venir au club.
@@ -29,9 +33,7 @@
 
 <!-- wp:columns {"align":"wide","className":"is-style-sub-cartes sub-cartes--cinq","style":{"spacing":{"margin":{"top":"var:preset|spacing|40"}}}} -->
 <div class="wp-block-columns alignwide is-style-sub-cartes sub-cartes--cinq" style="margin-top:var(--wp--preset--spacing--40)"><!-- wp:column {"className":"is-style-sub-carte"} -->
-<div class="wp-block-column is-style-sub-carte"><!-- wp:group {"style":{"dimensions":{"minHeight":"150px"},"color":{"gradient":"var:preset|gradient|lagon-profond"},"spacing":{"padding":{"top":"0","bottom":"0"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group has-background" style="background:var(--wp--preset--gradient--lagon-profond);min-height:150px;padding-top:0;padding-bottom:0"></div>
-<!-- /wp:group -->
+<div class="wp-block-column is-style-sub-carte"><?php echo subalcatel_activity_illustration( 'activites/piscine' ); ?>
 
 <!-- wp:heading {"level":3,"style":{"spacing":{"margin":{"top":"var:preset|spacing|30"}}}} -->
 <h3 class="wp-block-heading" style="margin-top:var(--wp--preset--spacing--30)">Piscine</h3>
@@ -47,9 +49,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column {"className":"is-style-sub-carte"} -->
-<div class="wp-block-column is-style-sub-carte"><!-- wp:group {"style":{"dimensions":{"minHeight":"150px"},"color":{"gradient":"var:preset|gradient|lagon-profond"},"spacing":{"padding":{"top":"0","bottom":"0"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group has-background" style="background:var(--wp--preset--gradient--lagon-profond);min-height:150px;padding-top:0;padding-bottom:0"></div>
-<!-- /wp:group -->
+<div class="wp-block-column is-style-sub-carte"><?php echo subalcatel_activity_illustration( 'activites/sorties-mer' ); ?>
 
 <!-- wp:heading {"level":3,"style":{"spacing":{"margin":{"top":"var:preset|spacing|30"}}}} -->
 <h3 class="wp-block-heading" style="margin-top:var(--wp--preset--spacing--30)">Sorties en mer</h3>
@@ -65,9 +65,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column {"className":"is-style-sub-carte"} -->
-<div class="wp-block-column is-style-sub-carte"><!-- wp:group {"style":{"dimensions":{"minHeight":"150px"},"color":{"gradient":"var:preset|gradient|lagon-profond"},"spacing":{"padding":{"top":"0","bottom":"0"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group has-background" style="background:var(--wp--preset--gradient--lagon-profond);min-height:150px;padding-top:0;padding-bottom:0"></div>
-<!-- /wp:group -->
+<div class="wp-block-column is-style-sub-carte"><?php echo subalcatel_activity_illustration( 'activites/formations' ); ?>
 
 <!-- wp:heading {"level":3,"style":{"spacing":{"margin":{"top":"var:preset|spacing|30"}}}} -->
 <h3 class="wp-block-heading" style="margin-top:var(--wp--preset--spacing--30)">Formations</h3>
@@ -83,9 +81,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column {"className":"is-style-sub-carte"} -->
-<div class="wp-block-column is-style-sub-carte"><!-- wp:group {"style":{"dimensions":{"minHeight":"150px"},"color":{"gradient":"var:preset|gradient|lagon-profond"},"spacing":{"padding":{"top":"0","bottom":"0"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group has-background" style="background:var(--wp--preset--gradient--lagon-profond);min-height:150px;padding-top:0;padding-bottom:0"></div>
-<!-- /wp:group -->
+<div class="wp-block-column is-style-sub-carte"><?php echo subalcatel_activity_illustration( 'activites/bateau' ); ?>
 
 <!-- wp:heading {"level":3,"style":{"spacing":{"margin":{"top":"var:preset|spacing|30"}}}} -->
 <h3 class="wp-block-heading" style="margin-top:var(--wp--preset--spacing--30)">Le bateau</h3>
@@ -99,9 +95,7 @@
 <p class="has-petit-font-size"><a href="/activites/bateau/">En savoir plus →</a></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column --><!-- wp:column {"className":"is-style-sub-carte"} -->
-<div class="wp-block-column is-style-sub-carte"><!-- wp:group {"style":{"dimensions":{"minHeight":"150px"},"color":{"gradient":"var:preset|gradient|lagon-profond"},"spacing":{"padding":{"top":"0","bottom":"0"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group has-background" style="background:var(--wp--preset--gradient--lagon-profond);min-height:150px;padding-top:0;padding-bottom:0"></div>
-<!-- /wp:group -->
+<div class="wp-block-column is-style-sub-carte"><?php echo subalcatel_activity_illustration( 'activites/nage-avec-palmes' ); ?>
 
 <!-- wp:heading {"level":3,"style":{"spacing":{"margin":{"top":"var:preset|spacing|30"}}}} -->
 <h3 class="wp-block-heading" style="margin-top:var(--wp--preset--spacing--30)">Nage avec palmes</h3>

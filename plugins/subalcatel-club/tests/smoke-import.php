@@ -193,6 +193,24 @@ $check('Le texte voisin est préservé',
 array_map('unlink', glob($transit . '/*') ?: []);
 @rmdir($transit);
 
+// Ce test-ci écrit pour de bon : il passe `false` en dernier argument de
+// `rewrite()`, parce que la seule façon de vérifier qu'un polyglotte ne
+// survit pas au ré-encodage est de relire le fichier réellement déposé.
+//
+// Ce qu'il dépose, il doit donc le retirer. Sans ce nettoyage, chaque
+// exécution laisse dans la médiathèque une fiche « photo » de 24×24 qui ne
+// sert plus à rien : la base de démo en portait 48 le 21 septembre 2026,
+// toutes orphelines, au milieu des vraies photos du club.
+$verse = attachment_url_to_postid($m[1] ?? '');
+
+if ($verse > 0) {
+    wp_delete_attachment($verse, true);
+}
+
+$check('Le média déposé par le test est retiré',
+    $verse > 0 && get_post($verse) === null,
+    'un test qui écrit dans la médiathèque la laisse comme il l’a trouvée');
+
 // --- Le choix de la vignette d'un article repris ------------------------------
 echo "\n--- Vignette des cartes d'actualité ---\n";
 

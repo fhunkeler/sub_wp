@@ -17,7 +17,11 @@ use Subalcatel\Club\Events\EventService;
  * La séparation est nette et voulue : aucune éligibilité n'est calculée ici,
  * aucun nombre de places n'est exposé, aucun formulaire n'est rendu. Un
  * visiteur voit qu'il se passe des choses ; pour y prendre part, il se
- * connecte.
+ * connecte. Une sortie qui demande un niveau s'annonce donc à lui comme aux
+ * autres — la voir donne parfois envie d'aller chercher le niveau.
+ *
+ * Une réserve, et une seule : `EventService::upcoming()` retire la réunion du
+ * bureau, qui ne s'annonce qu'à lui. Ne rien calculer n'est pas tout montrer.
  */
 final class UpcomingEvents
 {

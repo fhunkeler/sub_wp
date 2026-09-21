@@ -19,6 +19,11 @@
  * le lui permettait. Il le peut désormais en désignant un directeur de plongée,
  * et c'est sur la personne désignée que porte l'exigence de niveau — jamais sur
  * celle qui saisit.
+ *
+ * Enfin, ce qu'en voit l'accueil public. La règle ne vaut que si la liste
+ * l'applique : `mayView()` peut dire non à tout le monde pendant que
+ * `upcoming()` montre tout à un visiteur. Les derniers contrôles passent donc
+ * par la liste elle-même, et pas seulement par la règle.
  */
 
 require_once __DIR__ . '/helpers.php';
@@ -32,8 +37,12 @@ EventTypeSeeder::run();
 $service  = new EventService();
 $failures = 0;
 
-$check = static function (string $label, bool $ok, string $note = ''): void {
-    global $failures;
+// `eval-file` inclut ce fichier dans une fonction : `$failures` n'y est pas
+// une globale, et `global $failures` visait à côté — le décompte final lisait
+// toujours zéro, et le test sortait en succès quoi qu'il arrive. Les autres
+// tests du dossier capturent la variable par référence ; celui-ci le fait
+// désormais aussi.
+$check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {
     $failures += $ok ? 0 : 1;
     printf("%s  %-54s %s\n", $ok ? ' OK ' : 'FAIL', $label, $note !== '' ? "→ {$note}" : '');
 };
@@ -155,6 +164,48 @@ $check('Une assemblée générale ne l’est pas',
     !EventTypeSeeder::isDivingType($service->typeBySlug('assemblee-generale')));
 $check('Une réunion du bureau non plus',
     !EventTypeSeeder::isDivingType($service->typeBySlug('reunion-bureau')));
+
+// --- Ce qu'un visiteur voit à l'accueil --------------------------------------
+echo "\n--- L'accueil public ---\n";
+
+// `upcoming()` court-circuitait le filtre pour un visiteur non connecté : la
+// page d'accueil annonçait alors les réunions du bureau à qui passe par là,
+// quand un adhérent ordinaire, lui, ne les voyait pas. `mayView()` seul ne
+// pouvait pas le dire — ces contrôles-là passent par la liste.
+$bureau = $service->create('reunion-bureau', $demain + [
+    'title' => 'Bureau du mois ' . wp_generate_password(5, false),
+], $sansNiveau);
+
+$piscine = $service->create('seance-piscine', $demain + [
+    'title'           => 'Piscine P5 ' . wp_generate_password(5, false),
+    'accepted_levels' => ['p5'],
+], $sansNiveau);
+
+$assemblee = $service->create('assemblee-generale', $demain + [
+    'title' => 'Assemblée ' . wp_generate_password(5, false),
+], $sansNiveau);
+
+$annonces = static fn (int $viewerId): array
+    => array_map('intval', array_column($service->upcoming(200, $viewerId), 'id'));
+
+$auVisiteur = $annonces(0);
+
+$check('L’accueil public tait la réunion du bureau', !in_array($bureau, $auVisiteur, true));
+$check('… mais annonce l’assemblée générale', in_array($assemblee, $auVisiteur, true));
+
+// Le visiteur n'a pas de niveau : lui cacher les sorties qui en demandent un
+// reviendrait à ne rien montrer d'une saison de plongée. Voir passer une
+// sortie technique donne parfois envie d'aller chercher le niveau.
+$check('… et la sortie réservée aux P5', in_array($piscine, $auVisiteur, true));
+
+// Connecté, le public se resserre — il ne s'élargit jamais.
+$auP1 = $annonces($p1);
+
+$check('Un membre ordinaire n’a pas le bureau non plus', !in_array($bureau, $auP1, true));
+$check('… ni la sortie dont il n’a pas le niveau', !in_array($piscine, $auP1, true));
+$check('… et garde l’assemblée générale', in_array($assemblee, $auP1, true));
+
+$check('Le bureau voit sa propre réunion', in_array($bureau, $annonces($office), true));
 
 // --- Ménage ------------------------------------------------------------------
 global $wpdb;

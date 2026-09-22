@@ -22,6 +22,11 @@
  * Ce qui est déclassé (le compte reste, ses privilèges partent) :
  *   - les droits bureau portés par un compte personnel : ils ne vivent que sur
  *     les comptes d'administration « admin_* » (voir §2)
+ *   - les quatre comptes « admin_* » eux-mêmes, marqués comptes techniques et
+ *     vidés de leurs données de membre : hors annuaire, hors listes de
+ *     diffusion sauf « Bureau » (voir §3)
+ *   - les capacités « créer une sortie » écrites en dur par la reprise Joomla,
+ *     retirées partout au profit du niveau de plongée (voir §4)
  *
  * Ce qui est supprimé :
  *   - tout compte WordPress sans marque de reprise (comptes de test créés
@@ -53,6 +58,9 @@ use Subalcatel\Club\Import\MembershipImporter;
 use Subalcatel\Club\Identity\DerivedCapabilities;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Policy\EligibilityPolicy;
+use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Identity\ProfileFields;
+use Subalcatel\Club\Identity\TechnicalAccounts;
 
 global $wpdb;
 
@@ -198,7 +206,125 @@ if (!$dryRun) {
 }
 
 // =============================================================================
-// 3. Articles — on garde ceux marqués par la reprise Joomla (post_type=post)
+// 3. Comptes techniques — les `admin_*` ne sont pas des adhérents
+//
+// Les quatre comptes d'administration n'ont ni adhésion, ni contenu, ni
+// inscription à une sortie : ils ne désignent personne, ils ouvrent des
+// écrans. [MembersScreen] avait déjà sorti les administrateurs WordPress de
+// l'annuaire pour cette raison — « ils y apparaissaient éternellement
+// *adhésion pas à jour*, ils n'ont pas d'adhésion à être à jour » — mais la
+// règle raisonnait sur le rôle, et ces comptes-ci portent `sub_office`.
+//
+// On les marque donc explicitement, ce qui les sort de l'annuaire et de toutes
+// les listes de diffusion sauf « Bureau », et on efface ce qu'ils portent de
+// personnel : un compte technique qui garderait un niveau de plongée
+// ressortirait dans « Encadrants », et le formulaire de profil réclamerait à
+// son titulaire une date de naissance et une personne à prévenir en cas
+// d'accident.
+// =============================================================================
+
+$technicalLogins = ['admin_langlais', 'admin_pivette', 'admin_rougeolle', 'admin_tuffin'];
+
+$technicalIds = [];
+foreach ($technicalLogins as $login) {
+    $user = get_user_by('login', $login);
+
+    if (!$user instanceof WP_User) {
+        printf("\nCOMPTES TECHNIQUES   introuvable : %s (déjà supprimé ?) — ignoré\n", $login);
+        continue;
+    }
+
+    $technicalIds[] = (int) $user->ID;
+}
+
+printf("\nCOMPTES TECHNIQUES %4d marqués — hors annuaire et hors listes de diffusion (sauf « Bureau »)\n",
+    count($technicalIds));
+
+foreach ($technicalIds as $uid) {
+    $user  = get_userdata($uid);
+    $level = DiveLevels::forUser($uid);
+
+    printf("    - #%-5d %-18s %-28s niveau : %s\n",
+        $uid, $user->user_login, $user->user_email, $level?->name ?? '(aucun)');
+
+    if ($dryRun) {
+        // En simulation, `mark()` n'est pas appelée : on montre ce qu'elle
+        // effacerait, sans l'effacer.
+        $would = [];
+        foreach (array_keys(ProfileFields::all()) as $field) {
+            if (get_user_meta($uid, ProfileFields::metaKey($field), true) !== '') {
+                $would[] = $field;
+            }
+        }
+        if ($level !== null) {
+            $would[] = 'sub_dive_level_id';
+        }
+        printf("               données de membre à effacer : %s\n",
+            $would === [] ? 'aucune' : implode(', ', $would));
+        continue;
+    }
+
+    $cleared = TechnicalAccounts::mark($uid);
+    printf("               données de membre effacées : %s\n",
+        $cleared === [] ? 'aucune' : implode(', ', $cleared));
+}
+
+// =============================================================================
+// 4. Capacités « créer une sortie » écrites en dur — retirées partout
+//
+// La reprise Joomla posait `sub_create_exploration_event` et
+// `sub_create_training_event` nommément sur chaque directeur de plongée. C'est
+// exactement ce que [DerivedCapabilities] calcule désormais à chaque requête,
+// à partir du niveau de plongée **et** d'une adhésion à jour — et la capacité
+// stockée l'emporte sur le calcul, puisqu'on ajoute sans jamais retirer.
+//
+// Résultat : le droit survivait à un changement de niveau et à une adhésion
+// expirée, ce que la règle du niveau visait précisément à empêcher. On les
+// retire donc toutes ; la règle s'applique alors à tout le monde de la même
+// façon. Le rapport nomme les comptes pour qui le niveau ne redonne pas le
+// droit — ce sont les cas où la capacité stockée masquait réellement quelque
+// chose.
+// =============================================================================
+
+$dpCapabilities = ['sub_create_exploration_event', 'sub_create_training_event'];
+
+// §3 vient de retirer leur niveau aux comptes techniques : le cache des
+// capacités déduites, posé avant, dirait encore le contraire.
+DerivedCapabilities::forget();
+
+$storedDpIds = array_map('intval', $wpdb->get_col($wpdb->prepare(
+    "SELECT user_id FROM {$wpdb->usermeta}
+      WHERE meta_key = %s AND meta_value LIKE %s",
+    $wpdb->prefix . 'capabilities',
+    '%' . $wpdb->esc_like('sub_create_') . '%'
+)));
+
+printf("\nCAPACITÉS DP     %4d compte(s) portent encore la capacité écrite en dur\n", count($storedDpIds));
+
+foreach ($storedDpIds as $uid) {
+    $user    = get_userdata($uid);
+    $level   = DiveLevels::forUser($uid);
+    $stored  = array_values(array_intersect($dpCapabilities, array_keys(array_filter($user->caps))));
+    $derived = array_keys(DerivedCapabilities::forUser($uid));
+    $lost    = array_values(array_diff($stored, $derived));
+
+    printf("    - #%-5d %-18s niveau %-8s %s\n", $uid, $user->user_login, $level?->name ?? '(aucun)',
+        $lost === []
+            ? 'le niveau redonne le droit — retrait sans effet'
+            : 'PERD ' . implode(', ', str_replace(['sub_create_', '_event'], '', $lost))
+              . ' (adhésion ou niveau insuffisant)');
+
+    if (!$dryRun) {
+        foreach ($dpCapabilities as $cap) {
+            if (isset($user->caps[$cap])) {
+                $user->remove_cap($cap);
+            }
+        }
+    }
+}
+
+// =============================================================================
+// 5. Articles — on garde ceux marqués par la reprise Joomla (post_type=post)
 //    Les pages ne sont jamais supprimées automatiquement : listées pour revue.
 // =============================================================================
 
@@ -237,7 +363,7 @@ foreach ($pageIds as $page) {
 }
 
 // =============================================================================
-// 4. Pièces jointes orphelines — aucun post/page ne les référence
+// 6. Pièces jointes orphelines — aucun post/page ne les référence
 // =============================================================================
 
 $referencedThumbs = array_map('intval', $wpdb->get_col(
@@ -265,7 +391,7 @@ if (!$dryRun) {
 }
 
 // =============================================================================
-// 5. Campagnes d'adhésion — on garde la campagne en cours + les reprises
+// 7. Campagnes d'adhésion — on garde la campagne en cours + les reprises
 //    (statut "closed"). On supprime tout brouillon, dont "campagne-de-test".
 // =============================================================================
 
@@ -297,7 +423,7 @@ if (!$dryRun && $dropCampaignIds !== []) {
 }
 
 // =============================================================================
-// 6. Adhésions (applications) — gardées seulement si utilisateur ET campagne
+// 8. Adhésions (applications) — gardées seulement si utilisateur ET campagne
 //    gardés. Cascade sur les lignes, validations, paiements.
 // =============================================================================
 
@@ -337,7 +463,7 @@ if (!$dryRun && $dropApplicationIds !== []) {
 }
 
 // =============================================================================
-// 7. Reliquats liés aux comptes supprimés, dans les autres tables sub_*
+// 9. Reliquats liés aux comptes supprimés, dans les autres tables sub_*
 // =============================================================================
 
 $userLinkedTables = [

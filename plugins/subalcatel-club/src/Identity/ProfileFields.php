@@ -281,10 +281,20 @@ final class ProfileFields
      * Les champs marqués `minor_only` n'existent que pour les mineurs : un
      * majeur ne les voit pas, et une valeur résiduelle ne serait pas relue.
      *
+     * Un compte technique n'a pas de profil du tout — pas même vide. Il ne
+     * s'agit pas de masquer des champs : réclamer à `admin_pivette` sa date de
+     * naissance et la personne à prévenir en cas d'accident, c'est demander
+     * une donnée personnelle à un compte qui ne désigne personne. Ne rien
+     * rendre suffit, [ProfileForm] n'affiche que les groupes peuplés.
+     *
      * @return array<string, array<string, mixed>>
      */
     public static function forUser(int $userId): array
     {
+        if (TechnicalAccounts::is($userId)) {
+            return [];
+        }
+
         $isMinor = LegalGuardian::isMinor($userId);
 
         return array_filter(

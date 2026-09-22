@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Communication;
 
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
+use Subalcatel\Club\Identity\TechnicalAccounts;
 
 /**
  * Listes de diffusion, calculées et jamais tenues à la main.
@@ -120,11 +121,11 @@ final class MailingLists
     public static function members(string $slug): array
     {
         if (str_starts_with($slug, self::LEVEL_PREFIX)) {
-            return self::byLevel(substr($slug, strlen(self::LEVEL_PREFIX)));
+            return self::withoutTechnical($slug, self::byLevel(substr($slug, strlen(self::LEVEL_PREFIX))));
         }
 
         if (str_starts_with($slug, self::GROUP_PREFIX)) {
-            return CustomGroups::members(substr($slug, strlen(self::GROUP_PREFIX)));
+            return self::withoutTechnical($slug, CustomGroups::members(substr($slug, strlen(self::GROUP_PREFIX))));
         }
 
         $ids = match ($slug) {
@@ -135,6 +136,28 @@ final class MailingLists
             self::LEADER     => self::byFlag(DiveLevels::FLAG_DIVE_LEADER),
             default          => [],
         };
+
+        return self::withoutTechnical($slug, $ids);
+    }
+
+    /**
+     * Écarte les comptes techniques — de toutes les listes sauf « Bureau ».
+     *
+     * Un compte technique n'est pas un adhérent : le faire figurer dans
+     * « Niveau E3 » ou « Encadrants », c'est écrire deux fois à la même
+     * personne, une fois par compte. L'exception est « Bureau », et elle n'en
+     * est pas vraiment une : ces comptes *sont* le bureau depuis que le rôle
+     * `sub_office` ne vit plus que sur eux, et leurs adresses sont de vraies
+     * adresses. Les exclure là viderait la liste.
+     *
+     * @param  list<int> $ids
+     * @return list<int>
+     */
+    private static function withoutTechnical(string $slug, array $ids): array
+    {
+        if ($slug !== self::OFFICE) {
+            $ids = TechnicalAccounts::filter($ids);
+        }
 
         /** @var list<int> */
         return apply_filters('subalcatel_mailing_list_members', $ids, $slug);

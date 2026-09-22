@@ -11,6 +11,7 @@ use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\LegalGuardian;
 use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Identity\Roles;
+use Subalcatel\Club\Identity\TechnicalAccounts;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use WP_User;
 
@@ -85,15 +86,25 @@ final class MembersScreen
         ]);
     }
 
-    public static function renderList(): void
+    /**
+     * L'annuaire : qui compte comme adhérent aux yeux de cet écran.
+     *
+     * Les rôles du club, et eux seuls : `administrator` figurait ici, ce qui
+     * faisait entrer les comptes techniques dans l'annuaire. Ils y
+     * apparaissaient éternellement « adhésion pas à jour » — ils n'ont pas
+     * d'adhésion à être à jour. Un adhérent qui est aussi administrateur
+     * porte, lui, un rôle du club : il reste listé.
+     *
+     * Ce filtre raisonnait sur le rôle, et laissait donc passer les comptes
+     * d'administration hérités de Joomla : ils portent `sub_office`, un rôle
+     * du club. Même motif, même conclusion — [TechnicalAccounts] les écarte.
+     * Ils restent gérables dans Comptes → Utilisateurs, comme les
+     * administrateurs WordPress.
+     *
+     * @return list<WP_User>
+     */
+    public static function directory(string $search = ''): array
     {
-        $search = sanitize_text_field(wp_unslash((string) ($_GET['s'] ?? '')));
-
-        // Les rôles du club, et eux seuls : `administrator` figurait ici, ce qui
-        // faisait entrer les comptes techniques dans l'annuaire. Ils y
-        // apparaissaient éternellement « adhésion pas à jour » — ils n'ont pas
-        // d'adhésion à être à jour. Un adhérent qui est aussi administrateur
-        // porte, lui, un rôle du club : il reste listé.
         $users = get_users([
             'role__in' => Roles::clubRoles(),
             'search'   => $search !== '' ? '*' . $search . '*' : '',
@@ -101,6 +112,17 @@ final class MembersScreen
             'number'   => 200,
         ]);
 
+        return array_values(array_filter(
+            $users,
+            static fn (WP_User $user): bool => !TechnicalAccounts::is($user->ID)
+        ));
+    }
+
+    public static function renderList(): void
+    {
+        $search = sanitize_text_field(wp_unslash((string) ($_GET['s'] ?? '')));
+
+        $users  = self::directory($search);
         $policy = new EligibilityPolicy();
         ?>
             <form method="get" style="margin:0 0 16px;">

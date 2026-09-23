@@ -59,7 +59,6 @@ use Subalcatel\Club\Identity\DerivedCapabilities;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use Subalcatel\Club\Identity\DiveLevels;
-use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Identity\TechnicalAccounts;
 
 global $wpdb;
@@ -249,16 +248,18 @@ foreach ($technicalIds as $uid) {
 
     if ($dryRun) {
         // En simulation, `mark()` n'est pas appelée : on montre ce qu'elle
-        // effacerait, sans l'effacer.
-        $would = [];
-        foreach (array_keys(ProfileFields::all()) as $field) {
-            if (get_user_meta($uid, ProfileFields::metaKey($field), true) !== '') {
-                $would[] = $field;
-            }
-        }
-        if ($level !== null) {
-            $would[] = 'sub_dive_level_id';
-        }
+        // effacerait, sans l'effacer. Même requête qu'elle, même résultat.
+        $would = array_values(array_diff(
+            $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT meta_key FROM {$wpdb->usermeta}
+                  WHERE user_id = %d AND (meta_key LIKE %s OR meta_key LIKE %s)",
+                $uid,
+                $wpdb->esc_like('sub_') . '%',
+                $wpdb->esc_like('_sub_') . '%'
+            )) ?: [],
+            ['_sub_joomla_user_id', TechnicalAccounts::META]
+        ));
+        sort($would);
         printf("               données de membre à effacer : %s\n",
             $would === [] ? 'aucune' : implode(', ', $would));
         continue;

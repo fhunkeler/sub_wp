@@ -43,16 +43,22 @@ final class TechnicalAccounts
     public const META = '_sub_technical_account';
 
     /**
-     * Métas de membre qui ne sont pas des champs de profil.
+     * Les seules métas du plugin qu'un compte technique conserve.
      *
-     * Les champs de profil, eux, ne sont pas recopiés ici : [self::mark] les
-     * énumère depuis [ProfileFields] — un champ ajouté demain sera effacé sans
-     * qu'on y pense. Le niveau de plongée en fait partie (`dive_level_id`), il
-     * n'a donc pas à figurer dans cette liste.
+     * Tout le reste part — et c'est une liste de ce qu'on garde, pas de ce
+     * qu'on efface, délibérément. Énumérer ce qu'il faut effacer suppose de
+     * connaître d'avance toutes les clés ; la base en portait une, `sub_licence`,
+     * qu'aucun code ne lit plus et que [ProfileFields] ignore donc. Elle
+     * survivait au marquage. Une liste d'exclusions rate ce qu'elle ne connaît
+     * pas ; une liste d'inclusions ne rate rien.
+     *
+     * `_sub_joomla_user_id` reste : c'est la marque d'origine de la reprise,
+     * la garde anti-doublon d'un import rejoué, et elle ne dit rien de
+     * personnel. `_sub_technical_account` est le marqueur lui-même.
      */
-    private const MEMBER_META = [
-        'sub_membership_valid_until',
-        'sub_lending_rights',
+    private const KEPT_META = [
+        '_sub_joomla_user_id',
+        self::META,
     ];
 
     public static function is(int $userId): bool
@@ -68,31 +74,39 @@ final class TechnicalAccounts
      */
     public static function mark(int $userId): array
     {
+        global $wpdb;
+
+        $keys = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT meta_key FROM {$wpdb->usermeta}
+              WHERE user_id = %d AND (meta_key LIKE %s OR meta_key LIKE %s)",
+            $userId,
+            $wpdb->esc_like('sub_') . '%',
+            $wpdb->esc_like('_sub_') . '%'
+        )) ?: [];
+
         $cleared = [];
 
-        foreach (array_keys(ProfileFields::all()) as $field) {
-            $key = ProfileFields::metaKey($field);
-
-            if (get_user_meta($userId, $key, true) !== '') {
-                delete_user_meta($userId, $key);
-                $cleared[] = $field;
+        foreach ($keys as $key) {
+            if (in_array($key, self::KEPT_META, true)) {
+                continue;
             }
-        }
 
-        foreach (self::MEMBER_META as $key) {
-            if (get_user_meta($userId, $key, true) !== '') {
-                delete_user_meta($userId, $key);
-                $cleared[] = $key;
-            }
+            delete_user_meta($userId, (string) $key);
+            $cleared[] = (string) $key;
         }
 
         // Préférences de diffusion, jeton de désabonnement, groupes constitués
         // par le bureau : le compte sort des listes de toute façon, laisser ces
-        // métas ne ferait qu'entretenir une donnée que plus rien ne lit.
+        // métas ne ferait qu'entretenir une donnée que plus rien ne lit. Les
+        // deux premières sont des métas `sub_*`, déjà parties ci-dessus ; ces
+        // appels emportent ce qui vit ailleurs — le jeton et la table des
+        // groupes.
         MemberPurge::forgetCommunication($userId);
         MemberPurge::forgetDiveLevelHistory($userId);
 
         update_user_meta($userId, self::META, '1');
+
+        sort($cleared);
 
         return $cleared;
     }

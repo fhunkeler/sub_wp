@@ -16,6 +16,7 @@ use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\DemoSeeder;
+use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
@@ -87,7 +88,13 @@ echo "\n--- Cycle d’adhésion ---\n";
 $campaignId = DemoSeeder::run();
 $member     = $makeUser('sub_member');
 $treasurer  = $makeUser('sub_office', 'Jean');
+$secretary  = $makeUser('sub_office', 'Nadège');
 $service    = new ApplicationService();
+
+// Le trésorier reçoit les réponses aux paiements, la secrétaire celles aux
+// dossiers déposés — voir OfficePosition.
+OfficePosition::set($treasurer, OfficePosition::TRESORIER);
+OfficePosition::set($secretary, OfficePosition::SECRETAIRE);
 
 sub_test_complete_identity($member);
 
@@ -113,9 +120,18 @@ $check('Accusé de réception envoyé', $mail !== null && str_contains($mail['su
 $check('Montant non nul sur le dossier', $total > 0.0, $attendu);
 $check('Montant présent dans le corps', $mail !== null && str_contains($mail['message'], $attendu), $attendu);
 $check('Prénom personnalisé', $mail !== null && str_contains($mail['message'], 'Camille'));
+$check('Répondre au dossier joint la secrétaire', $mail !== null && str_contains(
+    implode(' ', (array) ($mail['headers'] ?? [])),
+    get_userdata($secretary)->user_email
+));
 
 $service->recordPayment($applicationId, $total, 'cheque', null, $treasurer);
-$check('Confirmation de paiement envoyée', str_contains($lastMail()['subject'] ?? '', 'Paiement reçu'));
+$paidMail = $lastMail();
+$check('Confirmation de paiement envoyée', str_contains($paidMail['subject'] ?? '', 'Paiement reçu'));
+$check('Répondre au paiement joint le trésorier', str_contains(
+    implode(' ', (array) ($paidMail['headers'] ?? [])),
+    get_userdata($treasurer)->user_email
+));
 
 $service->validateSecretariat($applicationId, $treasurer);
 $mail = $lastMail();
@@ -330,7 +346,7 @@ foreach ([$eventId, $announcedId] as $id) {
 }
 
 require_once ABSPATH . 'wp-admin/includes/user.php';
-foreach ([$member, $second, $treasurer, $dp, $intruder, $concerned, $muted, $tooLow, $enrolled] as $id) {
+foreach ([$member, $second, $treasurer, $secretary, $dp, $intruder, $concerned, $muted, $tooLow, $enrolled] as $id) {
     sub_test_clean_documents($id);
     $wpdb->delete("{$wpdb->prefix}sub_notification_log", ['recipient_id' => $id]);
     wp_delete_user($id);

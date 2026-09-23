@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Membership;
 
 use RuntimeException;
+use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Policy\EligibilityPolicy;
@@ -175,7 +176,11 @@ final class ApplicationService
                 $paymentMethod,
                 $this->campaigns->paymentLink($campaignId, $paymentMethod)
             ),
-        ], ['entity_type' => 'application', 'entity_id' => $applicationId]);
+        ], ['entity_type' => 'application', 'entity_id' => $applicationId],
+            // Une question sur un dossier fraîchement déposé va au secrétariat,
+            // qui l'instruit — pas à qui décrochera le prochain courriel du site.
+            OfficePosition::replyToHeader(OfficePosition::SECRETAIRE)
+        );
 
         return $applicationId;
     }
@@ -367,7 +372,10 @@ final class ApplicationService
             'reference' => (string) $application['reference'],
             'montant'   => number_format($amount, 2, ',', ' ') . ' €',
             'mode'      => $method,
-        ], ['entity_type' => 'application', 'entity_id' => $applicationId, 'sender_id' => $actorId]);
+        ], ['entity_type' => 'application', 'entity_id' => $applicationId, 'sender_id' => $actorId],
+            // Une question sur un règlement va à la trésorerie, qui l'a saisi.
+            OfficePosition::replyToHeader(OfficePosition::TRESORIER)
+        );
     }
 
     /**

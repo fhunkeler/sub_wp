@@ -9,6 +9,7 @@ use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\LegalGuardian;
+use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Identity\TechnicalAccounts;
@@ -450,6 +451,29 @@ final class MembersScreen
                         <?php endif; ?>
                     </td>
                 </tr>
+                <?php if (in_array(Roles::OFFICE, $user->roles, true)) : ?>
+                    <tr>
+                        <th scope="row"><label for="sub_account_office_position">Fonction au bureau</label></th>
+                        <td>
+                            <select id="sub_account_office_position" name="office_position">
+                                <option value="">— Aucune —</option>
+                                <?php foreach (OfficePosition::LABELS as $slug => $label) : ?>
+                                    <option value="<?php echo esc_attr($slug); ?>"
+                                        <?php selected(OfficePosition::of($userId) === $slug); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">
+                                Sert à adresser directement certains courriels du site — un
+                                paiement enregistré répond au trésorier, un dossier déposé
+                                répond au secrétariat — sans jamais afficher son adresse.
+                                Facultatif : la plupart des membres du bureau n’ont pas à en
+                                porter une.
+                            </p>
+                        </td>
+                    </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row">Mot de passe</th>
                     <td>

@@ -255,6 +255,15 @@ $check('Sortie du refus d’annonces', !in_array(
 ));
 $check('Date d’annonce mémorisée', $events->lastAnnouncedAt($announcedId) !== null);
 
+// Répondre à l'annonce doit joindre l'organisateur — sans que son adresse
+// n'apparaisse jamais dans le texte du message.
+$dpEmail = get_userdata($dp)->user_email;
+$check('Reply-To vers l’organisateur', str_contains(
+    implode(' ', (array) ($announceMails[0]['headers'] ?? [])),
+    $dpEmail
+));
+$check('L’adresse de l’organisateur n’est pas dans le corps', !str_contains($body, $dpEmail));
+
 try {
     $events->announce($announcedId, $intruder);
     $check('Un membre ordinaire n’annonce pas', false);

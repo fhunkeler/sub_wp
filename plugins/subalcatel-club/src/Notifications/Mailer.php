@@ -139,6 +139,7 @@ final class Mailer
      * @param list<int> $userIds
      * @param array<string, string> $variables
      * @param array<string, mixed> $context
+     * @param list<string> $headers Voir {@see self::send()}.
      * @return int nombre de messages effectivement partis
      */
     public static function toUsers(
@@ -146,11 +147,12 @@ final class Mailer
         array $userIds,
         array $variables = [],
         array $context = [],
+        array $headers = [],
     ): int {
         $sent = 0;
 
         foreach ($userIds as $userId) {
-            if (self::toUser($templateCode, $userId, $variables, $context)) {
+            if (self::toUser($templateCode, $userId, $variables, $context, $headers)) {
                 $sent++;
             }
         }

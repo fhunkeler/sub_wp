@@ -913,6 +913,16 @@ final class EventService
 
         $organizer = get_userdata((int) $event['organizer_id']);
 
+        // Répondre à l'annonce doit joindre l'organisateur, sans jamais afficher
+        // son adresse en clair — même principe que pour messageOrganizer(), en
+        // sens inverse : l'expéditeur visible reste l'adresse du site, seul
+        // l'en-tête de réponse change.
+        $headers = [];
+
+        if ($organizer instanceof \WP_User && is_email($organizer->user_email)) {
+            $headers[] = sprintf('Reply-To: %s <%s>', $organizer->display_name, $organizer->user_email);
+        }
+
         $sent = Mailer::toUsers(
             EmailTemplates::EVENT_ANNOUNCEMENT,
             $recipients,
@@ -926,7 +936,8 @@ final class EventService
                 'organisateur' => $organizer?->display_name ?? (string) get_bloginfo('name'),
                 'lien'         => self::agendaUrl($eventId),
             ],
-            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId]
+            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId],
+            $headers
         );
 
         Audit::log('event.announced', 'event', $eventId, [

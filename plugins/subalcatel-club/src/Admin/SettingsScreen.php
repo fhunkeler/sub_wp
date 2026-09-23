@@ -6,13 +6,17 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Events\EventService;
+use Subalcatel\Club\Exports\Members;
 use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Setup\SiteBuilder;
 use Subalcatel\Club\Setup\SiteMap;
 use Subalcatel\Club\Support\Audit;
 use Subalcatel\Club\Support\SecuritySettings;
 use Subalcatel\Club\Support\TwoFactorGate;
+use WP_Term;
 
 /**
  * Réglages du club : les référentiels que le bureau fait vivre.
@@ -30,7 +34,12 @@ final class SettingsScreen
     public const SLUG = 'subalcatel-settings';
 
     /** @var list<string> */
-    public const CAPABILITIES = ['sub_manage_event_types', 'sub_manage_memberships', 'sub_manage_content'];
+    public const CAPABILITIES = [
+        'sub_manage_event_types',
+        'sub_manage_memberships',
+        'sub_manage_content',
+        AccountFields::CAPABILITY,
+    ];
 
     public static function register(): void
     {
@@ -40,6 +49,7 @@ final class SettingsScreen
         add_action('admin_post_sub_level_save', [self::class, 'handleLevelSave']);
         add_action('admin_post_sub_level_delete', [self::class, 'handleLevelDelete']);
         add_action('admin_post_sub_security_save', [self::class, 'handleSecuritySave']);
+        add_action('admin_post_sub_office_positions_save', [self::class, 'handleOfficePositionsSave']);
     }
 
     public static function render(): void
@@ -70,6 +80,11 @@ final class SettingsScreen
                 'cap'    => 'sub_manage_event_types',
                 'render' => [self::class, 'renderPages'],
             ],
+            'office'                     => [
+                'label'  => 'Fonctions du bureau',
+                'cap'    => AccountFields::CAPABILITY,
+                'render' => [self::class, 'renderOfficePositions'],
+            ],
             ClubDocumentsScreen::TAB     => [
                 'label'  => 'Contrôle d’intégrité',
                 'cap'    => 'sub_manage_content',
@@ -99,6 +114,57 @@ final class SettingsScreen
 
     // ------------------------------------------------------- Niveaux de plongée
 
+    /**
+     * Grille glisser-déposer : la position dit le rang, sans passer par un
+     * champ numérique.
+     *
+     * Reste une amélioration progressive au sens propre — un plugin qui perd
+     * son JavaScript reste utilisable partout ailleurs sur ces écrans, et
+     * cette grille ne fait pas exception. Sans JavaScript, le conteneur reste
+     * vide et les champs numériques du tableau plus bas restent le seul
+     * réglage, comme avant cet écran. Avec JavaScript, un dépôt appelle
+     * {@see DiveLevelRankEndpoint} puis reporte le résultat dans ces mêmes
+     * champs : le tableau ne perd jamais la main, même après un glissement.
+     *
+     * @param list<WP_Term> $levels
+     */
+    private static function renderLevelGrid(array $levels): void
+    {
+        wp_localize_script('subalcatel-admin', 'subalcatelLevelGrid', [
+            'endpoint' => esc_url_raw(rest_url('subalcatel/v1/dive-level/')),
+            'nonce'    => wp_create_nonce('wp_rest'),
+        ]);
+
+        $payload = array_map(static fn (WP_Term $level): array => [
+            'term_id'          => $level->term_id,
+            'name'             => $level->name,
+            'rang_plongeur'    => DiveLevels::rankOf($level->term_id, DiveLevels::RANK_DIVER),
+            'rang_encadrement' => DiveLevels::rankOf($level->term_id, DiveLevels::RANK_TEACHING),
+            'autonome'         => get_term_meta($level->term_id, DiveLevels::FLAG_AUTONOMOUS, true) === '1',
+            'encadrant'        => get_term_meta($level->term_id, DiveLevels::FLAG_INSTRUCTOR, true) === '1',
+            'directeur_plongee' => get_term_meta($level->term_id, DiveLevels::FLAG_DIVE_LEADER, true) === '1',
+        ], $levels);
+        ?>
+        <div class="sub-level-grid-wrap">
+            <div class="sub-level-grid" data-level-grid
+                 data-levels="<?php echo esc_attr((string) wp_json_encode($payload)); ?>"></div>
+            <p class="sub-level-grid__legend">
+                <span class="sub-level-node sub-level-node--sample"></span> niveau de base
+                <span class="sub-level-node sub-level-node--sample sub-level-node--autonomous"></span> autonome
+                <span class="sub-level-node sub-level-node--sample sub-level-node--instructor"></span> brevet d’encadrement
+                <span aria-hidden="true">★</span> directeur de plongée habilité
+            </p>
+            <p class="screen-reader-text" role="status" data-level-grid-status></p>
+            <noscript>
+                <p class="description">
+                    Activez JavaScript pour glisser les niveaux sur la grille : les
+                    champs numériques du tableau ci-dessous restent utilisables sans lui.
+                </p>
+            </noscript>
+        </div>
+        <?php
+    }
+
     public static function renderLevels(): void
     {
         // Par rang, pas par nom : l'alphabet place E4 avant P1 et PA12 avant P0.
@@ -119,6 +185,8 @@ final class SettingsScreen
             encadrant. Un niveau qui n’est pas de la plongée en scaphandre — NAP — reste
             à 0 sur les deux.
         </p>
+
+        <?php self::renderLevelGrid($levels); ?>
 
         <div class="sub-scroll">
         <table class="wp-list-table widefat striped" style="min-width:820px;">
@@ -156,6 +224,7 @@ final class SettingsScreen
                         <td>
                             <input type="number" form="<?php echo esc_attr($formId); ?>" min="0" step="10"
                                    class="small-text" name="<?php echo esc_attr($axis); ?>"
+                                   id="sub-level-rank-<?php echo esc_attr($axis . '-' . (string) $level->term_id); ?>"
                                    value="<?php echo esc_attr((string) DiveLevels::rankOf($level->term_id, $axis)); ?>">
                         </td>
                     <?php endforeach; ?>
@@ -495,6 +564,88 @@ final class SettingsScreen
         exit;
     }
 
+    // ------------------------------------------------------ Fonctions du bureau
+
+    /**
+     * Qui occupe chaque fonction — un registre à part, pas un champ sur le
+     * compte de son titulaire.
+     *
+     * Les quatre fonctions bougent rarement ; qui les occupe bouge plus
+     * souvent, au rythme des élections du bureau, et cette personne se
+     * connecte avec son compte de membre ordinaire — le rôle « Membre du
+     * bureau » reste réservé aux comptes techniques `admin_*` qui
+     * administrent le site. Un sélecteur unique par fonction, ouvert à
+     * n'importe quel adhérent, évite d'avoir à toucher un rôle pour
+     * enregistrer qui répond au courrier.
+     */
+    public static function renderOfficePositions(): void
+    {
+        $current = OfficePosition::all();
+        $members = Members::all();
+        ?>
+        <p class="description">
+            Sert à adresser directement certains courriels du site au bon
+            interlocuteur — un paiement enregistré répond au trésorier, un
+            dossier déposé répond au secrétariat — sans jamais afficher son
+            adresse. Une fonction reste facultative et ne donne aucun droit :
+            les capacités de gestion du club restent celles du rôle « Membre
+            du bureau », attribué depuis la fiche du compte concerné.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_office_positions_save">
+            <?php wp_nonce_field('sub_office_positions_save'); ?>
+
+            <table class="form-table" role="presentation">
+                <?php foreach (OfficePosition::LABELS as $slug => $label) : ?>
+                    <tr>
+                        <th scope="row">
+                            <label for="sub_office_<?php echo esc_attr($slug); ?>">
+                                <?php echo esc_html($label); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <select id="sub_office_<?php echo esc_attr($slug); ?>"
+                                    name="positions[<?php echo esc_attr($slug); ?>]">
+                                <option value="0">— Personne —</option>
+                                <?php foreach ($members as $person) : ?>
+                                    <option value="<?php echo esc_attr((string) $person->ID); ?>"
+                                        <?php selected($current[$slug], $person->ID); ?>>
+                                        <?php echo esc_html($person->display_name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+
+            <p>
+                <button type="submit" class="button button-primary">Enregistrer</button>
+            </p>
+        </form>
+        <?php
+    }
+
+    public static function handleOfficePositionsSave(): void
+    {
+        check_admin_referer('sub_office_positions_save');
+        AdminUi::requireCap(AccountFields::CAPABILITY);
+
+        $submitted = (array) ($_POST['positions'] ?? []);
+        $saved     = [];
+
+        foreach (OfficePosition::LABELS as $slug => $label) {
+            $userId = absint($submitted[$slug] ?? 0);
+            OfficePosition::set($slug, $userId);
+            $saved[$slug] = $userId;
+        }
+
+        Audit::log('office_position.saved', 'office_position', null, ['positions' => $saved]);
+
+        AdminUi::redirect(self::SLUG, 'Fonctions du bureau enregistrées.', false, ['tab' => 'office']);
+    }
+
     // -------------------------------------------------------------- Sécurité
 
     public static function renderSecurity(): void
@@ -720,6 +871,7 @@ final class SettingsScreen
         'event'       => 'Événements',
         'document'    => 'Documents',
         'campaign'    => 'Campagnes',
+        'office_position' => 'Fonctions du bureau',
     ];
 
     public static function renderAudit(): void

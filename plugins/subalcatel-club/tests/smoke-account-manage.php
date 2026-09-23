@@ -16,7 +16,6 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Admin\MembersScreen;
 use Subalcatel\Club\Identity\AccountFields;
-use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Identity\PasswordChange;
 use Subalcatel\Club\Identity\Roles;
 
@@ -91,43 +90,10 @@ $result = AccountFields::apply($member, $office, [
 ]);
 $check('Un envoi sans changement ne casse rien', $result['ok'] && $result['changed'] === []);
 
-// --- Fonction au bureau -------------------------------------------------------
-echo "\n--- Fonction au bureau ---\n";
-
-$check('Personne ne porte de fonction au départ', OfficePosition::of($office) === null);
-$check('Et la fonction n’a donc pas de titulaire', OfficePosition::holder(OfficePosition::TRESORIER) === null);
-
-$result = AccountFields::apply($office, $office2, ['office_position' => OfficePosition::TRESORIER]);
-$check('Un membre du bureau en désigne un autre trésorier', $result['ok'], $result['message']);
-$check('La fonction est enregistrée', OfficePosition::of($office) === OfficePosition::TRESORIER);
-$check('Le titulaire se retrouve', OfficePosition::holder(OfficePosition::TRESORIER)?->ID === $office);
-
-$header = OfficePosition::replyToHeader(OfficePosition::TRESORIER);
-$check('L’en-tête Reply-To porte son adresse',
-    $header !== [] && str_contains($header[0], get_userdata($office)->user_email));
-$check('Aucun titulaire, aucun en-tête', OfficePosition::replyToHeader(OfficePosition::PRESIDENT) === [],
-    'un envoi ne doit pas échouer faute de fonction pourvue');
-
-$result = AccountFields::apply($office, $office2, ['office_position' => 'gourou']);
-$check('Une fonction inconnue est refusée', !$result['ok'], $result['message']);
-$check('La fonction précédente n’a pas bougé', OfficePosition::of($office) === OfficePosition::TRESORIER);
-
-$result = AccountFields::apply($member, $office, ['office_position' => OfficePosition::WEBMASTER]);
-$check('Un simple adhérent ne peut porter de fonction', $result['ok'] && $result['changed'] === [],
-    'le champ est ignoré plutôt que refusé, pour ne pas bloquer un formulaire par ailleurs valide');
-$check('Rien n’est enregistré pour autant', OfficePosition::of($member) === null);
-
-$result = AccountFields::apply($office, $office2, [
-    'role'            => Roles::MEMBER,
-    'office_position' => OfficePosition::TRESORIER,
-]);
-$check('Rétrograder du bureau efface la fonction',
-    $result['ok'] && in_array('office_position', $result['changed'], true));
-$check('La fonction a bien disparu', OfficePosition::of($office) === null);
-$check('Le trésorier redevient introuvable', OfficePosition::holder(OfficePosition::TRESORIER) === null);
-
-// La suite du scénario suppose $office toujours au bureau.
-AccountFields::apply($office, $office2, ['role' => Roles::OFFICE]);
+// La fonction au bureau (président, trésorier…) ne se règle plus depuis la
+// fiche d'un compte : voir OfficePosition et le nouvel onglet « Fonctions du
+// bureau » des Réglages, testés dans smoke-notifications.php et
+// smoke-settings-office.php.
 
 // --- Ce qui est refusé -------------------------------------------------------
 echo "\n--- Refus ---\n";
@@ -234,12 +200,6 @@ $html = $fiche($other);
 $check('La fiche porte le panneau Compte', str_contains($html, 'value="sub_member_account"'));
 $check('Le courriel y est modifiable', str_contains($html, 'name="user_email"'));
 $check('Le rôle aussi', str_contains($html, 'name="role"'));
-$check('Pas de fonction pour un simple adhérent', !str_contains($html, 'name="office_position"'),
-    'le champ n’a de sens que pour un membre du bureau');
-
-$html = $fiche($office);
-$check('La fonction au bureau apparaît sur la fiche d’un membre du bureau',
-    str_contains($html, 'name="office_position"'));
 $check('Le lien de réinitialisation y est',
     str_contains($html, 'value="sub_member_reset"'),
     'jamais un champ « nouveau mot de passe » pour autrui');

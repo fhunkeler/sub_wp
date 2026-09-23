@@ -125,31 +125,6 @@ final class AccountFields
             $changed[]      = 'role';
         }
 
-        $position = null;
-
-        if (array_key_exists('office_position', $input)) {
-            $position      = sanitize_key((string) $input['office_position']);
-            $effectiveRole = $update['role'] ?? ($user->roles[0] ?? '');
-
-            // Une fonction n'a de sens que pour un membre du bureau. Le champ
-            // est ignoré plutôt que refusé : sinon une rétrogradation de rôle,
-            // qui repasse par le même formulaire, échouerait sur un champ que
-            // l'écran n'a pas eu l'occasion de vider avant l'envoi.
-            if ($effectiveRole !== Roles::OFFICE) {
-                $position = '';
-            }
-
-            if ($position !== '' && !array_key_exists($position, OfficePosition::LABELS)) {
-                return self::failure('Fonction inconnue.');
-            }
-
-            if ($position === (OfficePosition::of($userId) ?? '')) {
-                $position = null;
-            } else {
-                $changed[] = 'office_position';
-            }
-        }
-
         if ($changed === []) {
             return ['ok' => true, 'message' => 'Aucune modification du compte.', 'changed' => []];
         }
@@ -160,14 +135,6 @@ final class AccountFields
             // Les messages de WordPress contiennent du HTML ; le bandeau les
             // échappe, et le bureau lirait des balises. On les aplatit ici.
             return self::failure('Enregistrement impossible : ' . wp_strip_all_tags($result->get_error_message()));
-        }
-
-        // La fonction est un simple meta, pas une colonne de `wp_users` : elle
-        // ne s'écrit qu'une fois le reste accepté par WordPress, pour qu'un
-        // enregistrement refusé ne laisse pas une moitié du formulaire
-        // appliquée.
-        if ($position !== null) {
-            $position === '' ? OfficePosition::clear($userId) : OfficePosition::set($userId, $position);
         }
 
         if (in_array('role', $changed, true)) {

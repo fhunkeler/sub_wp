@@ -7,19 +7,27 @@ namespace Subalcatel\Club\Identity;
 use WP_User;
 
 /**
- * Fonction précise d'un membre du bureau — président, trésorier, secrétaire,
- * webmaster.
+ * Fonction précise du bureau — président, trésorier, secrétaire, webmaster —
+ * et qui l'occupe.
  *
- * `Roles::OFFICE` dit qui siège au bureau ; ça ne dit pas qui fait quoi. Or
- * plusieurs courriels du site ont un interlocuteur naturel : une question sur
- * un paiement va au trésorier, pas à qui a validé le dossier ce soir-là. Sans
- * cette distinction, soit le mail part sans adresse de réponse utile, soit il
- * faut deviner le titulaire à la main à chaque envoi.
+ * `Roles::OFFICE` dit qui administre le site ; ça ne dit pas qui fait quoi, et
+ * les deux ne coïncident pas. Depuis la reprise du Joomla, seuls les quatre
+ * comptes techniques `admin_*` portent `Roles::OFFICE` — décision délibérée,
+ * pour que l'accès au back-office reste sur des comptes dédiés plutôt que sur
+ * ceux du quotidien (voir la décision du 22/09/2026). Les personnes qui tiennent
+ * réellement la trésorerie ou le secrétariat, elles, se connectent avec leur
+ * compte de membre ordinaire.
  *
- * Une fonction reste facultative — beaucoup de membres du bureau n'en portent
- * aucune des quatre — et ne donne aucun droit : les capacités restent celles
- * de `Roles::OFFICE` et des capacités atomiques. C'est une étiquette de
- * routage, pas un rôle.
+ * D'où ce choix : la fonction ne vit pas sur le compte de son titulaire — elle
+ * n'exigerait alors que des comptes `admin_*`, qui ne sont personne en
+ * particulier — mais dans un registre à part, tenu depuis les Réglages. Les
+ * quatre fonctions changent rarement ; qui les occupe change plus souvent,
+ * au rythme des élections du bureau. Un registre centralisé se met à jour en
+ * une ligne, sans passer par la fiche de qui part ni celle de qui arrive.
+ *
+ * Une fonction reste facultative et ne donne aucun droit : les capacités
+ * restent celles de `Roles::OFFICE` et des capacités atomiques. C'est une
+ * étiquette de routage pour les courriels du site, pas un rôle.
  */
 final class OfficePosition
 {
@@ -28,7 +36,7 @@ final class OfficePosition
     public const SECRETAIRE = 'secretaire';
     public const WEBMASTER  = 'webmaster';
 
-    public const META_KEY = 'sub_office_position';
+    public const OPTION = 'subalcatel_club_office_positions';
 
     /**
      * @var array<string, string> fonction => libellé
@@ -41,57 +49,68 @@ final class OfficePosition
     ];
 
     /**
-     * Fonction portée par ce compte, ou null s'il n'en a pas — y compris
-     * quand la valeur enregistrée n'est plus l'une des quatre reconnues.
+     * Le registre complet, une entrée par fonction reconnue — 0 si vacante.
+     *
+     * Toujours les quatre fonctions, même si l'option ne contient encore rien :
+     * l'écran de réglages n'a pas à connaître la liste séparément.
+     *
+     * @return array<string, int> fonction => identifiant de membre (0 = vacante)
      */
-    public static function of(int $userId): ?string
+    public static function all(): array
     {
-        $value = (string) get_user_meta($userId, self::META_KEY, true);
+        $stored = get_option(self::OPTION, []);
+        $stored = is_array($stored) ? $stored : [];
 
-        return array_key_exists($value, self::LABELS) ? $value : null;
+        $map = [];
+        foreach (self::LABELS as $position => $label) {
+            $map[$position] = (int) ($stored[$position] ?? 0);
+        }
+
+        return $map;
     }
 
-    public static function set(int $userId, string $position): void
+    /**
+     * Attribue une fonction. `$userId` à 0 la laisse vacante.
+     */
+    public static function set(string $position, int $userId): bool
     {
-        update_user_meta($userId, self::META_KEY, $position);
-    }
+        if (!array_key_exists($position, self::LABELS)) {
+            return false;
+        }
 
-    public static function clear(int $userId): void
-    {
-        delete_user_meta($userId, self::META_KEY);
+        $stored             = self::all();
+        $stored[$position]  = max(0, $userId);
+        update_option(self::OPTION, $stored);
+
+        return true;
     }
 
     /**
      * Titulaire actuel d'une fonction, s'il y en a un.
      *
-     * Restreint aux comptes qui portent encore `Roles::OFFICE` : une
-     * fonction laissée sur un compte rétrogradé ne doit pas continuer à
-     * recevoir les réponses. Déterministe par nom d'affichage si, par erreur
-     * de saisie, deux comptes portent la même fonction.
+     * Restreint aux comptes toujours membres du club : une fonction laissée
+     * sur un compte parti ou supprimé ne doit pas continuer à recevoir les
+     * réponses en son nom.
      */
     public static function holder(string $position): ?WP_User
     {
-        if (!array_key_exists($position, self::LABELS)) {
+        $userId = self::all()[$position] ?? 0;
+
+        if ($userId <= 0) {
             return null;
         }
 
-        $users = get_users([
-            'role'       => Roles::OFFICE,
-            'meta_key'   => self::META_KEY,
-            'meta_value' => $position,
-            'number'     => 1,
-            'orderby'    => 'display_name',
-        ]);
+        $user = get_userdata($userId);
 
-        return $users[0] ?? null;
+        return $user instanceof WP_User && Roles::isMemberOfClub($userId) ? $user : null;
     }
 
     /**
      * En-tête `Reply-To` vers le titulaire d'une fonction, prêt pour
      * `Mailer::send()`.
      *
-     * Tableau vide si personne ne porte la fonction : un envoi ne doit jamais
-     * échouer faute d'un champ que le bureau n'a pas encore renseigné, il part
+     * Tableau vide si la fonction est vacante ou son titulaire introuvable :
+     * un envoi ne doit jamais échouer faute d'un registre à jour, il part
      * simplement avec l'expéditeur habituel du site.
      *
      * @return list<string>

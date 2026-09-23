@@ -14,9 +14,10 @@ require_once __DIR__ . '/helpers.php';
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Identity\OfficePosition;
+use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\DemoSeeder;
-use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
@@ -87,14 +88,17 @@ echo "\n--- Cycle d’adhésion ---\n";
 
 $campaignId = DemoSeeder::run();
 $member     = $makeUser('sub_member');
-$treasurer  = $makeUser('sub_office', 'Jean');
-$secretary  = $makeUser('sub_office', 'Nadège');
-$service    = new ApplicationService();
+// Qui a le droit d'enregistrer un paiement (rôle « Membre du bureau », réservé
+// aux comptes techniques) et qui est désigné trésorier pour le Reply-To (un
+// adhérent ordinaire) ne sont volontairement pas le même compte — c'est tout
+// l'intérêt d'avoir sorti la fonction du rôle : voir OfficePosition.
+$treasurerAdmin = $makeUser('sub_office', 'admin_tresorerie');
+$treasurer      = $makeUser('sub_member', 'Solenn');
+$secretary      = $makeUser('sub_member', 'Nadège');
+$service        = new ApplicationService();
 
-// Le trésorier reçoit les réponses aux paiements, la secrétaire celles aux
-// dossiers déposés — voir OfficePosition.
-OfficePosition::set($treasurer, OfficePosition::TRESORIER);
-OfficePosition::set($secretary, OfficePosition::SECRETAIRE);
+OfficePosition::set(OfficePosition::TRESORIER, $treasurer);
+OfficePosition::set(OfficePosition::SECRETAIRE, $secretary);
 
 sub_test_complete_identity($member);
 
@@ -125,18 +129,39 @@ $check('Répondre au dossier joint la secrétaire', $mail !== null && str_contai
     get_userdata($secretary)->user_email
 ));
 
-$service->recordPayment($applicationId, $total, 'cheque', null, $treasurer);
+$service->recordPayment($applicationId, $total, 'cheque', null, $treasurerAdmin);
 $paidMail = $lastMail();
 $check('Confirmation de paiement envoyée', str_contains($paidMail['subject'] ?? '', 'Paiement reçu'));
-$check('Répondre au paiement joint le trésorier', str_contains(
+$check('Répondre au paiement joint le trésorier — pas qui l’a saisi', str_contains(
     implode(' ', (array) ($paidMail['headers'] ?? [])),
     get_userdata($treasurer)->user_email
 ));
 
-$service->validateSecretariat($applicationId, $treasurer);
+$service->validateSecretariat($applicationId, $treasurerAdmin);
 $mail = $lastMail();
 $check('Confirmation d’activation envoyée', str_contains($mail['subject'] ?? '', 'adhésion est active'));
 $check('Date de fin annoncée', str_contains($mail['message'] ?? '', '31 décembre 2027'), 'échéance lisible');
+
+// --- Registre des fonctions du bureau ----------------------------------------
+echo "\n--- Fonctions du bureau ---\n";
+
+$registry = OfficePosition::all();
+$check('Les quatre fonctions figurent au registre',
+    array_keys($registry) === [
+        OfficePosition::PRESIDENT, OfficePosition::TRESORIER,
+        OfficePosition::SECRETAIRE, OfficePosition::WEBMASTER,
+    ]);
+$check('La présidence est vacante', $registry[OfficePosition::PRESIDENT] === 0);
+$check('Le trésorier enregistré est un adhérent ordinaire',
+    !in_array(Roles::OFFICE, get_userdata($treasurer)->roles, true),
+    'c’est tout le sujet : la fonction ne dépend plus du rôle « Membre du bureau »');
+
+require_once ABSPATH . 'wp-admin/includes/user.php';
+wp_delete_user($secretary);
+$check('Un titulaire qui a quitté le club n’a plus de titulaire',
+    OfficePosition::holder(OfficePosition::SECRETAIRE) === null);
+$check('Et son en-tête Reply-To disparaît avec lui',
+    OfficePosition::replyToHeader(OfficePosition::SECRETAIRE) === []);
 
 // --- Événements -----------------------------------------------------------------
 echo "\n--- Événements ---\n";
@@ -346,7 +371,7 @@ foreach ([$eventId, $announcedId] as $id) {
 }
 
 require_once ABSPATH . 'wp-admin/includes/user.php';
-foreach ([$member, $second, $treasurer, $secretary, $dp, $intruder, $concerned, $muted, $tooLow, $enrolled] as $id) {
+foreach ([$member, $second, $treasurer, $treasurerAdmin, $secretary, $dp, $intruder, $concerned, $muted, $tooLow, $enrolled] as $id) {
     sub_test_clean_documents($id);
     $wpdb->delete("{$wpdb->prefix}sub_notification_log", ['recipient_id' => $id]);
     wp_delete_user($id);

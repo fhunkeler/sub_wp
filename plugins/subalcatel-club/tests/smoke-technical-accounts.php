@@ -24,6 +24,8 @@ use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Identity\TechnicalAccounts;
 
+global $wpdb;
+
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {
     $failures += $ok ? 0 : 1;
@@ -59,6 +61,14 @@ ProfileFields::save($technique, [
     'emergency_phone'   => '0600000001',
 ], $technique);
 
+// Une méta héritée que `ProfileFields` ne connaît pas : la base en porte une
+// vraie, `sub_licence`, écrite par une version antérieure de la reprise et
+// relue par plus personne. C'est le cas que le marquage ratait — énumérer les
+// champs de profil ne peut pas trouver ce qui n'en est pas un.
+update_user_meta($technique, 'sub_licence', 'A-03-000000');
+update_user_meta($technique, 'sub_ical_token', 'jeton-de-test');
+update_user_meta($technique, '_sub_joomla_user_id', '4242');
+
 $check(
     'avant marquage, les deux comptes sont dans « Niveau E3 »',
     in_array($ordinaire, MailingLists::members('niveau-e3'), true)
@@ -76,11 +86,35 @@ $check('mark() marque le compte', TechnicalAccounts::is($technique));
 $check('mark() ne marque pas les autres', !TechnicalAccounts::is($ordinaire));
 
 $check(
-    'mark() efface les données de membre et le dit',
-    in_array('birth_date', $cleared, true)
-        && in_array('emergency_contact', $cleared, true)
-        && in_array('dive_level_id', $cleared, true),
+    'mark() efface les champs de profil et le dit',
+    in_array('sub_birth_date', $cleared, true)
+        && in_array('sub_emergency_contact', $cleared, true)
+        && in_array('sub_dive_level_id', $cleared, true),
     'effacé : ' . implode(', ', $cleared)
+);
+
+$check(
+    'mark() efface aussi les métas héritées qu\'aucun champ ne déclare',
+    in_array('sub_licence', $cleared, true) && in_array('sub_ical_token', $cleared, true)
+        && get_user_meta($technique, 'sub_licence', true) === ''
+);
+
+$check(
+    'mark() garde la marque d\'origine de la reprise',
+    get_user_meta($technique, '_sub_joomla_user_id', true) === '4242'
+        && !in_array('_sub_joomla_user_id', $cleared, true)
+);
+
+$check(
+    'aucune méta du plugin ne survit, hors celles conservées',
+    array_values(array_diff(
+        $wpdb->get_col($wpdb->prepare(
+            "SELECT meta_key FROM {$wpdb->usermeta} WHERE user_id = %d
+              AND (meta_key LIKE 'sub\\_%%' OR meta_key LIKE '\\_sub\\_%%')",
+            $technique
+        )),
+        ['_sub_joomla_user_id', '_sub_technical_account']
+    )) === []
 );
 
 $check(

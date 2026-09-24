@@ -251,7 +251,7 @@ final class SignupForm
      * de WordPress, où « prenom.nom » se reconnaît alors que
      * « jdupont1987 » ne dit rien à personne.
      */
-    private static function uniqueLogin(string $first, string $last): string
+    public static function uniqueLogin(string $first, string $last): string
     {
         $base = sanitize_user(
             remove_accents($first) . '.' . remove_accents($last),

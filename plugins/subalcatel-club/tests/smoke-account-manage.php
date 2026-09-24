@@ -15,6 +15,7 @@
 require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Admin\MembersScreen;
+use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Identity\PasswordChange;
 use Subalcatel\Club\Identity\Roles;
@@ -94,6 +95,37 @@ $check('Un envoi sans changement ne casse rien', $result['ok'] && $result['chang
 // fiche d'un compte : voir OfficePosition et le nouvel onglet « Fonctions du
 // bureau » des Réglages, testés dans smoke-notifications.php et
 // smoke-settings-office.php.
+
+// --- Création de compte -------------------------------------------------------
+echo "\n--- Création de compte ---\n";
+
+$check('Le bureau détient la capacité de création', user_can($office, AccountFields::CAPABILITY_CREATE));
+$check('Un adhérent ne la détient pas', !user_can($member, AccountFields::CAPABILITY_CREATE));
+
+$newEmail = 'cree-' . wp_generate_password(6, false) . '@subalcatel.test';
+$result   = AccountFields::create($office, 'Alix', 'Nouvel', $newEmail, Roles::MEMBER);
+
+$check('Le bureau crée un compte', $result['ok'], $result['message']);
+$created = $result['user_id'];
+$check('Le compte porte le rôle demandé', in_array(Roles::MEMBER, get_userdata($created)->roles, true));
+$check('Il est immédiatement considéré comme validé',
+    AccountApproval::statusOf($created) === AccountApproval::STATUS_APPROVED,
+    'le bureau l’a créé sciemment, pas de file de validation à traverser');
+
+$result = AccountFields::create(
+    $member,
+    'Pirate',
+    'Compte',
+    'pirate-' . wp_generate_password(6, false) . '@subalcatel.test',
+    Roles::MEMBER
+);
+$check('Un adhérent ne peut pas créer de compte', !$result['ok'], $result['message']);
+
+$result = AccountFields::create($office, 'Doublon', 'Compte', $newEmail, Roles::MEMBER);
+$check('Un courriel déjà pris est refusé', !$result['ok'], $result['message']);
+
+$result = AccountFields::create($office, 'Test', 'Compte', 'nouvel-admin@subalcatel.test', 'administrator');
+$check('« administrator » est refusé à la création aussi', !$result['ok'], $result['message']);
 
 // --- Ce qui est refusé -------------------------------------------------------
 echo "\n--- Refus ---\n";
@@ -233,6 +265,36 @@ $check('La fiche d’un administrateur n’offre aucun champ de compte',
 $html = $fiche($office2);
 $check('Sur sa propre fiche, le rôle est en lecture seule', !str_contains($html, 'name="role"'));
 
+/** L'annuaire tel que le verrait la personne connectée. */
+$annuaire = static function (): string {
+    $_GET['page'] = MembersScreen::SLUG;
+
+    ob_start();
+    MembersScreen::render();
+    $html = (string) ob_get_clean();
+
+    unset($_GET['page']);
+
+    return $html;
+};
+
+$html = $annuaire();
+$check('Le bouton « Créer un membre » est proposé au bureau', str_contains($html, 'action=new'));
+
+get_role(Roles::OFFICE)->remove_cap(AccountFields::CAPABILITY_CREATE);
+wp_cache_delete($office2, 'users');
+wp_cache_delete($office2, 'user_meta');
+wp_set_current_user(0);
+wp_set_current_user($office2);
+
+$html = $annuaire();
+$check('Sans la capacité, le bouton disparaît', !str_contains($html, 'action=new'));
+
+Roles::install();
+wp_cache_delete($office2, 'users');
+wp_set_current_user(0);
+wp_set_current_user($office2);
+
 // Un adhérent n'atteint pas cet écran : `render()` s'arrête sur `wp_die`, donc
 // on vérifie la porte plutôt que la page.
 $check('Un adhérent n’a pas la capacité de la fiche',
@@ -269,7 +331,7 @@ wp_set_current_user(0);
 // --- Nettoyage ----------------------------------------------------------------
 require_once ABSPATH . 'wp-admin/includes/user.php';
 
-foreach ([$office, $member, $other, $admin, $office2] as $id) {
+foreach ([$office, $member, $other, $admin, $office2, $created] as $id) {
     $wpdb->delete("{$wpdb->prefix}sub_audit_log", ['entity_id' => $id, 'entity_type' => 'user']);
     wp_delete_user($id);
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Identity;
 
+use Subalcatel\Club\Frontend\SignupForm;
 use Subalcatel\Club\Support\Audit;
 use WP_User;
 
@@ -49,6 +50,91 @@ final class AccountFields
      * le premier largement et le second à deux personnes.
      */
     public const CAPABILITY = 'sub_manage_accounts';
+
+    /**
+     * Distincte de {@see CAPABILITY} : créer un compte et en modifier un
+     * existant ne sont pas le même geste, comme {@see CAPABILITY} elle-même
+     * l'est de `sub_manage_memberships`.
+     */
+    public const CAPABILITY_CREATE = 'sub_create_account';
+
+    /**
+     * Crée un compte à l'initiative du bureau.
+     *
+     * À la différence de l'inscription du site ({@see \Subalcatel\Club\Frontend\SignupForm}),
+     * ce compte n'entre pas dans la file de validation : quelqu'un du bureau
+     * l'a créé sciemment, il n'y a rien à valider a posteriori — il prend
+     * directement le rôle choisi. Le mot de passe suit la même règle que
+     * partout ailleurs dans ce module : jamais fixé par autrui, un lien de
+     * définition est envoyé à sa place.
+     *
+     * @return array{ok: bool, message: string, user_id: int}
+     */
+    public static function create(int $actorId, string $firstName, string $lastName, string $email, string $role): array
+    {
+        if (!user_can($actorId, self::CAPABILITY_CREATE)) {
+            return self::creationFailure('La création de compte est réservée au bureau.');
+        }
+
+        $firstName = sanitize_text_field($firstName);
+        $lastName  = sanitize_text_field($lastName);
+        $email     = sanitize_email($email);
+
+        if ($firstName === '' || $lastName === '') {
+            return self::creationFailure('Prénom et nom sont obligatoires.');
+        }
+
+        if (!is_email($email)) {
+            return self::creationFailure('Adresse de courriel invalide.');
+        }
+
+        if (email_exists($email)) {
+            return self::creationFailure('Un compte existe déjà avec cette adresse.');
+        }
+
+        if (!array_key_exists($role, Roles::assignable())) {
+            return self::creationFailure('Ce rôle ne peut pas être attribué depuis cet écran.');
+        }
+
+        $userId = wp_insert_user([
+            'user_login'   => SignupForm::uniqueLogin($firstName, $lastName),
+            'user_email'   => $email,
+            'user_pass'    => wp_generate_password(),
+            'first_name'   => $firstName,
+            'last_name'    => $lastName,
+            'display_name' => trim($firstName . ' ' . $lastName),
+            'role'         => $role,
+        ]);
+
+        if (is_wp_error($userId)) {
+            return self::creationFailure('Création impossible : ' . wp_strip_all_tags($userId->get_error_message()));
+        }
+
+        $userId = (int) $userId;
+
+        // Même geste que le reste du module : on n'ouvre pas un mot de passe
+        // choisi ici, on envoie le lien qui laisse la personne en choisir un.
+        retrieve_password(get_userdata($userId)->user_login);
+
+        Audit::log('account.created_by_office', 'user', $userId, ['role' => $role], $actorId);
+
+        return [
+            'ok'      => true,
+            'message' => sprintf(
+                'Compte de %s créé. Un lien de définition du mot de passe lui a été envoyé.',
+                trim($firstName . ' ' . $lastName)
+            ),
+            'user_id' => $userId,
+        ];
+    }
+
+    /**
+     * @return array{ok: false, message: string, user_id: int}
+     */
+    private static function creationFailure(string $message): array
+    {
+        return ['ok' => false, 'message' => $message, 'user_id' => 0];
+    }
 
     /**
      * Applique les modifications d'un compte, ou dit ce qui s'y oppose.

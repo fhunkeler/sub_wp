@@ -164,11 +164,12 @@ final class MailingLists
     }
 
     /**
-     * Destinataires réels : membres de la liste **et** consentants.
+     * Destinataires réels : membres de la liste, moins ceux qui ont refusé.
      *
      * C'est la seule méthode qu'une campagne doit appeler. `members()` dit qui
-     * appartient au groupe ; celle-ci dit à qui on a le droit d'écrire. Être
-     * adhérent ne vaut pas consentement à recevoir la lettre d'information.
+     * appartient au groupe ; celle-ci dit à qui on a le droit d'écrire. Un
+     * membre reste destinataire par défaut — le refus doit être exprimé, voir
+     * {@see Subscriptions}.
      *
      * @return list<array{id: int, email: string, name: string}>
      */

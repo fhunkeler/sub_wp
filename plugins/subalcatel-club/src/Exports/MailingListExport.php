@@ -14,8 +14,10 @@ use Subalcatel\Club\Communication\Subscriptions;
  * entière puis « faire attention » au moment de l'envoi est la façon dont on
  * écrit à des gens qui s'étaient désinscrits.
  *
- * La date de consentement accompagne chaque ligne — c'est elle qui rend l'envoi
- * défendable, et elle doit survivre au passage dans un outil tiers.
+ * La date d'un choix exprimé accompagne chaque ligne quand elle existe — elle
+ * doit survivre au passage dans un outil tiers. Son absence n'est pas une
+ * anomalie : la plupart des membres n'ont jamais eu à se prononcer, l'envoi
+ * reposant par défaut sur l'intérêt légitime du club à écrire à ses adhérents.
  */
 final class MailingListExport extends Export
 {
@@ -31,7 +33,7 @@ final class MailingListExport extends Export
 
     public function description(): string
     {
-        return 'Abonnés d’une liste de diffusion, avec leur date de consentement.';
+        return 'Abonnés d’une liste de diffusion, avec la date de leur choix quand il a été exprimé.';
     }
 
     public function capability(): string

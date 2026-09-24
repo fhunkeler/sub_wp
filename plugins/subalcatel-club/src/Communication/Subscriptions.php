@@ -7,16 +7,19 @@ namespace Subalcatel\Club\Communication;
 use Subalcatel\Club\Support\Audit;
 
 /**
- * Consentement à la lettre d'information.
+ * Préférence de réception des communications du club.
  *
- * Le point de fond : **être adhérent ne vaut pas consentement**. Les listes de
- * diffusion disent qui appartient à quel groupe ; l'abonnement dit à qui le
- * club a le droit d'écrire. Les deux sont indépendants, et c'est le second qui
- * fait foi au moment d'envoyer.
+ * Ce ne sont pas des envois marketing : les listes de diffusion sont le moyen
+ * par lequel le club et ses membres communiquent entre eux — informations
+ * générales, vie des groupes, actualité des niveaux et de l'encadrement.
+ * L'intérêt légitime d'un club à écrire à ses propres adhérents en est la
+ * base : l'absence de réponse vaut donc acceptation, comme pour les annonces
+ * de sortie ci-dessous. Un membre garde la main pour dire stop à tout moment,
+ * et ce refus-là s'enregistre.
  *
- * L'absence de réponse vaut refus : un compte créé n'est pas abonné tant que
- * personne n'a coché la case. C'est plus lent à constituer qu'une liste
- * remplie d'office, et c'est la seule position tenable.
+ * Les listes de diffusion disent qui appartient à quel groupe ; l'abonnement
+ * dit à qui le club a le droit d'écrire. Les deux restent indépendants, et
+ * c'est le second qui fait foi au moment d'envoyer.
  */
 final class Subscriptions
 {
@@ -28,13 +31,11 @@ final class Subscriptions
     /**
      * Refus des annonces de sortie.
      *
-     * Sens inverse de l'abonnement : ici, l'absence de réponse vaut acceptation.
-     * Une annonce de sortie n'est pas une lettre d'information — elle ne part
-     * qu'à ceux que la sortie concerne, à l'initiative d'un organisateur, et
-     * c'est l'objet même de l'adhésion. Le club a donc un intérêt légitime à
-     * l'envoyer, ce qu'il n'a pas pour de l'information générale. Reste qu'un
-     * membre doit pouvoir dire stop sans se couper de ses convocations : c'est
-     * ce que cette méta enregistre.
+     * Même position que l'abonnement général ci-dessus : l'absence de réponse
+     * vaut acceptation. Une annonce de sortie ne part qu'à ceux que la sortie
+     * concerne, à l'initiative d'un organisateur, et c'est l'objet même de
+     * l'adhésion. Reste qu'un membre doit pouvoir dire stop sans se couper de
+     * ses convocations : c'est ce que cette méta enregistre.
      */
     public const META_ANNOUNCEMENTS = 'sub_event_announcements';
 
@@ -61,7 +62,7 @@ final class Subscriptions
     public static function renderPanel(int $userId): string
     {
         $state         = self::stateOf($userId);
-        $subscribed    = $state['status'] === 'yes';
+        $subscribed    = self::isSubscribed($userId);
         $announcements = self::wantsEventAnnouncements($userId);
 
         ob_start();
@@ -74,7 +75,7 @@ final class Subscriptions
 
                 <label class="sub-check">
                     <input type="checkbox" name="subscribed" value="1" <?php checked($subscribed); ?>>
-                    Je souhaite recevoir la lettre d’information du club
+                    Je souhaite recevoir les communications générales du club
                 </label>
 
                 <label class="sub-check">
@@ -119,13 +120,13 @@ final class Subscriptions
 
         if (isset($_POST['subscribed'])) {
             self::subscribe($userId);
-            $message = 'Vous recevrez désormais la lettre d’information.';
+            $message = 'Vous recevrez désormais les communications du club.';
         } else {
-            // Un désabonnement doit s'enregistrer même si aucun consentement
-            // n'avait été donné : la trace du refus vaut aussi.
+            // Un désabonnement doit s'enregistrer même s'il n'y avait jamais
+            // eu de choix explicite : la trace du refus vaut aussi.
             update_user_meta($userId, self::META_STATUS, 'no');
             update_user_meta($userId, self::META_DATE, current_time('Y-m-d'));
-            $message = 'Vous ne recevrez plus la lettre d’information.';
+            $message = 'Vous ne recevrez plus les communications du club.';
         }
 
         // Le choix est enregistré dans les deux sens, y compris quand il
@@ -146,18 +147,22 @@ final class Subscriptions
         exit;
     }
 
+    /**
+     * Seul le refus est enregistré : un compte qui n'a jamais ouvert son
+     * profil reçoit les communications du club, au même titre que les
+     * annonces de sortie ci-dessous — voir le commentaire de classe.
+     */
     public static function isSubscribed(int $userId): bool
     {
-        return get_user_meta($userId, self::META_STATUS, true) === 'yes';
+        return get_user_meta($userId, self::META_STATUS, true) !== 'no';
     }
 
     /**
      * Ce membre accepte-t-il les annonces de sortie ?
      *
-     * Seul le refus est enregistré : un compte qui n'a jamais ouvert son profil
-     * reçoit les annonces. C'est l'inverse de la lettre d'information, et la
-     * raison en est le contenu — une sortie ouverte à son niveau est ce que le
-     * membre est venu chercher en adhérant.
+     * Même logique que {@see self::isSubscribed()} : seul le refus est
+     * enregistré, et la raison en est le contenu — une sortie ouverte à son
+     * niveau est ce que le membre est venu chercher en adhérant.
      */
     public static function wantsEventAnnouncements(int $userId): bool
     {
@@ -253,10 +258,10 @@ final class Subscriptions
 
         wp_die(
             '<h1>Désabonnement enregistré</h1>'
-            . '<p>Vous ne recevrez plus la lettre d’information du club.</p>'
+            . '<p>Vous ne recevrez plus les communications générales du club.</p>'
             . '<p>Vous continuerez à recevoir les messages liés à votre adhésion '
             . '— confirmations, rappels d’échéance, convocations : ils font partie '
-            . 'de la vie du club et ne relèvent pas de la lettre d’information.</p>'
+            . 'de la vie du club et ne relèvent pas de ce choix.</p>'
             . sprintf('<p><a href="%s">Retour au site</a></p>', esc_url(home_url('/'))),
             'Désabonnement',
             ['response' => 200]

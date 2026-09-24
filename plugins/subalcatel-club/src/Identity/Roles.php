@@ -42,6 +42,7 @@ final class Roles
         // Comptes
         'sub_validate_account'                => 'Valider un nouveau compte',
         'sub_manage_accounts'                 => 'Gérer les comptes — courriel, rôle, mot de passe',
+        'sub_create_account'                  => 'Créer un compte membre',
 
         // Documents personnels
         'sub_view_medical_certificate'        => 'Consulter un certificat médical',
@@ -79,6 +80,7 @@ final class Roles
         'sub_validate_membership_treasury',
         'sub_validate_account',
         'sub_manage_accounts',
+        'sub_create_account',
         'sub_manage_event_types',
         'sub_create_governance_event',
         'sub_communicate_event_participants',
@@ -93,13 +95,39 @@ final class Roles
     ];
 
     /**
+     * Capacités natives WordPress ouvrant les Articles et Pages du site au
+     * bureau.
+     *
+     * Elles ne figurent pas dans {@see CAPABILITIES} : ce sont les capacités
+     * primitives de `post`/`page`, pas des capacités atomiques du club, et
+     * `sub_manage_content` ne les couvre pas — elle ne porte que sur le type de
+     * contenu propre au club (voir [ClubDocuments::capabilityMap]). La liste
+     * doit rester complète pour la même raison qu'y est documentée : modifier
+     * un article déjà publié passe par `edit_published_posts`, pas par
+     * `edit_posts`, et une liste incomplète donne un écran qui s'affiche avec
+     * des boutons qui refusent.
+     *
+     * @var list<string>
+     */
+    private const OFFICE_CONTENT_CAPS = [
+        'edit_posts', 'edit_others_posts', 'edit_published_posts', 'edit_private_posts',
+        'delete_posts', 'delete_others_posts', 'delete_published_posts', 'delete_private_posts',
+        'publish_posts', 'read_private_posts',
+        'edit_pages', 'edit_others_pages', 'edit_published_pages', 'edit_private_pages',
+        'delete_pages', 'delete_others_pages', 'delete_published_pages', 'delete_private_pages',
+        'publish_pages', 'read_private_pages',
+        'manage_categories', 'upload_files',
+    ];
+
+    /**
      * Version du jeu de capacités.
      *
      * `install()` ne tourne qu'à l'activation : sans ce compteur, une capacité
      * ajoutée après coup n'atteindrait jamais les installations existantes. À
-     * incrémenter dès que CAPABILITIES ou OFFICE_DEFAULTS changent.
+     * incrémenter dès que CAPABILITIES, OFFICE_DEFAULTS ou OFFICE_CONTENT_CAPS
+     * changent.
      */
-    private const VERSION        = 4;
+    private const VERSION        = 5;
     private const VERSION_OPTION = 'subalcatel_club_roles_version';
 
     /**
@@ -205,6 +233,9 @@ final class Roles
 
         $office = get_role(self::OFFICE);
         foreach (self::OFFICE_DEFAULTS as $cap) {
+            $office?->add_cap($cap);
+        }
+        foreach (self::OFFICE_CONTENT_CAPS as $cap) {
             $office?->add_cap($cap);
         }
 

@@ -49,10 +49,22 @@ final class MembersScreen
         add_action('admin_post_sub_member_save', [self::class, 'handleSave']);
         add_action('admin_post_sub_member_account', [self::class, 'handleAccount']);
         add_action('admin_post_sub_member_reset', [self::class, 'handleReset']);
+        add_action('admin_post_sub_member_create', [self::class, 'handleCreate']);
     }
 
     public static function render(): void
     {
+        // Même logique que la fiche d'un membre ci-dessous : un geste qu'on
+        // déclenche depuis l'annuaire et qui y ramène, pas un onglet à soi.
+        if (($_GET['action'] ?? '') === 'new') {
+            AdminUi::requireCap(AccountFields::CAPABILITY_CREATE);
+            AdminUi::enqueue();
+            AdminUi::flash();
+            self::renderCreateForm();
+
+            return;
+        }
+
         // La fiche d'un membre n'est pas un onglet : on y arrive depuis
         // l'annuaire, et on en revient. Lui donner un onglet ferait une
         // navigation qui change de sens selon qu'on a cliqué ou non.
@@ -125,13 +137,21 @@ final class MembersScreen
         $users  = self::directory($search);
         $policy = new EligibilityPolicy();
         ?>
-            <form method="get" style="margin:0 0 16px;">
-                <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
-                <input type="hidden" name="tab" value="annuaire">
-                <input type="search" name="s" value="<?php echo esc_attr($search); ?>"
-                       placeholder="Nom ou courriel">
-                <button class="button">Rechercher</button>
-            </form>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:0 0 16px;flex-wrap:wrap;">
+                <form method="get" style="margin:0;">
+                    <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
+                    <input type="hidden" name="tab" value="annuaire">
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>"
+                           placeholder="Nom ou courriel">
+                    <button class="button">Rechercher</button>
+                </form>
+                <?php if (current_user_can(AccountFields::CAPABILITY_CREATE)) : ?>
+                    <a class="button button-primary"
+                       href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG . '&action=new')); ?>">
+                        Créer un membre
+                    </a>
+                <?php endif; ?>
+            </div>
 
             <table class="wp-list-table widefat striped sub-cards">
                 <thead>
@@ -485,6 +505,71 @@ final class MembersScreen
     }
 
     /**
+     * Formulaire de création manuelle d'un compte.
+     *
+     * Volontairement réduit à ce qui identifie une personne — prénom, nom,
+     * courriel, rôle : le reste de la fiche (niveau, adhésion, documents) se
+     * renseigne ensuite depuis la fiche membre, une fois le compte créé, comme
+     * pour n'importe quel adhérent.
+     */
+    private static function renderCreateForm(): void
+    {
+        ?>
+        <div class="wrap sub-admin">
+            <h1>Créer un membre</h1>
+            <p class="description">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG)); ?>">← Tous les membres</a>
+            </p>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="max-width:520px;">
+                <input type="hidden" name="action" value="sub_member_create">
+                <?php wp_nonce_field('sub_member_create'); ?>
+
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="sub_create_first_name">Prénom</label></th>
+                        <td><input type="text" id="sub_create_first_name" name="first_name" class="regular-text" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sub_create_last_name">Nom</label></th>
+                        <td><input type="text" id="sub_create_last_name" name="last_name" class="regular-text" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sub_create_email">Courriel</label></th>
+                        <td><input type="email" id="sub_create_email" name="user_email" class="regular-text" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sub_create_role">Rôle</label></th>
+                        <td>
+                            <select id="sub_create_role" name="role">
+                                <?php foreach (Roles::assignable() as $slug => $label) : ?>
+                                    <option value="<?php echo esc_attr($slug); ?>" <?php selected($slug, Roles::MEMBER); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Mot de passe</th>
+                        <td>
+                            <p class="description" style="margin-top:0;">
+                                Comme pour tout compte : personne ici ne le fixe. Un lien pour en
+                                choisir un est envoyé à la création.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <button class="button button-primary">Créer le compte</button>
+                </p>
+            </form>
+        </div>
+        <?php
+    }
+
+    /**
      * @param array<string, string> $roles
      */
     private static function roleLabel(WP_User $user, array $roles): string
@@ -657,5 +742,27 @@ final class MembersScreen
         $result = AccountFields::sendResetLink($userId, get_current_user_id());
 
         AdminUi::redirect(self::SLUG, $result['message'], !$result['ok'], ['user_id' => $userId]);
+    }
+
+    public static function handleCreate(): void
+    {
+        check_admin_referer('sub_member_create');
+        AdminUi::requireCap(AccountFields::CAPABILITY_CREATE);
+
+        /** @var array<string, mixed> $raw */
+        $raw    = wp_unslash($_POST);
+        $result = AccountFields::create(
+            get_current_user_id(),
+            (string) ($raw['first_name'] ?? ''),
+            (string) ($raw['last_name'] ?? ''),
+            (string) ($raw['user_email'] ?? ''),
+            sanitize_key((string) ($raw['role'] ?? Roles::MEMBER))
+        );
+
+        if (!$result['ok']) {
+            AdminUi::redirect(self::SLUG, $result['message'], true, ['action' => 'new']);
+        }
+
+        AdminUi::redirect(self::SLUG, $result['message'], false, ['user_id' => $result['user_id']]);
     }
 }

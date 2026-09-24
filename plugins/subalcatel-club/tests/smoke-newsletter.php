@@ -5,9 +5,10 @@
  *   docker exec sub_demo_wp wp --allow-root eval-file \
  *     wp-content/plugins/subalcatel-club/tests/smoke-newsletter.php
  *
- * Le point à prouver : **être adhérent ne vaut pas consentement**. Une liste
- * dit qui appartient au groupe ; l'abonnement dit à qui on a le droit d'écrire.
- * Confondre les deux, c'est écrire à des gens qui s'étaient désinscrits.
+ * Le point à prouver : une liste dit qui appartient au groupe ; l'abonnement
+ * dit à qui on a le droit d'écrire. Ce ne sont pas des envois marketing —
+ * l'absence de réponse vaut acceptation — mais un membre qui a explicitement
+ * dit stop doit rester exclu des envois, même sans avoir quitté le club.
  */
 
 require_once __DIR__ . '/helpers.php';
@@ -111,34 +112,40 @@ $fixtures = [$active, $former, $ancient, $leader, $office];
 $emailsOf = static fn (array $ids): array
     => array_map(static fn (int $id): string => get_userdata($id)->user_email, $ids);
 
-$check('Aucun consentement par défaut', !Subscriptions::isSubscribed($active),
-    'l’absence de réponse vaut refus');
+$check('Abonné par défaut, sans avoir rien coché', Subscriptions::isSubscribed($active),
+    'ce ne sont pas des envois marketing : l’absence de réponse vaut acceptation');
 
 $subscribedFixtures = array_filter($fixtures, [Subscriptions::class, 'isSubscribed']);
-$check('Effectif et abonnés diffèrent', $subscribedFixtures === [],
-    '5 membres, 0 abonné');
+$check('Personne n’a encore refusé', count($subscribedFixtures) === count($fixtures),
+    count($subscribedFixtures) . '/' . count($fixtures) . ' abonnés');
 
+// $active, $leader et $office ont tous une adhésion valide ; $former et
+// $ancient sont exclus de « adhérents actifs » par leur date d’adhésion, pas
+// par un choix de consentement.
+$activeListFixtures = [$active, $leader, $office];
 $reached = array_intersect(
-    $emailsOf($fixtures),
+    $emailsOf($activeListFixtures),
     array_column(MailingLists::recipients(MailingLists::ACTIVE), 'email')
 );
-$check('Aucun destinataire tant que personne n’a consenti', $reached === []);
+$check('Les adhérents actifs sont déjà destinataires', count($reached) === 3,
+    'aucun n’a eu besoin de cocher une case');
 
 Subscriptions::subscribe($active);
 Subscriptions::subscribe($leader);
 
-$check('Abonné après consentement', Subscriptions::isSubscribed($active));
-$check('Date de consentement enregistrée',
-    Subscriptions::stateOf($active)['date'] === current_time('Y-m-d'));
+$check('Toujours abonné après confirmation explicite', Subscriptions::isSubscribed($active));
+$check('Le choix explicite se trace quand même',
+    Subscriptions::stateOf($active)['date'] === current_time('Y-m-d'),
+    'l’export RGPD doit pouvoir répondre « depuis quand, et pourquoi »');
 
 $recipients = MailingLists::recipients(MailingLists::ACTIVE);
 $emails     = array_column($recipients, 'email');
 
-$check('Le consentant est destinataire',
+$check('Le confirmant est destinataire',
     in_array(get_userdata($active)->user_email, $emails, true), count($recipients) . ' destinataire(s)');
-$check('Le non-consentant est exclu',
-    !in_array(get_userdata($office)->user_email, $emails, true),
-    'membre de la liste, mais pas abonné');
+$check('Le silencieux l’est tout autant',
+    in_array(get_userdata($office)->user_email, $emails, true),
+    'membre de la liste, n’a rien exprimé, reste destinataire');
 
 // --- Reprise depuis AcyMailing ------------------------------------------------
 echo "\n--- Reprise d’un abonnement existant ---\n";
@@ -203,20 +210,22 @@ $check('Réservé au bureau', $export->capability() === 'sub_manage_content');
 
 $rows = $export->rows(['list' => MailingLists::ACTIVE]);
 
-// Parmi les comptes de ce test : celui qui a coché la case et celui repris
-// d'AcyMailing sortent ; le désabonné et le silencieux non.
+// Parmi les comptes de ce test : celui qui a confirmé et celui repris
+// d'AcyMailing sortent ; le désabonné non, et le silencieux ($former) non
+// plus — mais parce qu'il a quitté « adhérents actifs », pas parce qu'il
+// n'a rien coché.
 $exported = array_intersect($emailsOf($fixtures), array_column($rows, 0));
 
-$check('Le consentant et le repris sortent', count($exported) === 2, implode(', ', $exported));
+$check('Le confirmant et le repris sortent', count($exported) === 2, implode(', ', $exported));
 $check('Le désabonné ne sort pas',
     !in_array(get_userdata($leader)->user_email, $exported, true));
-$check('Le silencieux ne sort pas',
+$check('L’ancien adhérent ne sort pas',
     !in_array(get_userdata($former)->user_email, $exported, true),
-    'jamais coché la case');
+    'hors de « adhérents actifs », indépendamment de son consentement');
 
 $dates = array_column($rows, 4);
 
-$check('La date de consentement accompagne chaque ligne',
+$check('La date du choix accompagne les lignes où il a été exprimé',
     in_array(current_time('Y-m-d'), $dates, true), 'elle rend l’envoi défendable');
 $check('La date reprise d’AcyMailing survit à l’export',
     in_array('2019-06-14', $dates, true), 'et non la date de l’import');

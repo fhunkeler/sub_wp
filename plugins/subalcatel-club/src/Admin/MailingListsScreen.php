@@ -56,8 +56,8 @@ final class MailingListsScreen
         ?>
         <p class="description">
             Les listes se recalculent à chaque consultation : personne n’a à les tenir à jour.
-            La colonne <strong>abonnés</strong> ne compte que les membres ayant accepté de
-            recevoir la lettre d’information — être adhérent ne vaut pas consentement.
+            La colonne <strong>abonnés</strong> exclut les membres qui ont explicitement refusé
+            les communications du club dans leur profil — être adhérent n’empêche pas de dire stop.
         </p>
 
         <div class="sub-scroll">

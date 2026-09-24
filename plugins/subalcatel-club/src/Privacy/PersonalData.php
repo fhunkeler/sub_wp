@@ -349,10 +349,12 @@ final class PersonalData
     }
 
     /**
-     * Abonnement à la lettre d'information et appartenance aux groupes.
+     * Abonnement aux communications du club et appartenance aux groupes.
      *
-     * La date de consentement fait partie de l'export : c'est la réponse à
-     * « depuis quand recevez-vous ces messages, et pourquoi ? ».
+     * La date du choix, quand il a été exprimé, fait partie de l'export : c'est
+     * la réponse à « depuis quand, et pourquoi ? ». Son absence n'est pas un
+     * défaut de traçabilité : la personne n'a simplement jamais eu à se
+     * prononcer, l'envoi reposant par défaut sur l'intérêt légitime du club.
      *
      * @return list<array<string, mixed>>
      */
@@ -363,11 +365,11 @@ final class PersonalData
         $state = Subscriptions::stateOf($userId);
 
         $items = [[
-            'name'  => 'Lettre d’information',
+            'name'  => 'Communications du club',
             'value' => match ($state['status']) {
                 'yes'   => 'Abonné',
                 'no'    => 'Désabonné',
-                default => 'Aucun choix exprimé',
+                default => 'Abonné (choix non modifié)',
             },
         ]];
 

@@ -80,6 +80,61 @@ final class DailyDigest
     }
 
     /**
+     * Fenêtres de rattrapage, une par échéance de rappel.
+     *
+     * Un rappel visait jusqu'ici une date exacte : « expire dans 30 jours » ne
+     * partait que le jour où il restait exactement 30 jours. Une seule journée
+     * sans exécution et ce rappel-là ne partait jamais — la tâche ne revient
+     * pas en arrière, et WordPress ne rejoue pas une occurrence manquée : deux
+     * jours d'arrêt ne font pas deux exécutions au retour, ils en font une.
+     *
+     * Chaque échéance couvre donc une bande, bornée par l'échéance
+     * immédiatement inférieure. Avec des rappels à 60 et 30 jours : la bande
+     * J-60 va de J+31 à J+60, la bande J-30 d'aujourd'hui à J+30. Les bandes
+     * ne se chevauchent pas et couvrent tout l'intervalle, si bien qu'une
+     * échéance reçoit exactement un rappel — celui qui correspond au temps qui
+     * lui reste réellement, et non celui du jour où la tâche a fini par
+     * tourner.
+     *
+     * @param  list<int> $days échéances en jours, dans n'importe quel ordre
+     * @return list<array{days: int, from: string, to: string}>
+     */
+    private static function bands(array $days, \DateTimeImmutable $today): array
+    {
+        $days = array_values(array_unique(array_filter($days, static fn (int $d): bool => $d >= 0)));
+        sort($days);
+
+        $bands    = [];
+        $previous = -1;
+
+        foreach ($days as $day) {
+            $bands[] = [
+                'days' => $day,
+                'from' => $today->modify('+' . ($previous + 1) . ' days')->format('Y-m-d'),
+                'to'   => $today->modify('+' . $day . ' days')->format('Y-m-d'),
+            ];
+            $previous = $day;
+        }
+
+        return $bands;
+    }
+
+    /**
+     * Jours restants jusqu'à une échéance.
+     *
+     * Le message annonce une date **et** un nombre de jours ; depuis que le
+     * rappel se rattrape, les deux cesseraient de concorder si l'on reprenait
+     * l'échéance nominale de la bande — « le 3 mars, dans 30 jours » un
+     * 10 février.
+     */
+    private static function daysUntil(\DateTimeImmutable $today, string $date): int
+    {
+        $target = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        return $target === false ? 0 : (int) $today->diff($target)->format('%r%a');
+    }
+
+    /**
      * Rappels avant expiration d'un document, selon les délais de son type.
      */
     private static function documentReminders(?string $onDate = null): int
@@ -92,23 +147,27 @@ final class DailyDigest
         foreach (DocumentTypes::all() as $type) {
             $days = array_filter(array_map('intval', explode(',', (string) $type['reminder_days'])));
 
-            foreach ($days as $day) {
-                $target = $today->modify('+' . $day . ' days')->format('Y-m-d');
-
+            foreach (self::bands($days, $today) as $band) {
                 $documents = $wpdb->get_results($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}sub_member_documents
-                     WHERE type_slug = %s AND status = 'valid' AND valid_until = %s",
+                     WHERE type_slug = %s AND status = 'valid'
+                       AND valid_until BETWEEN %s AND %s",
                     $type['slug'],
-                    $target
+                    $band['from'],
+                    $band['to']
                 ), ARRAY_A) ?: [];
 
                 foreach ($documents as $document) {
                     $ok = Mailer::toUser(EmailTemplates::DOCUMENT_REMINDER, (int) $document['user_id'], [
                         'document'     => mb_strtolower((string) $type['label']),
                         'fin_validite' => DocumentService::frDate((string) $document['valid_until']),
-                        'jours'        => (string) $day,
+                        'jours'        => (string) self::daysUntil($today, (string) $document['valid_until']),
                     ], [
-                        'entity_type' => 'member_document_j' . $day,
+                        // La clé d'unicité garde l'échéance NOMINALE de la
+                        // bande. L'indexer sur les jours réellement restants
+                        // en referait partir un chaque jour, puisque ce nombre
+                        // change — c'est exactement ce que `once` empêche.
+                        'entity_type' => 'member_document_j' . $band['days'],
                         'entity_id'   => (int) $document['id'],
                         'once'        => true,
                     ]);
@@ -139,24 +198,26 @@ final class DailyDigest
         foreach ($campaigns as $campaign) {
             $days = array_filter(array_map('intval', explode(',', (string) $campaign['reminder_days'])));
 
-            foreach ($days as $day) {
-                $target = $today->modify('+' . $day . ' days')->format('Y-m-d');
-
+            foreach (self::bands($days, $today) as $band) {
                 $applications = $wpdb->get_results($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}sub_applications
-                     WHERE campaign_id = %d AND status = 'active' AND valid_until = %s",
+                     WHERE campaign_id = %d AND status = 'active'
+                       AND valid_until BETWEEN %s AND %s",
                     (int) $campaign['id'],
-                    $target
+                    $band['from'],
+                    $band['to']
                 ), ARRAY_A) ?: [];
 
                 foreach ($applications as $application) {
                     $ok = Mailer::toUser(EmailTemplates::MEMBERSHIP_EXPIRING, (int) $application['user_id'], [
                         'fin_validite' => DocumentService::frDate((string) $application['valid_until']),
-                        'jours'        => (string) $day,
+                        'jours'        => (string) self::daysUntil($today, (string) $application['valid_until']),
                     ], [
                         // Le suffixe distingue chaque échéance : un rappel à
-                        // J-60 ne doit pas empêcher celui de J-30.
-                        'entity_type' => 'application_j' . $day,
+                        // J-60 ne doit pas empêcher celui de J-30. Il porte
+                        // l'échéance nominale de la bande, pas les jours
+                        // réellement restants, qui changent chaque jour.
+                        'entity_type' => 'application_j' . $band['days'],
                         'entity_id'   => (int) $application['id'],
                         'once'        => true,
                     ]);

@@ -25,6 +25,22 @@ final class LegalGuardian
     public const MAJORITY_AGE = 18;
 
     /**
+     * Coordonnées du représentant légal.
+     *
+     * Une seule liste, parce que deux méthodes en dépendent et qu'elles
+     * doivent rester d'accord : [self::newlyOfAge] les cherche pour savoir
+     * qui reste à traiter, [self::comeOfAge] les efface. Le jour où l'une
+     * connaîtrait un champ que l'autre ignore, un compte serait retraité sans
+     * fin ou jamais.
+     */
+    private const GUARDIAN_META = [
+        'sub_guardian_name',
+        'sub_guardian_email',
+        'sub_guardian_phone',
+        'sub_guardian_relation',
+    ];
+
+    /**
      * Le membre est-il mineur à une date donnée ?
      *
      * Sans date de naissance renseignée, on répond non : mieux vaut ne pas
@@ -118,10 +134,32 @@ final class LegalGuardian
         $today     = new \DateTimeImmutable($onDate ?? current_time('Y-m-d'));
         $threshold = $today->modify('-' . self::MAJORITY_AGE . ' years')->format('Y-m-d');
 
+        // `<=` et non `=`. Sur une égalité de date, une exécution manquée le
+        // jour même de l'anniversaire laissait les coordonnées du
+        // représentant légal en base **pour toujours** : la tâche ne revient
+        // jamais en arrière. Or [self::comeOfAge] n'a pas d'autre rôle que de
+        // les effacer — [self::isMinor] recalcule l'âge à la volée, le compte
+        // n'était donc pas bloqué, seule la minimisation échouait, en silence.
+        //
+        // La garde contre le retraitement n'est pas une date, c'est la
+        // présence même de ces coordonnées : [self::comeOfAge] les efface,
+        // donc un compte déjà traité ne ressort plus. Un majeur qui n'a jamais
+        // été mineur ici n'en a aucune et n'est jamais concerné. Effet de
+        // bord voulu : les comptes devenus majeurs pendant que la tâche ne
+        // tournait pas sont rattrapés au premier passage.
+        $guardianKeys = implode(',', array_fill(0, count(self::GUARDIAN_META), '%s'));
+
         $ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT user_id FROM {$wpdb->usermeta}
-             WHERE meta_key = 'sub_birth_date' AND meta_value = %s",
-            $threshold
+            "SELECT DISTINCT birth.user_id
+               FROM {$wpdb->usermeta} birth
+               JOIN {$wpdb->usermeta} guardian
+                 ON guardian.user_id = birth.user_id
+                AND guardian.meta_key IN ({$guardianKeys})
+                AND guardian.meta_value <> ''
+              WHERE birth.meta_key = 'sub_birth_date'
+                AND birth.meta_value <> ''
+                AND birth.meta_value <= %s",
+            ...[...self::GUARDIAN_META, $threshold]
         ));
 
         return array_map('intval', $ids);
@@ -133,8 +171,8 @@ final class LegalGuardian
      */
     public static function comeOfAge(int $userId): void
     {
-        foreach (['guardian_name', 'guardian_email', 'guardian_phone', 'guardian_relation'] as $field) {
-            delete_user_meta($userId, 'sub_' . $field);
+        foreach (self::GUARDIAN_META as $key) {
+            delete_user_meta($userId, $key);
         }
 
         update_user_meta($userId, 'sub_came_of_age_on', current_time('Y-m-d'));

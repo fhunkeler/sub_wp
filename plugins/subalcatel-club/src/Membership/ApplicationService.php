@@ -167,6 +167,11 @@ final class ApplicationService
             'total' => $quote->total(),
         ], $userId);
 
+        // Avant l'accusé de réception au membre : ce dernier reste le dernier
+        // courriel parti pour ce dépôt, comme l'attend qui relit « le » message
+        // qui vient de partir (voir smoke-notifications.php).
+        $this->notifySecretariat($applicationId, $userId, $plan, $quote, $paymentMethod);
+
         Mailer::toUser(EmailTemplates::MEMBERSHIP_SUBMITTED, $userId, [
             'reference'  => $this->find($applicationId)['reference'] ?? '',
             'montant'    => number_format($quote->total(), 2, ',', ' ') . ' €',
@@ -181,8 +186,6 @@ final class ApplicationService
             // qui l'instruit — pas à qui décrochera le prochain courriel du site.
             OfficePosition::replyToHeader(OfficePosition::SECRETAIRE)
         );
-
-        $this->notifySecretariat($applicationId, $userId, $plan, $quote, $paymentMethod);
 
         return $applicationId;
     }

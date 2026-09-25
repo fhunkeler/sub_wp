@@ -350,8 +350,14 @@ final class OutingForm
             return '';
         }
 
-        $ts = strtotime($value);
+        // Le champ datetime-local envoie une heure locale (site) sans
+        // fuseau ; on la convertit en GMT avant stockage, sinon strtotime()
+        // la prend pour de l'UTC (fuseau par défaut de PHP sous WP) et
+        // l'affichage la re-décale d'un cran via wp_date().
+        if (strtotime($value) === false) {
+            return '';
+        }
 
-        return $ts === false ? '' : date('Y-m-d H:i:s', $ts);
+        return get_gmt_from_date($value, 'Y-m-d H:i:s');
     }
 }

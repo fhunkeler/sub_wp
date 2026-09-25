@@ -433,13 +433,21 @@ final class DocumentService
     {
         global $wpdb;
 
-        $target = (new \DateTimeImmutable($onDate ?? current_time('Y-m-d')))
-            ->modify('+' . $daysBefore . ' days')
-            ->format('Y-m-d');
+        $today  = new \DateTimeImmutable($onDate ?? current_time('Y-m-d'));
+        $target = $today->modify('+' . $daysBefore . ' days')->format('Y-m-d');
 
+        // Une fenêtre, pas une date. Sur `purge_on = $target`, une seule
+        // journée sans exécution suffisait à ce que l'avertissement ne parte
+        // jamais : le membre découvrait la suppression en constatant la
+        // disparition de sa seule copie. La borne basse exclut les documents
+        // dont la date est atteinte — [self::purgeDue] les a déjà traités dans
+        // la même exécution, prévenir après coup n'a plus d'objet. L'envoi
+        // porte une garde `once`, donc élargir la fenêtre ne relance rien.
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->prefix}member_documents
-             WHERE purge_on = %s AND purged_at IS NULL AND file_path <> ''",
+             WHERE purge_on > %s AND purge_on <= %s
+               AND purged_at IS NULL AND file_path <> ''",
+            $today->format('Y-m-d'),
             $target
         ), ARRAY_A) ?: [];
 

@@ -170,7 +170,7 @@ final class ApplicationService
         // Avant l'accusé de réception au membre : ce dernier reste le dernier
         // courriel parti pour ce dépôt, comme l'attend qui relit « le » message
         // qui vient de partir (voir smoke-notifications.php).
-        $this->notifySecretariat($applicationId, $userId, $plan, $quote, $paymentMethod);
+        $this->notifySecretariat($applicationId, $userId, $campaignId, $plan, $quote, $paymentMethod);
 
         Mailer::toUser(EmailTemplates::MEMBERSHIP_SUBMITTED, $userId, [
             'reference'  => $this->find($applicationId)['reference'] ?? '',
@@ -197,27 +197,30 @@ final class ApplicationService
      * du back-office — le bureau ne consulte pas spontanément une file vide,
      * même raison que pour un nouveau compte (cf. `SignupForm::notifyOffice`).
      *
-     * L'adresse suit le registre des fonctions du bureau (Réglages → Fonctions
-     * du bureau) : rien à saisir ici, et le jour où le secrétariat change de
-     * main, un seul champ à mettre à jour. Fonction vacante, envoi silencieux —
-     * un rappel ne doit pas échouer faute d'un registre à jour.
+     * L'adresse est saisie librement sur la campagne (onglet Règlement), pas
+     * choisie parmi les adhérents comme [OfficePosition] : le bureau voulait
+     * pouvoir viser une boîte fonctionnelle (secretariat@…), pas seulement un
+     * compte du club. Elle suit la campagne pour la même raison que les liens
+     * de paiement — qui doit être prévenu change avec la saison. Case vide,
+     * envoi silencieux — un rappel ne doit pas échouer faute d'adresse saisie.
      */
     private function notifySecretariat(
         int $applicationId,
         int $userId,
+        int $campaignId,
         Plan $plan,
         Quote $quote,
         string $paymentMethod,
     ): void {
-        $secretaire = OfficePosition::holder(OfficePosition::SECRETAIRE);
+        $email = $this->campaigns->notifyEmail($campaignId);
 
-        if ($secretaire === null) {
+        if ($email === '' || !is_email($email)) {
             return;
         }
 
         $applicant = get_userdata($userId);
 
-        Mailer::toUser(EmailTemplates::MEMBERSHIP_SUBMITTED_SECRETARIAT, $secretaire->ID, [
+        Mailer::send(EmailTemplates::MEMBERSHIP_SUBMITTED_SECRETARIAT, $email, [
             'adherent'  => $applicant ? $applicant->display_name : '',
             'reference' => (string) ($this->find($applicationId)['reference'] ?? ''),
             'formule'   => $plan->title,

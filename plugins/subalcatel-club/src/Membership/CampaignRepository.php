@@ -187,6 +187,34 @@ final class CampaignRepository
     }
 
     /**
+     * Adresse prévenue dès qu'un dossier est déposé sur cette campagne.
+     *
+     * Rattachée à la campagne comme les liens de paiement, et pour la même
+     * raison : qui doit être prévenu suit le rythme de la saison, pas celui
+     * des réglages du site. Chaîne vide : personne n'est prévenu.
+     */
+    public function notifyEmail(int $campaignId): string
+    {
+        global $wpdb;
+
+        return (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT notify_email FROM {$this->prefix}campaigns WHERE id = %d",
+            $campaignId
+        ));
+    }
+
+    public function saveNotifyEmail(int $campaignId, string $email): void
+    {
+        global $wpdb;
+
+        $wpdb->update(
+            "{$this->prefix}campaigns",
+            ['notify_email' => $email],
+            ['id' => $campaignId]
+        );
+    }
+
+    /**
      * @return list<DiscountRule>
      */
     public function discountRules(int $campaignId): array

@@ -150,13 +150,12 @@ final class EmailTemplates
             [
                 'code'        => self::MEMBERSHIP_SUBMITTED_SECRETARIAT,
                 'label'       => 'Nouveau dossier d’adhésion (secrétariat)',
-                'description' => 'Envoyé à la personne désignée comme secrétaire (Réglages → '
-                    . 'Fonctions du bureau) dès qu’un dossier d’adhésion est déposé. Sans lui, '
-                    . 'un dossier attend en silence la prochaine visite du back-office. Sans '
-                    . 'secrétaire désigné, cet envoi ne part pas — rien à administrer en plus.',
+                'description' => 'Envoyé à l’adresse de notification réglée sur la campagne '
+                    . '(Adhésions → une campagne → onglet Règlement) dès qu’un dossier y est '
+                    . 'déposé. Case vide, cet envoi ne part pas — rien à administrer en plus.',
                 'channel'     => self::CHANNEL_TARGETED,
                 'subject'     => '[{club}] Nouveau dossier d’adhésion : {adherent}',
-                'body'        => "Bonjour {prenom},\n\n"
+                'body'        => "Bonjour,\n\n"
                     . "{adherent} vient de déposer un dossier d’adhésion.\n\n"
                     . "Référence : {reference}\n"
                     . "Formule : {formule}\n"

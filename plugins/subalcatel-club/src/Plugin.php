@@ -33,6 +33,7 @@ use Subalcatel\Club\Frontend\CalendarShortcode;
 use Subalcatel\Club\Frontend\ClubDocumentsList;
 use Subalcatel\Club\Frontend\MenuVisibility;
 use Subalcatel\Club\Frontend\LoginForm;
+use Subalcatel\Club\Frontend\PermanencesShortcode;
 use Subalcatel\Club\Frontend\PricingTable;
 use Subalcatel\Club\Frontend\SignupForm;
 use Subalcatel\Club\Frontend\SiteMapShortcode;
@@ -168,6 +169,7 @@ final class Plugin
         LoginForm::register();
         SignupForm::register();
         PricingTable::register();
+        PermanencesShortcode::register();
         MenuVisibility::register();
         IcalFeed::register();
         DocumentDelivery::register();

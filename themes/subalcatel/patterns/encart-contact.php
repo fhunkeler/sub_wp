@@ -18,7 +18,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"fontSize":"petit"} -->
-<p class="has-petit-font-size">Adresse à compléter<br>Code postal et ville<br><br>Permanence : jeudi 19 h – 20 h, hors vacances scolaires.</p>
+<p class="has-petit-font-size">Adresse à compléter<br>Code postal et ville<br><br>[subalcatel_permanences]</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column -->
 

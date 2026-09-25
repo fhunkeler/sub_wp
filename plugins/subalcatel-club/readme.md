@@ -150,6 +150,7 @@ sera stabilisé.
 | Journal d'audit | Livré |
 | Double authentification exigée du bureau et des administrateurs | Livré |
 | Diagnostic des mises à jour — quota GitHub, dernier appel, jeton | Livré |
+| Horaires de permanence configurables (`Club → Réglages → Permanences`), affichés sur la page Contact via `[subalcatel_permanences]` | Livré |
 | Tableau de bord : 6 blocs actionnables et 4 courbes | Livré |
 | Bloc « Club » sur le tableau de bord de WordPress : compteurs et raccourcis | Livré |
 | Statistiques annuelles : renouvellement, niveaux, âges, participation | Livré |

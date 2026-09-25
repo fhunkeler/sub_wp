@@ -28,8 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function subalcatel_font_files(): array {
 	return array(
-		'titre' => 'outfit-variable.woff2',
-		'texte' => 'inter-variable.woff2',
+		'titre' => 'montserrat-variable.woff2',
+		'texte' => 'lora-variable.woff2',
 	);
 }
 
@@ -41,12 +41,15 @@ function subalcatel_font_files(): array {
  * @return WP_Theme_JSON_Data
  */
 function subalcatel_register_font_faces( $theme_json ) {
-	$repli    = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+	$replis   = array(
+		'titre' => 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+		'texte' => 'system-ui, -apple-system, "Segoe UI", Roboto, serif',
+	);
 	$families = array();
 
 	$definitions = array(
-		'titre' => array( 'Outfit', 'Outfit (titres)' ),
-		'texte' => array( 'Inter', 'Inter (texte)' ),
+		'titre' => array( 'Montserrat', 'Montserrat (titres)' ),
+		'texte' => array( 'Lora', 'Lora (texte)' ),
 	);
 
 	foreach ( subalcatel_font_files() as $slug => $file ) {
@@ -59,7 +62,7 @@ function subalcatel_register_font_faces( $theme_json ) {
 		$families[] = array(
 			'slug'       => $slug,
 			'name'       => $label,
-			'fontFamily' => sprintf( '"%s", %s', $family, $repli ),
+			'fontFamily' => sprintf( '"%s", %s', $family, $replis[ $slug ] ),
 			'fontFace'   => array(
 				array(
 					'fontFamily'  => $family,

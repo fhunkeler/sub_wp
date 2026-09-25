@@ -32,6 +32,7 @@ final class CampaignEditor
         add_action('admin_post_sub_discount_save', [self::class, 'handleDiscountSave']);
         add_action('admin_post_sub_discount_delete', [self::class, 'handleDiscountDelete']);
         add_action('admin_post_sub_campaign_payment_links', [self::class, 'handlePaymentLinksSave']);
+        add_action('admin_post_sub_campaign_notify_email', [self::class, 'handleNotifyEmailSave']);
     }
 
     public static function url(int $campaignId, string $tab = 'plans'): string
@@ -677,8 +678,47 @@ final class CampaignEditor
      */
     private static function renderPaymentLinks(int $campaignId, CampaignRepository $repo): void
     {
-        $links = $repo->paymentLinks($campaignId);
+        $notifyEmail = $repo->notifyEmail($campaignId);
         ?>
+        <h2>Notification au dépôt d’un dossier</h2>
+        <p class="description">
+            Cette adresse est prévenue par courriel dès qu’un dossier d’adhésion
+            est déposé sur cette campagne — avec sa référence, son montant et un
+            lien direct vers le dossier dans le back-office.
+        </p>
+        <p class="description">
+            Rattachée à la campagne, comme les liens de paiement ci-dessous : elle
+            n’est pas reprise à la <strong>duplication</strong> d’une campagne, pour
+            ne pas continuer à prévenir qui a quitté la fonction la saison passée.
+            Case vide, aucun envoi.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_campaign_notify_email">
+            <input type="hidden" name="campaign_id" value="<?php echo esc_attr((string) $campaignId); ?>">
+            <?php wp_nonce_field('sub_campaign_notify_email'); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label for="sub-campaign-notify-email">Adresse à prévenir</label>
+                    </th>
+                    <td>
+                        <input type="email" id="sub-campaign-notify-email" name="notify_email"
+                               value="<?php echo esc_attr($notifyEmail); ?>"
+                               class="regular-text" placeholder="secretariat@subalcatel.fr">
+                    </td>
+                </tr>
+            </table>
+
+            <p class="submit">
+                <button type="submit" class="button button-primary">Enregistrer l’adresse</button>
+            </p>
+        </form>
+
+        <hr style="margin:24px 0;">
+
+        <h2>Liens de paiement</h2>
         <p class="description">
             Ces adresses s’affichent à l’adhérent dès que son dossier est déposé :
             dans la confirmation à l’écran, dans son espace membre tant que le
@@ -1003,6 +1043,40 @@ final class CampaignEditor
         AdminUi::redirect(
             self::SLUG,
             'Liens de paiement enregistrés.',
+            false,
+            ['campaign_id' => $campaignId, 'tab' => 'payment']
+        );
+    }
+
+    public static function handleNotifyEmailSave(): void
+    {
+        check_admin_referer('sub_campaign_notify_email');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $campaignId = absint($_POST['campaign_id'] ?? 0);
+        $email      = sanitize_email(wp_unslash((string) ($_POST['notify_email'] ?? '')));
+
+        // Une adresse mal saisie est écartée plutôt que retenue à moitié : un
+        // envoi vers une adresse cassée échoue en silence, personne ne
+        // s'aperçoit qu'un dossier n'a alerté personne.
+        if ($email !== '' && !is_email($email)) {
+            AdminUi::redirect(
+                self::SLUG,
+                'Adresse non enregistrée : elle n’est pas valide.',
+                true,
+                ['campaign_id' => $campaignId, 'tab' => 'payment']
+            );
+        }
+
+        (new CampaignRepository())->saveNotifyEmail($campaignId, $email);
+
+        Audit::log('campaign.notify_email_saved', 'campaign', $campaignId, [
+            'renseignee' => $email !== '',
+        ]);
+
+        AdminUi::redirect(
+            self::SLUG,
+            $email !== '' ? 'Adresse de notification enregistrée.' : 'Adresse de notification retirée.',
             false,
             ['campaign_id' => $campaignId, 'tab' => 'payment']
         );

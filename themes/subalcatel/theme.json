@@ -114,13 +114,13 @@
 			"fontFamilies": [
 				{
 					"slug": "titre",
-					"name": "Outfit (titres)",
-					"fontFamily": "Outfit, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+					"name": "Montserrat (titres)",
+					"fontFamily": "Montserrat, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
 				},
 				{
 					"slug": "texte",
-					"name": "Inter (texte)",
-					"fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+					"name": "Lora (texte)",
+					"fontFamily": "Lora, system-ui, -apple-system, \"Segoe UI\", Roboto, serif"
 				}
 			],
 			"fontSizes": [

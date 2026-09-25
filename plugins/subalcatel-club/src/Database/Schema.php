@@ -16,7 +16,7 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 13;
+    private const VERSION        = 14;
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -92,6 +92,7 @@ final class Schema
             reminder_days varchar(100) NOT NULL default '30',
             status varchar(20) NOT NULL default 'draft',
             payment_links longtext,
+            notify_email varchar(190) NOT NULL default '',
             created_at datetime NOT NULL default CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             UNIQUE KEY slug (slug),

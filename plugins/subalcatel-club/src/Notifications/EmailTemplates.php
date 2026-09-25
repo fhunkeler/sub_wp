@@ -29,7 +29,8 @@ final class EmailTemplates
     public const ACCOUNT_APPROVED = 'account.approved';
     public const ACCOUNT_REFUSED  = 'account.refused';
 
-    public const MEMBERSHIP_SUBMITTED = 'membership.submitted';
+    public const MEMBERSHIP_SUBMITTED             = 'membership.submitted';
+    public const MEMBERSHIP_SUBMITTED_SECRETARIAT = 'membership.submitted_secretariat';
     public const MEMBERSHIP_AMENDED   = 'membership.amended';
     public const MEMBERSHIP_PAID      = 'membership.paid';
     public const MEMBERSHIP_ACTIVATED = 'membership.activated';
@@ -144,6 +145,32 @@ final class EmailTemplates
                     'formule'   => 'Formule choisie',
                     'reglement' => 'Mode de règlement choisi par l’adhérent',
                     'consignes' => 'Ce qu’il reste à faire pour régler, selon ce mode',
+                ],
+            ],
+            [
+                'code'        => self::MEMBERSHIP_SUBMITTED_SECRETARIAT,
+                'label'       => 'Nouveau dossier d’adhésion (secrétariat)',
+                'description' => 'Envoyé à la personne désignée comme secrétaire (Réglages → '
+                    . 'Fonctions du bureau) dès qu’un dossier d’adhésion est déposé. Sans lui, '
+                    . 'un dossier attend en silence la prochaine visite du back-office. Sans '
+                    . 'secrétaire désigné, cet envoi ne part pas — rien à administrer en plus.',
+                'channel'     => self::CHANNEL_TARGETED,
+                'subject'     => '[{club}] Nouveau dossier d’adhésion : {adherent}',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "{adherent} vient de déposer un dossier d’adhésion.\n\n"
+                    . "Référence : {reference}\n"
+                    . "Formule : {formule}\n"
+                    . "Montant : {montant}\n"
+                    . "Mode de règlement choisi : {reglement}\n\n"
+                    . "Traiter le dossier : {lien}\n\n"
+                    . "— {club}",
+                'variables'   => [
+                    'adherent'  => 'Nom de l’adhérent',
+                    'reference' => 'Référence du dossier',
+                    'formule'   => 'Formule choisie',
+                    'montant'   => 'Montant total',
+                    'reglement' => 'Mode de règlement choisi par l’adhérent',
+                    'lien'      => 'Lien vers le dossier dans le back-office',
                 ],
             ],
             [
@@ -411,7 +438,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 5;
+    private const VERSION        = 6;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void
@@ -439,6 +466,8 @@ final class EmailTemplates
         global $wpdb;
         $table = $wpdb->prefix . 'sub_email_templates';
 
+        self::repairStaleMembershipSubmittedBody($table);
+
         foreach (self::defaults() as $template) {
             $exists = $wpdb->get_var(
                 $wpdb->prepare("SELECT id FROM {$table} WHERE code = %s", $template['code'])
@@ -465,6 +494,51 @@ final class EmailTemplates
                 'variables'   => wp_json_encode($template['variables'] ?? []),
             ]);
         }
+    }
+
+    /**
+     * Répare un dossier laissé par les installations d'avant la VERSION 4.
+     *
+     * `{consignes}` — la consigne de paiement, HelloAsso compris — a été
+     * ajoutée au corps de `membership.submitted` à cette version-là. Comme
+     * `seed()` ne réécrit jamais le corps d'un modèle existant, une
+     * installation déjà seedée avant l'ajout est restée sur l'ancien texte
+     * générique pour de bon : la variable existe, mais rien dans le corps ne
+     * l'affiche, et l'adhérent ne voit jamais le lien de paiement.
+     *
+     * Ne touche que les lignes dont le corps correspond mot pour mot à cet
+     * ancien texte : un bureau qui l'a retouché depuis garde sa version.
+     */
+    private static function repairStaleMembershipSubmittedBody(string $table): void
+    {
+        global $wpdb;
+
+        $stale = "Bonjour {prenom},\n\n"
+            . "Nous avons bien reçu votre dossier d’adhésion {reference}.\n\n"
+            . "Montant à régler : {montant}.\n"
+            . "Formule : {formule}.\n\n"
+            . "Le règlement se fait par chèque ou via HelloAsso. Votre adhésion sera "
+            . "active dès que le bureau aura confirmé le paiement et vérifié vos pièces.\n\n"
+            . "— {club}";
+
+        $fresh = '';
+        foreach (self::defaults() as $template) {
+            if ($template['code'] === self::MEMBERSHIP_SUBMITTED) {
+                $fresh = $template['body'];
+                break;
+            }
+        }
+
+        if ($fresh === '') {
+            return;
+        }
+
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET body = %s WHERE code = %s AND body = %s",
+            $fresh,
+            self::MEMBERSHIP_SUBMITTED,
+            $stale
+        ));
     }
 
     /**

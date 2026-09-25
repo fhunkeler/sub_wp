@@ -167,6 +167,11 @@ final class ApplicationService
             'total' => $quote->total(),
         ], $userId);
 
+        // Avant l'accusé de réception au membre : ce dernier reste le dernier
+        // courriel parti pour ce dépôt, comme l'attend qui relit « le » message
+        // qui vient de partir (voir smoke-notifications.php).
+        $this->notifySecretariat($applicationId, $userId, $plan, $quote, $paymentMethod);
+
         Mailer::toUser(EmailTemplates::MEMBERSHIP_SUBMITTED, $userId, [
             'reference'  => $this->find($applicationId)['reference'] ?? '',
             'montant'    => number_format($quote->total(), 2, ',', ' ') . ' €',
@@ -183,6 +188,43 @@ final class ApplicationService
         );
 
         return $applicationId;
+    }
+
+    /**
+     * Prévient le secrétariat dès qu'un dossier est déposé.
+     *
+     * Sans cet avertissement, un dossier attend en silence la prochaine visite
+     * du back-office — le bureau ne consulte pas spontanément une file vide,
+     * même raison que pour un nouveau compte (cf. `SignupForm::notifyOffice`).
+     *
+     * L'adresse suit le registre des fonctions du bureau (Réglages → Fonctions
+     * du bureau) : rien à saisir ici, et le jour où le secrétariat change de
+     * main, un seul champ à mettre à jour. Fonction vacante, envoi silencieux —
+     * un rappel ne doit pas échouer faute d'un registre à jour.
+     */
+    private function notifySecretariat(
+        int $applicationId,
+        int $userId,
+        Plan $plan,
+        Quote $quote,
+        string $paymentMethod,
+    ): void {
+        $secretaire = OfficePosition::holder(OfficePosition::SECRETAIRE);
+
+        if ($secretaire === null) {
+            return;
+        }
+
+        $applicant = get_userdata($userId);
+
+        Mailer::toUser(EmailTemplates::MEMBERSHIP_SUBMITTED_SECRETARIAT, $secretaire->ID, [
+            'adherent'  => $applicant ? $applicant->display_name : '',
+            'reference' => (string) ($this->find($applicationId)['reference'] ?? ''),
+            'formule'   => $plan->title,
+            'montant'   => number_format($quote->total(), 2, ',', ' ') . ' €',
+            'reglement' => PaymentMethods::label($paymentMethod),
+            'lien'      => \Subalcatel\Club\Admin\ApplicationEditor::url($applicationId),
+        ], ['entity_type' => 'application', 'entity_id' => $applicationId]);
     }
 
     /**

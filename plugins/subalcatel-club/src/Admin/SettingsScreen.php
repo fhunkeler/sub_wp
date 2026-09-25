@@ -14,6 +14,7 @@ use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Setup\SiteBuilder;
 use Subalcatel\Club\Setup\SiteMap;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\OpeningHours;
 use Subalcatel\Club\Support\SecuritySettings;
 use Subalcatel\Club\Support\TwoFactorGate;
 use WP_Term;
@@ -50,6 +51,7 @@ final class SettingsScreen
         add_action('admin_post_sub_level_delete', [self::class, 'handleLevelDelete']);
         add_action('admin_post_sub_security_save', [self::class, 'handleSecuritySave']);
         add_action('admin_post_sub_office_positions_save', [self::class, 'handleOfficePositionsSave']);
+        add_action('admin_post_sub_permanences_save', [self::class, 'handlePermanencesSave']);
     }
 
     public static function render(): void
@@ -84,6 +86,11 @@ final class SettingsScreen
                 'label'  => 'Fonctions du bureau',
                 'cap'    => AccountFields::CAPABILITY,
                 'render' => [self::class, 'renderOfficePositions'],
+            ],
+            'permanences'                => [
+                'label'  => 'Permanences',
+                'cap'    => 'sub_manage_content',
+                'render' => [self::class, 'renderPermanences'],
             ],
             ClubDocumentsScreen::TAB     => [
                 'label'  => 'Contrôle d’intégrité',
@@ -644,6 +651,84 @@ final class SettingsScreen
         Audit::log('office_position.saved', 'office_position', null, ['positions' => $saved]);
 
         AdminUi::redirect(self::SLUG, 'Fonctions du bureau enregistrées.', false, ['tab' => 'office']);
+    }
+
+    // ----------------------------------------------------------- Permanences
+
+    /**
+     * Nombre de lignes vides ajoutées en bas du tableau, pour saisir de
+     * nouveaux créneaux sans devoir d'abord enregistrer.
+     */
+    private const PERMANENCES_SPARE_ROWS = 3;
+
+    public static function renderPermanences(): void
+    {
+        $rows  = OpeningHours::all();
+        $blank = ['day' => '', 'time' => '', 'note' => ''];
+        $spare = array_fill(0, self::PERMANENCES_SPARE_ROWS, $blank);
+        ?>
+        <p class="description">
+            Ces créneaux s’affichent sur la page Contact, via le raccourci
+            <code>[subalcatel_permanences]</code> placé dans l’encart de contact du thème.
+            Une ligne laissée sans jour ni horaire n’est pas enregistrée — gardez les
+            lignes vides en bas telles quelles pour ajouter un créneau plus tard.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_permanences_save">
+            <?php wp_nonce_field('sub_permanences_save'); ?>
+
+            <div class="sub-scroll">
+            <table class="wp-list-table widefat striped" style="min-width:640px;">
+                <thead>
+                    <tr>
+                        <th>Jour</th>
+                        <th>Horaire</th>
+                        <th>Précision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach (array_merge($rows, $spare) as $row) : ?>
+                    <tr>
+                        <td>
+                            <input type="text" name="day[]" class="regular-text"
+                                   value="<?php echo esc_attr($row['day']); ?>" placeholder="Jeudi">
+                        </td>
+                        <td>
+                            <input type="text" name="time[]" class="regular-text"
+                                   value="<?php echo esc_attr($row['time']); ?>" placeholder="19 h – 20 h">
+                        </td>
+                        <td>
+                            <input type="text" name="note[]" class="regular-text"
+                                   value="<?php echo esc_attr($row['note']); ?>" placeholder="hors vacances scolaires">
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            </div>
+
+            <p>
+                <button type="submit" class="button button-primary">Enregistrer</button>
+            </p>
+        </form>
+        <?php
+    }
+
+    public static function handlePermanencesSave(): void
+    {
+        check_admin_referer('sub_permanences_save');
+        AdminUi::requireCap('sub_manage_content');
+
+        OpeningHours::save(
+            (array) ($_POST['day'] ?? []),
+            (array) ($_POST['time'] ?? []),
+            (array) ($_POST['note'] ?? [])
+        );
+
+        Audit::log('opening_hours.saved', 'opening_hours', null, ['count' => count(OpeningHours::all())]);
+
+        AdminUi::redirect(self::SLUG, 'Permanences enregistrées.', false, ['tab' => 'permanences']);
     }
 
     // -------------------------------------------------------------- Sécurité

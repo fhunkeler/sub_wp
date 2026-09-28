@@ -231,7 +231,7 @@ $check('49 colonnes : les 46 de l’ancien site, puis les trois ajoutées',
         'from_date', 'to_date', 'published', 'amount', 'tax_amount', 'discount_amount',
         'gross_amount', 'payment_method', 'transaction_id', 'membership_id',
         'invoice_number',
-        'Licence FFESSM', 'N° carte ASAC', 'Supp inscription tardive',
+        'Licence FFESSM', 'N° badge ASAC', 'Supp inscription tardive',
     ]);
 
 // Les ajouts vont APRÈS la quarante-sixième, jamais entre : c'est ce qui permet
@@ -309,7 +309,7 @@ if ($dive !== null) {
     $check('invoice_number = référence du dossier',
         str_starts_with((string) $dive[45], 'ADH-'), (string) $dive[45]);
     $check('Licence FFESSM, en colonne ajoutée', $dive[46] === 'A-22-000123', $dive[46]);
-    $check('N° carte ASAC, en colonne ajoutée', $dive[47] === 'A-22-9999', $dive[47]);
+    $check('N° badge ASAC, en colonne ajoutée', $dive[47] === 'A-22-9999', $dive[47]);
     // Aucune campagne du club ne facture encore l'inscription tardive : la
     // colonne existe pour le jour où le bureau en créera une.
     $check('Supplément tardif vide faute d’option', $dive[48] === '', "'{$dive[48]}'");

@@ -384,10 +384,10 @@ final class ProfileFields
      */
     public static function mayEdit(array $field, bool $isSelf, bool $canEditOthers): bool
     {
-        if ($field['editable'] === self::EDIT_OFFICE) {
-            return $canEditOthers;
-        }
-
+        // TEMPORAIRE : les champs EDIT_OFFICE sont débloqués pour l'auto-saisie
+        // par les membres, le temps de rattraper les dossiers. À revenir en
+        // arrière : réintroduire
+        //   if ($field['editable'] === self::EDIT_OFFICE) { return $canEditOthers; }
         return $isSelf || $canEditOthers;
     }
 

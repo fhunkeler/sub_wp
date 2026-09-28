@@ -33,7 +33,7 @@ use Subalcatel\Club\Membership\PaymentMethods;
  *    qu'elles avaient dans l'ancien fichier, pour la même raison.
  *
  * Trois colonnes s'ajoutent en fin de ligne, que l'ancien format ne portait
- * pas : la licence FFESSM, le numéro de carte ASAC et le supplément
+ * pas : la licence FFESSM, le numéro de badge ASAC et le supplément
  * d'inscription tardive. Le président les avait demandées le 08/09/2026, le
  * dernier en « indispensable ». Elles arrivent après la quarante-sixième,
  * jamais entre : les colonnes de l'ancien fichier gardent ainsi leur rang, et
@@ -75,7 +75,7 @@ final class MembershipDetailExport extends Export
         return 'Une ligne par dossier de la saison choisie, aux colonnes exactes de '
             . 'l’extrait de l’ancien site : identité, options souscrites, montants '
             . 'et règlement. Reprenable tel quel dans les tableaux du bureau. '
-            . 'Trois colonnes s’ajoutent à la fin — licence FFESSM, carte ASAC et '
+            . 'Trois colonnes s’ajoutent à la fin — licence FFESSM, badge ASAC et '
             . 'supplément d’inscription tardive.';
     }
 
@@ -146,7 +146,7 @@ final class MembershipDetailExport extends Export
             // équivalent OSMembership. D'où les libellés du bureau plutôt que
             // des noms techniques — personne n'a de tableau bâti dessus.
             'Licence FFESSM',
-            'N° carte ASAC',
+            'N° badge ASAC',
             'Supp inscription tardive',
         ];
     }

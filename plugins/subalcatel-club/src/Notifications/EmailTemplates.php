@@ -37,6 +37,7 @@ final class EmailTemplates
     public const MEMBERSHIP_REFUSED   = 'membership.refused';
     public const MEMBERSHIP_CANCELLED = 'membership.cancelled';
     public const MEMBERSHIP_EXPIRING  = 'membership.expiring';
+    public const CAMPAIGN_OPENED      = 'campaign.opened';
 
     // Documents
     public const DOCUMENT_REMINDER  = 'document.reminder';
@@ -250,13 +251,30 @@ final class EmailTemplates
                 'copy_guardian' => 1,
                 'label'       => 'Adhésion à renouveler',
                 'description' => 'Rappel automatique avant la fin de l’adhésion, selon les délais de la campagne.',
-                'subject'     => '[{club}] Votre adhésion se termine le {fin_validite}',
+                'subject'     => '[{club}] Votre adhésion {campagne} se termine le {fin_validite}',
                 'body'        => "Bonjour {prenom},\n\n"
-                    . "Votre adhésion arrive à échéance le {fin_validite}, dans {jours} jours.\n\n"
+                    . "Votre adhésion {campagne} arrive à échéance le {fin_validite}, dans {jours} jours.\n\n"
                     . "Passé cette date, vous ne pourrez plus vous inscrire aux sorties. "
                     . "Le renouvellement se fait depuis votre espace membre.\n\n"
                     . "— {club}",
-                'variables'   => ['fin_validite' => 'Date de fin', 'jours' => 'Jours restants'],
+                'variables'   => ['campagne' => 'Nom de la campagne', 'fin_validite' => 'Date de fin', 'jours' => 'Jours restants'],
+            ],
+            [
+                'code'        => self::CAMPAIGN_OPENED,
+                'copy_guardian' => 1,
+                'channel'     => self::CHANNEL_TARGETED,
+                'label'       => 'Nouvelle campagne ouverte',
+                'description' => 'Envoyé à tous les adhérents actifs dès qu’une campagne passe au statut '
+                    . '« ouverte ». Sans lui, personne n’est prévenu qu’une nouvelle saison a démarré tant '
+                    . 'que la sienne n’est pas terminée — deux échéances différentes coexistent alors sans '
+                    . 'que rien ne le signale.',
+                'subject'     => '[{club}] La campagne {campagne} est ouverte',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "La campagne d’adhésion {campagne} est désormais ouverte, du {debut} au {fin}.\n\n"
+                    . "Si votre adhésion actuelle arrive à échéance avant cette date, pensez à la "
+                    . "renouveler dès maintenant : le renouvellement se fait depuis votre espace membre.\n\n"
+                    . "— {club}",
+                'variables'   => ['campagne' => 'Nom de la campagne', 'debut' => 'Début de validité', 'fin' => 'Fin de validité'],
             ],
             [
                 'code'        => self::DOCUMENT_REMINDER,
@@ -437,7 +455,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 6;
+    private const VERSION        = 8;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void
@@ -466,6 +484,7 @@ final class EmailTemplates
         $table = $wpdb->prefix . 'sub_email_templates';
 
         self::repairStaleMembershipSubmittedBody($table);
+        self::repairStaleMembershipExpiringBody($table);
 
         foreach (self::defaults() as $template) {
             $exists = $wpdb->get_var(
@@ -537,6 +556,54 @@ final class EmailTemplates
             $fresh,
             self::MEMBERSHIP_SUBMITTED,
             $stale
+        ));
+    }
+
+    /**
+     * Répare le rappel `membership.expiring` d'avant la VERSION 7.
+     *
+     * Le rappel ne nommait pas la campagne concernée. Pendant la campagne de
+     * transition 2026-2027 (16 mois, calée sur l'année civile au lieu du
+     * cycle sept-sept habituel), un adhérent encore rattaché à l'ancienne
+     * campagne recevait « votre adhésion se termine le 30/09 » sans rien pour
+     * la distinguer de la nouvelle échéance au 31/12 — d'où la confusion.
+     *
+     * Ne touche que les lignes dont sujet et corps correspondent mot pour mot
+     * à l'ancien texte : un bureau qui les a retouchés garde sa version.
+     */
+    private static function repairStaleMembershipExpiringBody(string $table): void
+    {
+        global $wpdb;
+
+        $staleSubject = '[{club}] Votre adhésion se termine le {fin_validite}';
+        $staleBody    = "Bonjour {prenom},\n\n"
+            . "Votre adhésion arrive à échéance le {fin_validite}, dans {jours} jours.\n\n"
+            . "Passé cette date, vous ne pourrez plus vous inscrire aux sorties. "
+            . "Le renouvellement se fait depuis votre espace membre.\n\n"
+            . "— {club}";
+
+        $freshSubject = '';
+        $freshBody    = '';
+        foreach (self::defaults() as $template) {
+            if ($template['code'] === self::MEMBERSHIP_EXPIRING) {
+                $freshSubject = $template['subject'];
+                $freshBody    = $template['body'];
+                break;
+            }
+        }
+
+        if ($freshBody === '') {
+            return;
+        }
+
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET subject = %s, body = %s
+             WHERE code = %s AND subject = %s AND body = %s",
+            $freshSubject,
+            $freshBody,
+            self::MEMBERSHIP_EXPIRING,
+            $staleSubject,
+            $staleBody
         ));
     }
 

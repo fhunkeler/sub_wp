@@ -191,7 +191,7 @@ final class DailyDigest
         $sent  = 0;
 
         $campaigns = $wpdb->get_results(
-            "SELECT id, reminder_days FROM {$wpdb->prefix}sub_campaigns",
+            "SELECT id, title, reminder_days FROM {$wpdb->prefix}sub_campaigns",
             ARRAY_A
         ) ?: [];
 
@@ -210,6 +210,7 @@ final class DailyDigest
 
                 foreach ($applications as $application) {
                     $ok = Mailer::toUser(EmailTemplates::MEMBERSHIP_EXPIRING, (int) $application['user_id'], [
+                        'campagne'     => (string) $campaign['title'],
                         'fin_validite' => DocumentService::frDate((string) $application['valid_until']),
                         'jours'        => (string) self::daysUntil($today, (string) $application['valid_until']),
                     ], [

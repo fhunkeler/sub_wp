@@ -114,6 +114,10 @@ final class ProfileFields
                 'label' => 'Niveau de plongée', 'group' => 'diving', 'type' => 'dive_level',
                 'section' => 'Niveau et qualifications',
                 'editable' => self::EDIT_OFFICE,
+                // Verrouillé même pendant le déblocage temporaire des champs
+                // EDIT_OFFICE (voir mayEdit) : le niveau conditionne l'accès
+                // aux plongées, ce n'est pas un champ à rattraper par le membre.
+                'locked' => true,
                 'help' => 'Attribué par le bureau sur présentation du brevet.',
             ],
             'nitrox' => [
@@ -367,9 +371,15 @@ final class ProfileFields
      */
     public static function mayEdit(array $field, bool $isSelf, bool $canEditOthers): bool
     {
-        // TEMPORAIRE : les champs EDIT_OFFICE sont débloqués pour l'auto-saisie
-        // par les membres, le temps de rattraper les dossiers. À revenir en
-        // arrière : réintroduire
+        // `locked` échappe au déblocage temporaire ci-dessous : certains champs
+        // EDIT_OFFICE restent fermés au membre même le temps du rattrapage.
+        if (!empty($field['locked'])) {
+            return $canEditOthers;
+        }
+
+        // TEMPORAIRE : les autres champs EDIT_OFFICE sont débloqués pour
+        // l'auto-saisie par les membres, le temps de rattraper les dossiers.
+        // À revenir en arrière : réintroduire
         //   if ($field['editable'] === self::EDIT_OFFICE) { return $canEditOthers; }
         return $isSelf || $canEditOthers;
     }

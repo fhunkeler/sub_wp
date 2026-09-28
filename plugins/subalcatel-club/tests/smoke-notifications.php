@@ -336,7 +336,8 @@ $wpdb->update("{$wpdb->prefix}sub_applications", ['valid_until' => $in30], ['id'
 $before = count($GLOBALS['sub_sent_mails']);
 $result = DailyDigest::run();
 $check('Rappel d’adhésion envoyé', $result['membership_reminders'] >= 1, json_encode($result));
-$check('Message de renouvellement', str_contains($lastMail()['subject'] ?? '', 'adhésion se termine'));
+$check('Message de renouvellement', str_contains($lastMail()['subject'] ?? '', 'adhésion Campagne 2026-2027 se termine'),
+    'la campagne doit être nommée pour ne pas confondre deux échéances qui se chevauchent');
 
 // Deuxième passage le même jour : rien ne doit repartir.
 $before = count($GLOBALS['sub_sent_mails']);

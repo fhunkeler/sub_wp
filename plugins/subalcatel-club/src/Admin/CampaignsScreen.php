@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
+use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -309,6 +312,8 @@ final class CampaignsScreen
             self::back('Campagne fermée.');
         }
 
+        self::notifyCampaignOpened($id);
+
         // Ouvrir une campagne dont aucune page de paiement n'est renseignée
         // n'est pas une faute — le club peut n'encaisser que par chèque. Mais
         // c'est presque toujours l'oubli qui suit une duplication, qui ne
@@ -320,6 +325,61 @@ final class CampaignsScreen
             ? 'Campagne ouverte. Aucun lien de paiement n’y est renseigné : '
                 . 'les adhérents ne verront que la consigne écrite. Onglet « Règlement ».'
             : 'Campagne ouverte.');
+    }
+
+    /**
+     * Prévient les adhérents actifs qu'une campagne vient de s'ouvrir.
+     *
+     * Sans ce mail, rien ne signale qu'une nouvelle saison a démarré tant que
+     * l'ancienne n'est pas terminée — un adhérent encore sur la campagne
+     * précédente ne voit que son propre rappel d'échéance, avec une date qui
+     * ne correspond plus aux règles de la nouvelle campagne.
+     *
+     * Idempotent par campagne : rouvrir une campagne déjà annoncée (après
+     * l'avoir fermée par erreur, par exemple) ne relance pas l'envoi.
+     */
+    private static function notifyCampaignOpened(int $campaignId): void
+    {
+        global $wpdb;
+
+        $campaign = $wpdb->get_row($wpdb->prepare(
+            "SELECT title, valid_from, valid_until FROM {$wpdb->prefix}sub_campaigns WHERE id = %d",
+            $campaignId
+        ), ARRAY_A);
+
+        if (!$campaign) {
+            return;
+        }
+
+        $alreadySent = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}sub_notification_log
+             WHERE template_code = %s AND entity_type = 'campaign' AND entity_id = %d AND status = 'sent'",
+            EmailTemplates::CAMPAIGN_OPENED,
+            $campaignId
+        ));
+
+        if ($alreadySent > 0) {
+            return;
+        }
+
+        $userIds = $wpdb->get_col(
+            "SELECT DISTINCT user_id FROM {$wpdb->prefix}sub_applications
+             WHERE status = 'active' AND user_id IS NOT NULL"
+        );
+
+        if ($userIds === []) {
+            return;
+        }
+
+        Mailer::toUsers(EmailTemplates::CAMPAIGN_OPENED, array_map('intval', $userIds), [
+            'campagne' => (string) $campaign['title'],
+            'debut'    => DocumentService::frDate((string) $campaign['valid_from']),
+            'fin'      => DocumentService::frDate((string) $campaign['valid_until']),
+        ], [
+            'entity_type' => 'campaign',
+            'entity_id'   => $campaignId,
+            'sender_id'   => get_current_user_id(),
+        ]);
     }
 
     public static function handleDelete(): void

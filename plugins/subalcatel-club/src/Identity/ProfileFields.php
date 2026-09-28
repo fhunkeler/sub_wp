@@ -163,7 +163,7 @@ final class ProfileFields
                 'placeholder' => 'A-03-000000',
             ],
             'asac_card' => [
-                'label' => 'Numéro de carte ASAC', 'group' => 'diving', 'type' => 'text',
+                'label' => 'Numéro de badge ASAC', 'group' => 'diving', 'type' => 'text',
                 'section' => 'Licences et cartes',
                 'editable' => self::EDIT_OFFICE,
             ],
@@ -204,23 +204,6 @@ final class ProfileFields
                 'section' => 'Radiotéléphonie',
                 'editable' => self::EDIT_OFFICE,
             ],
-            'compressor_clearance' => [
-                'label' => 'Habilitation compresseur', 'group' => 'credentials', 'type' => 'checkbox',
-                'section' => 'Gonflage',
-                'editable' => self::EDIT_OFFICE,
-                'help' => 'Autorise le gonflage des blocs.',
-            ],
-            'compressor_clearance_date' => [
-                'label' => 'Date d’habilitation compresseur', 'group' => 'credentials', 'type' => 'date',
-                'section' => 'Gonflage',
-                'editable' => self::EDIT_OFFICE,
-            ],
-            'compressor_trainer' => [
-                'label' => 'Entretien et formation gonflage', 'group' => 'credentials', 'type' => 'checkbox',
-                'section' => 'Gonflage',
-                'editable' => self::EDIT_OFFICE,
-            ],
-
             // --- Représentant légal ---------------------------------------------
             // Affichés seulement si le membre est mineur : les demander à un
             // adulte n'aurait pas de sens, et les conserver après la majorité

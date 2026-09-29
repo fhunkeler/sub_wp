@@ -121,13 +121,14 @@ final class DocumentsScreen
                     <th>Membre</th>
                     <th style="width:180px;">Document</th>
                     <th style="width:150px;">Déposé le</th>
+                    <th style="width:150px;">Établi le</th>
                     <th style="width:150px;">Validité</th>
                     <th style="width:340px;">Décision</th>
                 </tr>
             </thead>
             <tbody>
             <?php if ($pending === []) : ?>
-                <tr><td colspan="5">Aucun document en attente. </td></tr>
+                <tr><td colspan="6">Aucun document en attente. </td></tr>
             <?php endif; ?>
 
             <?php foreach ($pending as $row) : ?>
@@ -143,6 +144,9 @@ final class DocumentsScreen
                     </td>
                     <td data-label="Déposé le">
                         <?php echo esc_html(AdminUi::frDate(substr((string) $row['uploaded_at'], 0, 10))); ?>
+                    </td>
+                    <td data-label="Établi le">
+                        <?php echo esc_html(AdminUi::frDate($row['issued_on'] !== null ? (string) $row['issued_on'] : null)); ?>
                     </td>
                     <td data-label="Validité">
                         <?php echo esc_html(AdminUi::frDate((string) $row['valid_until'])); ?>

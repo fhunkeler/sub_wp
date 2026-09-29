@@ -44,6 +44,38 @@ final class MembersScreen
         'sub_validate_member_document',
     ];
 
+    /**
+     * Les qualifications filtrables de l'annuaire, réunies dans un seul menu
+     * plutôt qu'un menu par champ — huit cases à cocher pour un critère que le
+     * bureau consulte rarement feraient plus de bruit que de service.
+     *
+     * @var array<string, array{label: string, meta: string, value: string}>
+     */
+    private const QUALIFICATIONS = [
+        'nitrox'             => ['label' => 'Nitrox élémentaire', 'meta' => 'sub_nitrox', 'value' => 'nitrox'],
+        'nitrox_conf'        => ['label' => 'Nitrox confirmé', 'meta' => 'sub_nitrox', 'value' => 'nitrox_conf'],
+        'trimix_elem'        => ['label' => 'Trimix élémentaire', 'meta' => 'sub_trimix', 'value' => 'trimix_elem'],
+        'trimix'             => ['label' => 'Trimix', 'meta' => 'sub_trimix', 'value' => 'trimix'],
+        'rifap'              => ['label' => 'RIFAP', 'meta' => 'sub_rifap', 'value' => '1'],
+        'tiv'                => ['label' => 'TIV', 'meta' => 'sub_tiv', 'value' => '1'],
+        'boat_licence'       => ['label' => 'Permis bateau', 'meta' => 'sub_boat_licence', 'value' => '1'],
+        'radio_certificate'  => ['label' => 'CRR', 'meta' => 'sub_radio_certificate', 'value' => '1'],
+    ];
+
+    /**
+     * Les trois statuts dérivés du niveau de plongée — voir DiveLevels — offerts
+     * en filtre : contrairement au niveau lui-même, ils regroupent plusieurs
+     * niveaux (« encadrant » vaut pour P2/E1 comme pour E4), ce qu'un filtre par
+     * niveau exact ne permet pas.
+     *
+     * @var array<string, array{label: string, flag: string}>
+     */
+    private const DIVE_FLAGS = [
+        'autonome'          => ['label' => 'Plongeur autonome', 'flag' => DiveLevels::FLAG_AUTONOMOUS],
+        'encadrant'         => ['label' => 'Encadrant', 'flag' => DiveLevels::FLAG_INSTRUCTOR],
+        'directeur_plongee' => ['label' => 'Directeur de plongée', 'flag' => DiveLevels::FLAG_DIVE_LEADER],
+    ];
+
     public static function register(): void
     {
         add_action('admin_post_sub_member_save', [self::class, 'handleSave']);
@@ -113,37 +145,251 @@ final class MembersScreen
      * Ils restent gérables dans Comptes → Utilisateurs, comme les
      * administrateurs WordPress.
      *
+     * Les filtres, tous facultatifs (chaîne vide = pas de critère) :
+     * `role` (slug d'un rôle du club), `level` (identifiant de terme de niveau),
+     * `qualif` (une clé de {@see self::QUALIFICATIONS}), `flag` (une clé de
+     * {@see self::DIVE_FLAGS}), `membership` (`active`|`inactive`),
+     * `documents` (`ok`|`ko`), `minor` (`yes`|`no`), `admins` (`1` pour inclure
+     * les comptes portant le rôle WordPress `administrator` — pas les comptes
+     * techniques `sub_office`, qui restent hors de l'annuaire dans tous les
+     * cas : eux sont au bureau, la case ne concerne que l'administration
+     * technique du site).
+     *
+     * Les critères qui se lisent directement en base — rôle, niveau,
+     * qualification — filtrent la requête `get_users`. Les autres sont
+     * calculés (adhésion, documents, statut dérivé du niveau) : ils ne
+     * correspondent à aucune valeur stockée telle quelle, et se vérifient
+     * donc après coup, comme le fait déjà l'annuaire pour les comptes
+     * techniques ci-dessous.
+     *
+     * @param array<string, string> $filters
      * @return list<WP_User>
      */
-    public static function directory(string $search = ''): array
+    public static function directory(string $search = '', array $filters = []): array
     {
-        $users = get_users([
+        $role  = (string) ($filters['role'] ?? '');
+        $level = absint($filters['level'] ?? 0);
+
+        $args = [
             'role__in' => Roles::clubRoles(),
             'search'   => $search !== '' ? '*' . $search . '*' : '',
             'orderby'  => 'display_name',
             'number'   => 200,
-        ]);
+        ];
 
-        return array_values(array_filter(
+        // Un rôle précis est un sous-ensemble des rôles du club : il remplace
+        // `role__in` plutôt que s'y ajouter, `get_users` n'exprime pas leur
+        // intersection.
+        if ($role !== '' && array_key_exists($role, Roles::CLUB_ROLES)) {
+            unset($args['role__in']);
+            $args['role'] = $role;
+        }
+
+        // Le niveau n'est PAS une relation de taxonomie : [DiveLevels] le lit
+        // depuis une méta (`sub_dive_level_id`) qui pointe vers un identifiant
+        // de terme, jamais posée via `wp_set_object_terms`. Un `tax_query`
+        // porterait sur une table que personne ne remplit et ne filtrerait
+        // donc rien — c'est la méta qu'il faut interroger.
+        $metaQuery = [];
+        if ($level > 0) {
+            $metaQuery[] = ['key' => 'sub_dive_level_id', 'value' => (string) $level];
+        }
+
+        $qualif = (string) ($filters['qualif'] ?? '');
+        if ($qualif !== '' && isset(self::QUALIFICATIONS[$qualif])) {
+            $spec        = self::QUALIFICATIONS[$qualif];
+            $metaQuery[] = ['key' => $spec['meta'], 'value' => $spec['value']];
+        }
+
+        if ($metaQuery !== []) {
+            $args['meta_query'] = $metaQuery;
+        }
+
+        $users = get_users($args);
+
+        // Les comptes techniques (`sub_office` marqué par [TechnicalAccounts])
+        // restent hors de l'annuaire dans tous les cas : ce sont des comptes
+        // du bureau, pas des administrateurs, et `admins` ci-dessous ne les
+        // concerne pas.
+        $users = array_values(array_filter(
             $users,
             static fn (WP_User $user): bool => !TechnicalAccounts::is($user->ID)
         ));
+
+        $includeAdmins = ($filters['admins'] ?? '') === '1';
+
+        if ($includeAdmins && $role === '') {
+            // Le rôle « administrateur » n'appartient pas à `role__in`
+            // ci-dessus : ces comptes n'ont donc jamais été récupérés — ils ne
+            // portent aucun rôle du club. Un rôle précis choisi dans le filtre
+            // est déjà une exclusion volontaire de ce cas.
+            $admins   = get_users([
+                'role'    => 'administrator',
+                'search'  => $search !== '' ? '*' . $search . '*' : '',
+                'orderby' => 'display_name',
+                'number'  => 200,
+            ]);
+            $knownIds = array_map(static fn (WP_User $u): int => $u->ID, $users);
+            foreach ($admins as $admin) {
+                if (!in_array($admin->ID, $knownIds, true)) {
+                    $users[] = $admin;
+                }
+            }
+            usort(
+                $users,
+                static fn (WP_User $a, WP_User $b): int => strcasecmp(
+                    $a->display_name ?: $a->user_login,
+                    $b->display_name ?: $b->user_login
+                )
+            );
+        }
+
+        $flag       = (string) ($filters['flag'] ?? '');
+        $membership = (string) ($filters['membership'] ?? '');
+        $documents  = (string) ($filters['documents'] ?? '');
+        $minor      = (string) ($filters['minor'] ?? '');
+
+        if ($flag === '' && $membership === '' && $documents === '' && $minor === '') {
+            return $users;
+        }
+
+        $policy = new EligibilityPolicy();
+
+        return array_values(array_filter($users, static function (WP_User $user) use (
+            $flag,
+            $membership,
+            $documents,
+            $minor,
+            $policy
+        ): bool {
+            if ($flag !== '' && isset(self::DIVE_FLAGS[$flag])
+                && !DiveLevels::hasFlag($user->ID, self::DIVE_FLAGS[$flag]['flag'])) {
+                return false;
+            }
+
+            if ($membership !== '') {
+                $active = $policy->hasActiveMembership($user->ID)->allowed;
+                if (($membership === 'active') !== $active) {
+                    return false;
+                }
+            }
+
+            if ($documents !== '') {
+                $ok = $policy->hasValidDocuments($user->ID)->allowed;
+                if (($documents === 'ok') !== $ok) {
+                    return false;
+                }
+            }
+
+            if ($minor !== '') {
+                $isMinor = LegalGuardian::isMinor($user->ID);
+                if (($minor === 'yes') !== $isMinor) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+    }
+
+    /**
+     * Les filtres actuellement demandés, lus depuis l'URL.
+     *
+     * @return array<string, string>
+     */
+    private static function currentFilters(): array
+    {
+        $keys    = ['role', 'level', 'qualif', 'flag', 'membership', 'documents', 'minor', 'admins'];
+        $filters = [];
+
+        foreach ($keys as $key) {
+            $filters[$key] = sanitize_key((string) ($_GET[$key] ?? ''));
+        }
+
+        return $filters;
     }
 
     public static function renderList(): void
     {
-        $search = sanitize_text_field(wp_unslash((string) ($_GET['s'] ?? '')));
+        $search  = sanitize_text_field(wp_unslash((string) ($_GET['s'] ?? '')));
+        $filters = self::currentFilters();
 
-        $users  = self::directory($search);
+        $users  = self::directory($search, $filters);
         $policy = new EligibilityPolicy();
         ?>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin:0 0 16px;flex-wrap:wrap;">
-                <form method="get" style="margin:0;">
+                <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0;">
                     <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
                     <input type="hidden" name="tab" value="annuaire">
                     <input type="search" name="s" value="<?php echo esc_attr($search); ?>"
                            placeholder="Nom ou courriel">
-                    <button class="button">Rechercher</button>
+
+                    <select name="role">
+                        <option value="">Tous les rôles</option>
+                        <?php foreach (Roles::assignable() as $slug => $label) : ?>
+                            <option value="<?php echo esc_attr($slug); ?>" <?php selected($filters['role'], $slug); ?>>
+                                <?php echo esc_html($label); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <select name="level">
+                        <option value="">Tous les niveaux</option>
+                        <?php foreach (DiveLevels::ordered() as $term) : ?>
+                            <option value="<?php echo esc_attr((string) $term->term_id); ?>"
+                                <?php selected($filters['level'], (string) $term->term_id); ?>>
+                                <?php echo esc_html($term->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <select name="qualif">
+                        <option value="">Toutes qualifications</option>
+                        <?php foreach (self::QUALIFICATIONS as $key => $spec) : ?>
+                            <option value="<?php echo esc_attr($key); ?>" <?php selected($filters['qualif'], $key); ?>>
+                                <?php echo esc_html($spec['label']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <select name="flag">
+                        <option value="">Tous statuts</option>
+                        <?php foreach (self::DIVE_FLAGS as $key => $spec) : ?>
+                            <option value="<?php echo esc_attr($key); ?>" <?php selected($filters['flag'], $key); ?>>
+                                <?php echo esc_html($spec['label']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <select name="membership">
+                        <option value="">Adhésion : tous</option>
+                        <option value="active" <?php selected($filters['membership'], 'active'); ?>>Active</option>
+                        <option value="inactive" <?php selected($filters['membership'], 'inactive'); ?>>Pas à jour</option>
+                    </select>
+
+                    <select name="documents">
+                        <option value="">Documents : tous</option>
+                        <option value="ok" <?php selected($filters['documents'], 'ok'); ?>>À jour</option>
+                        <option value="ko" <?php selected($filters['documents'], 'ko'); ?>>À vérifier</option>
+                    </select>
+
+                    <select name="minor">
+                        <option value="">Âge : tous</option>
+                        <option value="yes" <?php selected($filters['minor'], 'yes'); ?>>Mineur</option>
+                        <option value="no" <?php selected($filters['minor'], 'no'); ?>>Majeur</option>
+                    </select>
+
+                    <label style="display:inline-flex;align-items:center;gap:4px;">
+                        <input type="checkbox" name="admins" value="1" <?php checked($filters['admins'], '1'); ?>>
+                        Administrateurs
+                    </label>
+
+                    <button class="button">Filtrer</button>
+                    <?php if ($search !== '' || array_filter($filters) !== []) : ?>
+                        <a class="button-link" href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG . '&tab=annuaire')); ?>">
+                            Réinitialiser
+                        </a>
+                    <?php endif; ?>
                 </form>
                 <?php if (current_user_can(AccountFields::CAPABILITY_CREATE)) : ?>
                     <a class="button button-primary"
@@ -171,9 +417,17 @@ final class MembersScreen
 
                 <?php foreach ($users as $user) : ?>
                     <?php
-                    $level      = DiveLevels::forUser($user->ID);
-                    $membership = $policy->hasActiveMembership($user->ID);
-                    $documents  = $policy->hasValidDocuments($user->ID);
+                    // Un compte technique, ou un administrateur WordPress qui
+                    // ne porte aucun rôle du club, n'a pas de profil (voir
+                    // [ProfileFields::forUser]) : lui afficher « adhésion pas
+                    // à jour » ou « documents à vérifier » décrirait un défaut
+                    // qui n'existe pas. Un adhérent qui est *aussi*
+                    // administrateur reste un adhérent — voir la remarque sur
+                    // [self::directory] — et garde ses colonnes normales.
+                    $isTechnical = TechnicalAccounts::is($user->ID) || !Roles::isMemberOfClub($user->ID);
+                    $level       = $isTechnical ? null : DiveLevels::forUser($user->ID);
+                    $membership  = $isTechnical ? null : $policy->hasActiveMembership($user->ID);
+                    $documents   = $isTechnical ? null : $policy->hasValidDocuments($user->ID);
                     ?>
                     <tr>
                         <td data-label="Membre">
@@ -186,31 +440,38 @@ final class MembersScreen
                                 <br><span class="sub-tag"><?php echo esc_html(self::roleLabel($user, Roles::assignable())); ?></span>
                             <?php endif; ?>
                         </td>
-                        <td data-label="Niveau">
-                            <?php echo esc_html($level?->name ?? '—'); ?>
-                            <?php if (LegalGuardian::isMinor($user->ID)) : ?>
-                                <br><span class="sub-tag">mineur</span>
-                                <?php if (LegalGuardian::isIncomplete($user->ID)) : ?>
-                                    <br><small style="color:#b82a1e;">représentant légal manquant</small>
+                        <?php if ($isTechnical) : ?>
+                            <td data-label="Niveau">—</td>
+                            <td data-label="Adhésion" colspan="2">
+                                <span style="color:#50575e;">Compte d’administration — pas de profil adhérent.</span>
+                            </td>
+                        <?php else : ?>
+                            <td data-label="Niveau">
+                                <?php echo esc_html($level?->name ?? '—'); ?>
+                                <?php if (LegalGuardian::isMinor($user->ID)) : ?>
+                                    <br><span class="sub-tag">mineur</span>
+                                    <?php if (LegalGuardian::isIncomplete($user->ID)) : ?>
+                                        <br><small style="color:#b82a1e;">représentant légal manquant</small>
+                                    <?php endif; ?>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                        </td>
-                        <td data-label="Adhésion">
-                            <?php if ($membership->allowed) : ?>
-                                <?php echo AdminUi::statusBadge('active'); ?>
-                            <?php else : ?>
-                                <?php echo AdminUi::statusBadge('inactive'); ?>
-                                <br><small style="color:#50575e;"><?php echo esc_html($membership->shortLabel()); ?></small>
-                            <?php endif; ?>
-                        </td>
-                        <td data-label="Documents">
-                            <?php if ($documents->allowed) : ?>
-                                <span class="sub-badge" style="background:#17795e;color:#fff;">À jour</span>
-                            <?php else : ?>
-                                <span class="sub-badge" style="background:#b82a1e;color:#fff;">À vérifier</span>
-                                <br><small style="color:#50575e;"><?php echo esc_html($documents->shortLabel()); ?></small>
-                            <?php endif; ?>
-                        </td>
+                            </td>
+                            <td data-label="Adhésion">
+                                <?php if ($membership->allowed) : ?>
+                                    <?php echo AdminUi::statusBadge('active'); ?>
+                                <?php else : ?>
+                                    <?php echo AdminUi::statusBadge('inactive'); ?>
+                                    <br><small style="color:#50575e;"><?php echo esc_html($membership->shortLabel()); ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td data-label="Documents">
+                                <?php if ($documents->allowed) : ?>
+                                    <span class="sub-badge" style="background:#17795e;color:#fff;">À jour</span>
+                                <?php else : ?>
+                                    <span class="sub-badge" style="background:#b82a1e;color:#fff;">À vérifier</span>
+                                    <br><small style="color:#50575e;"><?php echo esc_html($documents->shortLabel()); ?></small>
+                                <?php endif; ?>
+                            </td>
+                        <?php endif; ?>
                         <td data-label="Téléphone"><?php echo esc_html(ProfileFields::get($user->ID, 'mobile') ?: ProfileFields::get($user->ID, 'phone') ?: '—'); ?></td>
                         <td data-label="Fiche">
                             <a class="button"

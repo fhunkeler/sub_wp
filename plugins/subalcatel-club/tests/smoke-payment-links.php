@@ -127,6 +127,46 @@ $check('Écran : la consigne entière, et le lien pour seule balise',
 $check('Sans lien, la consigne reste seule',
     !str_contains(PaymentMethods::instructionsHtml('cheque'), '<a '));
 
+// --- Consigne du chèque : à l'ordre de qui, quelle adresse ----------------------
+echo "\n--- Consigne du chèque ---\n";
+
+$check('Par défaut, ni nom ni adresse',
+    $repo->chequePayee($saison1) === '' && $repo->chequeAddress($saison1) === '');
+$check('Sans réglage, la formule générique reste',
+    str_contains(PaymentMethods::instructions('cheque'), 'à l’ordre du club')
+        && str_contains(PaymentMethods::instructions('cheque'), 'à la trésorerie'));
+
+$repo->saveChequePayee($saison1, 'Trésorerie Subalcatel');
+$repo->saveChequeAddress($saison1, '12 rue de la Paix, 75000 Paris');
+
+$check('Le nom enregistré revient', $repo->chequePayee($saison1) === 'Trésorerie Subalcatel');
+$check('L’adresse enregistrée revient',
+    $repo->chequeAddress($saison1) === '12 rue de la Paix, 75000 Paris');
+$check('La saison suivante n’hérite de rien',
+    $repo->chequePayee($saison2) === '' && $repo->chequeAddress($saison2) === '');
+
+$text = PaymentMethods::instructions(
+    'cheque',
+    '',
+    $repo->chequePayee($saison1),
+    $repo->chequeAddress($saison1)
+);
+$check('Courriel : la consigne porte le nom configuré',
+    str_contains($text, 'à l’ordre de Trésorerie Subalcatel'));
+$check('Courriel : la consigne porte l’adresse configurée',
+    str_contains($text, '12 rue de la Paix, 75000 Paris'));
+
+$html = PaymentMethods::instructionsHtml(
+    'cheque',
+    '',
+    $repo->chequePayee($saison1),
+    $repo->chequeAddress($saison1)
+);
+$check('Écran : la consigne échappée, sans lien pour le chèque', !str_contains($html, '<a '));
+
+$check('Le chèque n’a plus de champ URL dans l’onglet « Règlement »',
+    !array_key_exists('cheque', PaymentMethods::linkFields()));
+
 // --- Reprise de la version 0.24 ------------------------------------------------
 echo "\n--- Reprise de l’ancien réglage global ---\n";
 

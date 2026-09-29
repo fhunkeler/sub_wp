@@ -417,8 +417,8 @@ final class MembershipForm
                 // trouve ouverte aujourd'hui : pendant la quinzaine où deux
                 // campagnes se chevauchent, elles n'encaissent pas au même
                 // endroit.
-                $link = (new CampaignRepository())
-                    ->paymentLink((int) $application['campaign_id'], $method);
+                $campaignRepo = new CampaignRepository();
+                $link         = $campaignRepo->paymentLink((int) $application['campaign_id'], $method);
 
                 // `instructionsHtml` rend déjà du HTML échappé, lien de
                 // paiement compris : le repasser à `esc_html` afficherait la
@@ -429,7 +429,12 @@ final class MembershipForm
                     esc_html((string) $application['reference']),
                     esc_html(self::euro((float) $application['total_amount'])),
                     esc_html(PaymentMethods::label($method)),
-                    PaymentMethods::instructionsHtml($method, $link)
+                    PaymentMethods::instructionsHtml(
+                        $method,
+                        $link,
+                        $campaignRepo->chequePayee((int) $application['campaign_id']),
+                        $campaignRepo->chequeAddress((int) $application['campaign_id'])
+                    )
                 );
             }
         }

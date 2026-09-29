@@ -187,6 +187,56 @@ final class CampaignRepository
     }
 
     /**
+     * À l'ordre de qui établir le chèque, et l'adresse où l'envoyer — insérés
+     * dans la consigne donnée à l'adhérent qui choisit ce mode. Rattachées à
+     * la campagne comme les liens de paiement : qui tient la trésorerie
+     * change avec le bureau, pas forcément d'une saison sur l'autre, et une
+     * campagne close ne doit pas se mettre à jour toute seule si son
+     * successeur déménage.
+     */
+    public function chequePayee(int $campaignId): string
+    {
+        global $wpdb;
+
+        return (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT cheque_payee FROM {$this->prefix}campaigns WHERE id = %d",
+            $campaignId
+        ));
+    }
+
+    public function saveChequePayee(int $campaignId, string $payee): void
+    {
+        global $wpdb;
+
+        $wpdb->update(
+            "{$this->prefix}campaigns",
+            ['cheque_payee' => $payee],
+            ['id' => $campaignId]
+        );
+    }
+
+    public function chequeAddress(int $campaignId): string
+    {
+        global $wpdb;
+
+        return (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT cheque_address FROM {$this->prefix}campaigns WHERE id = %d",
+            $campaignId
+        ));
+    }
+
+    public function saveChequeAddress(int $campaignId, string $address): void
+    {
+        global $wpdb;
+
+        $wpdb->update(
+            "{$this->prefix}campaigns",
+            ['cheque_address' => $address],
+            ['id' => $campaignId]
+        );
+    }
+
+    /**
      * Adresse prévenue dès qu'un dossier est déposé sur cette campagne.
      *
      * Rattachée à la campagne comme les liens de paiement, et pour la même

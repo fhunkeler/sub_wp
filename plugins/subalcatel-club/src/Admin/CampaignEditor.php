@@ -33,6 +33,7 @@ final class CampaignEditor
         add_action('admin_post_sub_discount_delete', [self::class, 'handleDiscountDelete']);
         add_action('admin_post_sub_campaign_payment_links', [self::class, 'handlePaymentLinksSave']);
         add_action('admin_post_sub_campaign_notify_email', [self::class, 'handleNotifyEmailSave']);
+        add_action('admin_post_sub_campaign_cheque', [self::class, 'handleChequeSave']);
     }
 
     public static function url(int $campaignId, string $tab = 'plans'): string
@@ -678,7 +679,10 @@ final class CampaignEditor
      */
     private static function renderPaymentLinks(int $campaignId, CampaignRepository $repo): void
     {
-        $notifyEmail = $repo->notifyEmail($campaignId);
+        $notifyEmail   = $repo->notifyEmail($campaignId);
+        $links         = $repo->paymentLinks($campaignId);
+        $chequePayee   = $repo->chequePayee($campaignId);
+        $chequeAddress = $repo->chequeAddress($campaignId);
         ?>
         <h2>Notification au dépôt d’un dossier</h2>
         <p class="description">
@@ -767,6 +771,55 @@ final class CampaignEditor
 
             <p class="submit">
                 <button type="submit" class="button button-primary">Enregistrer les liens</button>
+            </p>
+        </form>
+
+        <hr style="margin:24px 0;">
+
+        <h2>Consigne pour le règlement par chèque</h2>
+        <p class="description">
+            À l’ordre de qui l’adhérent établit son chèque, et à quelle adresse
+            l’envoyer. Repris dans le courriel d’accusé de réception, dans la
+            confirmation à l’écran et dans son espace membre — partout où
+            <?php echo esc_html(PaymentMethods::label('cheque')); ?> est le mode choisi.
+        </p>
+        <p class="description">
+            Rattachée à la campagne, comme les liens de paiement ci-dessus : pas
+            reprise à la <strong>duplication</strong>, pour ne pas garder l’adresse
+            d’une trésorerie qui a changé de bureau. Cases vides, la formule
+            générique d’avant reste affichée.
+        </p>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_campaign_cheque">
+            <input type="hidden" name="campaign_id" value="<?php echo esc_attr((string) $campaignId); ?>">
+            <?php wp_nonce_field('sub_campaign_cheque'); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label for="sub-campaign-cheque-payee">À l’ordre de</label>
+                    </th>
+                    <td>
+                        <input type="text" id="sub-campaign-cheque-payee" name="cheque_payee"
+                               value="<?php echo esc_attr($chequePayee); ?>"
+                               class="regular-text" placeholder="le club">
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="sub-campaign-cheque-address">Adresse d’envoi</label>
+                    </th>
+                    <td>
+                        <input type="text" id="sub-campaign-cheque-address" name="cheque_address"
+                               value="<?php echo esc_attr($chequeAddress); ?>"
+                               class="large-text" placeholder="Trésorerie Subalcatel, 12 rue de la Paix, 75000 Paris">
+                    </td>
+                </tr>
+            </table>
+
+            <p class="submit">
+                <button type="submit" class="button button-primary">Enregistrer la consigne</button>
             </p>
         </form>
         <?php
@@ -1077,6 +1130,32 @@ final class CampaignEditor
         AdminUi::redirect(
             self::SLUG,
             $email !== '' ? 'Adresse de notification enregistrée.' : 'Adresse de notification retirée.',
+            false,
+            ['campaign_id' => $campaignId, 'tab' => 'payment']
+        );
+    }
+
+    public static function handleChequeSave(): void
+    {
+        check_admin_referer('sub_campaign_cheque');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $campaignId = absint($_POST['campaign_id'] ?? 0);
+        $payee      = sanitize_text_field(wp_unslash((string) ($_POST['cheque_payee'] ?? '')));
+        $address    = sanitize_text_field(wp_unslash((string) ($_POST['cheque_address'] ?? '')));
+
+        $repo = new CampaignRepository();
+        $repo->saveChequePayee($campaignId, $payee);
+        $repo->saveChequeAddress($campaignId, $address);
+
+        Audit::log('campaign.cheque_instructions_saved', 'campaign', $campaignId, [
+            'payee_renseigne'   => $payee !== '',
+            'adresse_renseignee' => $address !== '',
+        ]);
+
+        AdminUi::redirect(
+            self::SLUG,
+            'Consigne de règlement par chèque enregistrée.',
             false,
             ['campaign_id' => $campaignId, 'tab' => 'payment']
         );

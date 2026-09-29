@@ -1,7 +1,7 @@
 # subalcatel-club — extension métier du club
 
 Adhésions, événements et droits du club de plongée Sub Alcatel.
-Version **1.11.3** — jalon *mise en production*.
+Version **1.12.0** — jalon *mise en production*.
 
 ---
 

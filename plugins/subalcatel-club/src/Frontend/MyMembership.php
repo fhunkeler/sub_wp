@@ -113,8 +113,8 @@ final class MyMembership
                 // Le lien de la campagne DU dossier, pas de celle ouverte
                 // aujourd'hui : un dossier de la saison passée qui attend encore
                 // son règlement doit pointer sur la page qui l'encaisse.
-                $paymentLink = (new CampaignRepository())
-                    ->paymentLink((int) $application['campaign_id'], $method);
+                $campaignRepo = new CampaignRepository();
+                $paymentLink  = $campaignRepo->paymentLink((int) $application['campaign_id'], $method);
                 ?>
                 <div class="sub-notice sub-notice--waiting">
                     <strong>En attente de votre règlement</strong>
@@ -125,7 +125,12 @@ final class MyMembership
                         <?php else : ?>
                             .
                         <?php endif; ?>
-                        <?php echo PaymentMethods::instructionsHtml($method, $paymentLink); // déjà échappé ?>
+                        <?php echo PaymentMethods::instructionsHtml(
+                            $method,
+                            $paymentLink,
+                            $campaignRepo->chequePayee((int) $application['campaign_id']),
+                            $campaignRepo->chequeAddress((int) $application['campaign_id'])
+                        ); // déjà échappé ?>
                     </p>
                 </div>
             <?php elseif ($status === ApplicationService::STATUS_REFUSED) : ?>

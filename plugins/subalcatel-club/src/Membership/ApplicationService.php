@@ -179,7 +179,9 @@ final class ApplicationService
             'reglement'  => PaymentMethods::label($paymentMethod),
             'consignes'  => PaymentMethods::instructions(
                 $paymentMethod,
-                $this->campaigns->paymentLink($campaignId, $paymentMethod)
+                $this->campaigns->paymentLink($campaignId, $paymentMethod),
+                $this->campaigns->chequePayee($campaignId),
+                $this->campaigns->chequeAddress($campaignId)
             ),
         ], ['entity_type' => 'application', 'entity_id' => $applicationId],
             // Une question sur un dossier fraîchement déposé va au secrétariat,

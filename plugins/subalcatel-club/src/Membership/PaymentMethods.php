@@ -63,10 +63,10 @@ final class PaymentMethods
     /**
      * Ce que l'onglet « Règlement » d'une campagne propose de remplir.
      *
-     * Le chèque y figure comme les autres : rien n'interdit au club d'ouvrir un
-     * jour une page pour lui, et l'écarter d'avance obligerait à rouvrir le code
-     * ce jour-là. L'aide dit ce qu'on attend, pour éviter qu'on colle l'adresse
-     * de l'adhésion dans la case du CE.
+     * Le chèque n'y figure pas : il n'encaisse pas en ligne, et a sa propre
+     * consigne (à l'ordre de qui, quelle adresse) — voir [chequeFields] et le
+     * formulaire dédié de l'écran de campagne. L'aide dit ce qu'on attend, pour
+     * éviter qu'on colle l'adresse de l'adhésion dans la case du CE.
      *
      * @return array<string, array{label: string, help: string}>
      */
@@ -76,11 +76,6 @@ final class PaymentMethods
             'helloasso' => [
                 'label' => 'HelloAsso — adhésion',
                 'help'  => 'La page de la campagne d’adhésion HelloAsso qui encaisse cette saison.',
-            ],
-            'cheque'    => [
-                'label' => 'Chèque',
-                'help'  => 'Aucun paiement en ligne pour ce mode. Laissez vide, '
-                    . 'sauf si le club ouvre un jour une page pour lui.',
             ],
             'ce_orange' => [
                 'label' => 'HelloAsso — boutique CE Orange',
@@ -170,10 +165,19 @@ final class PaymentMethods
      *
      * En texte : c'est la version qui part en courriel, où l'adresse doit se
      * lire telle quelle. La version cliquable est [instructionsHtml].
+     *
+     * @param string $chequePayee  À l'ordre de qui établir le chèque, pour le
+     *     mode chèque. Ignoré pour les autres modes.
+     * @param string $chequeAddress Adresse à laquelle l'envoyer, pour le mode
+     *     chèque. Ignorée pour les autres modes.
      */
-    public static function instructions(string $method, string $link = ''): string
-    {
-        $text = self::sentence($method);
+    public static function instructions(
+        string $method,
+        string $link = '',
+        string $chequePayee = '',
+        string $chequeAddress = ''
+    ): string {
+        $text = self::sentence($method, $chequePayee, $chequeAddress);
 
         return $link === '' ? $text : $text . ' ' . $link;
     }
@@ -184,9 +188,13 @@ final class PaymentMethods
      * Rendue déjà échappée : les appelants l'insèrent telle quelle, sans
      * repasser par `esc_html` qui afficherait la balise au lieu du lien.
      */
-    public static function instructionsHtml(string $method, string $link = ''): string
-    {
-        $html = esc_html(self::sentence($method));
+    public static function instructionsHtml(
+        string $method,
+        string $link = '',
+        string $chequePayee = '',
+        string $chequeAddress = ''
+    ): string {
+        $html = esc_html(self::sentence($method, $chequePayee, $chequeAddress));
 
         if ($link === '') {
             return $html;
@@ -199,18 +207,31 @@ final class PaymentMethods
         );
     }
 
-    /** La consigne seule, sans adresse. */
-    private static function sentence(string $method): string
+    /** La consigne seule, sans lien de paiement en ligne. */
+    private static function sentence(string $method, string $chequePayee = '', string $chequeAddress = ''): string
     {
         return match ($method) {
             'helloasso' => 'Réglez en ligne depuis la page HelloAsso du club. '
                 . 'Le bureau confirmera la réception.',
-            'cheque'    => 'Établissez votre chèque à l’ordre du club et remettez-le '
-                . 'à la trésorerie. Le bureau confirmera la réception.',
+            'cheque'    => self::chequeSentence($chequePayee, $chequeAddress),
             'ce_orange' => 'Votre règlement passe par le comité d’entreprise Orange. '
                 . 'Le bureau confirmera la réception auprès du CE.',
             default     => 'Le bureau confirmera la réception de votre règlement.',
         };
+    }
+
+    /**
+     * La consigne du chèque, à l'ordre de qui et à quelle adresse — quand la
+     * campagne les a renseignés, sinon la formule générique d'avant, pour ne
+     * rien casser sur une campagne pas encore configurée.
+     */
+    private static function chequeSentence(string $payee, string $address): string
+    {
+        $order = $payee === '' ? 'à l’ordre du club' : 'à l’ordre de ' . $payee;
+        $send  = $address === '' ? 'remettez-le à la trésorerie' : 'envoyez-le à ' . $address;
+
+        return 'Établissez votre chèque ' . $order . ' et ' . $send
+            . '. Le bureau confirmera la réception.';
     }
 
     /** Ce que porte le lien : ce qu'on va payer, pas « cliquez ici ». */

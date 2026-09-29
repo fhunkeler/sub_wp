@@ -42,6 +42,7 @@ final class ApplicationsScreen
             self::TAB              => [
                 'label'  => 'Dossiers',
                 'cap'    => 'sub_manage_memberships',
+                'count'  => self::pendingCount(),
                 'render' => [self::class, 'renderApplications'],
             ],
             CampaignsScreen::TAB   => [
@@ -50,6 +51,30 @@ final class ApplicationsScreen
                 'render' => [CampaignsScreen::class, 'renderTab'],
             ],
         ]);
+    }
+
+    /**
+     * Ce qui attend une décision derrière l'entrée « Adhésions ».
+     *
+     * Un dossier en attente de paiement regarde la trésorerie, un dossier en
+     * attente de validation regarde le secrétariat : on ne compte que ce que
+     * la personne devant l'écran peut elle-même faire avancer, sinon le
+     * compteur annonce du travail que personne ici ne peut traiter.
+     */
+    public static function pendingCount(): int
+    {
+        $service = new ApplicationService();
+        $count   = 0;
+
+        if (current_user_can('sub_validate_membership_treasury')) {
+            $count += $service->countByStatus(ApplicationService::STATUS_AWAITING_PAYMENT);
+        }
+
+        if (current_user_can('sub_validate_membership_secretariat')) {
+            $count += $service->countByStatus(ApplicationService::STATUS_PAYMENT_CONFIRMED);
+        }
+
+        return $count;
     }
 
     public static function renderApplications(): void

@@ -79,7 +79,8 @@ final class ClubMenu
             'Adhésions',
             ApplicationsScreen::SLUG,
             [ApplicationsScreen::class, 'render'],
-            ApplicationsScreen::CAPABILITIES
+            ApplicationsScreen::CAPABILITIES,
+            ApplicationsScreen::pendingCount()
         );
 
         self::add('Événements', EventsScreen::SLUG, [EventsScreen::class, 'render'], ['read']);

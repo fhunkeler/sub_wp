@@ -660,6 +660,24 @@ final class ApplicationService
     }
 
     /**
+     * Combien de dossiers dans un état donné.
+     *
+     * Sert les compteurs du menu et des onglets : un dossier « en attente de
+     * paiement » ou « à valider » qui traîne ne se voit sinon qu'en ouvrant
+     * l'écran, ce que personne ne fait sans raison de croire qu'il y a
+     * quelque chose dedans.
+     */
+    public function countByStatus(string $status): int
+    {
+        global $wpdb;
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$this->prefix}applications WHERE status = %s",
+            $status
+        ));
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function find(int $applicationId): ?array

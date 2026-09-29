@@ -17,6 +17,7 @@ use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
+use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\DemoSeeder;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
@@ -102,6 +103,12 @@ OfficePosition::set(OfficePosition::SECRETAIRE, $secretary);
 
 sub_test_complete_identity($member);
 
+// À l'ordre de qui et à quelle adresse : sans ce réglage, la consigne du
+// chèque reste la formule générique — c'est justement ce que ce test doit
+// prouver faux une fois la campagne configurée.
+(new CampaignRepository())->saveChequePayee($campaignId, 'Trésorerie Subalcatel');
+(new CampaignRepository())->saveChequeAddress($campaignId, '12 rue de la Paix, 75000 Paris');
+
 $applicationId = $service->submit($member, $campaignId, 'plongee', [
     'origine_adhesion'       => 'exterieur',
     'assurance_individuelle' => 'aucune',
@@ -124,6 +131,14 @@ $check('Accusé de réception envoyé', $mail !== null && str_contains($mail['su
 $check('Montant non nul sur le dossier', $total > 0.0, $attendu);
 $check('Montant présent dans le corps', $mail !== null && str_contains($mail['message'], $attendu), $attendu);
 $check('Prénom personnalisé', $mail !== null && str_contains($mail['message'], 'Camille'));
+$check('Consigne du chèque : à l’ordre de qui', $mail !== null && str_contains(
+    $mail['message'],
+    'à l’ordre de Trésorerie Subalcatel'
+));
+$check('Consigne du chèque : adresse d’envoi', $mail !== null && str_contains(
+    $mail['message'],
+    '12 rue de la Paix, 75000 Paris'
+));
 $check('Répondre au dossier joint la secrétaire', $mail !== null && str_contains(
     implode(' ', (array) ($mail['headers'] ?? [])),
     get_userdata($secretary)->user_email

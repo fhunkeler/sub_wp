@@ -24,6 +24,30 @@
 	color: #17795e;
 }
 
+/*
+ * Pastille de compteur sur un onglet.
+ *
+ * `AdminUi::countBubble()` réutilise la classe `update-plugins` de
+ * WordPress — la même pastille rouge que dans le menu du bureau. Mais son
+ * style n'existe que sous `#adminmenu` : hors de là, sans cette règle, elle
+ * s'affiche comme un chiffre nu collé au libellé de l'onglet.
+ */
+.sub-admin .nav-tab .update-plugins {
+	display: inline-block;
+	vertical-align: middle;
+	box-sizing: border-box;
+	margin-left: 6px;
+	padding: 0 6px;
+	min-width: 18px;
+	height: 18px;
+	border-radius: 9px;
+	background-color: #d63638;
+	color: #fff;
+	font-size: 11px;
+	line-height: 1.7;
+	text-align: center;
+}
+
 /* Cartes dépliables : une option ou une remise par carte. */
 
 .sub-admin .sub-card {

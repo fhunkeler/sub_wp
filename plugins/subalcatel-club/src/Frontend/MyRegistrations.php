@@ -151,6 +151,8 @@ final class MyRegistrations
                         </p>
                     <?php endif; ?>
 
+                    <?php ParticipantsList::render($service, $eventId, get_current_user_id()); ?>
+
                     <?php if ($canCancel) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                             <input type="hidden" name="action" value="sub_event_cancel">

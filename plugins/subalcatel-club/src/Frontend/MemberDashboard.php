@@ -227,6 +227,8 @@ final class MemberDashboard
         if ($rows === []) {
             return;
         }
+
+        $service = new EventService();
         ?>
         <section class="sub-block">
             <h2 class="sub-block__title">Vos prochaines sorties</h2>
@@ -246,6 +248,7 @@ final class MemberDashboard
                         <?php else : ?>
                             <span class="sub-pill sub-pill--ok">Inscrit</span>
                         <?php endif; ?>
+                        <?php ParticipantsList::render($service, (int) $row['id'], $userId); ?>
                     </li>
                 <?php endforeach; ?>
             </ul>

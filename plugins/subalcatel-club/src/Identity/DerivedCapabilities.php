@@ -71,6 +71,16 @@ final class DerivedCapabilities
             return self::$cache[$userId];
         }
 
+        // Avant `init`, la taxonomie des niveaux n'est pas enregistrée : aucun
+        // niveau ne se lit, donc aucun droit ne se déduit. Or WordPress
+        // interroge déjà les capacités à ce moment-là — `kses_init` demande
+        // `unfiltered_html` dès qu'il identifie l'utilisateur. Mettre ce vide
+        // en cache le figeait pour toute la requête : un P5 connecté ne voyait
+        // plus « Organiser une sortie ». On répond vide, sans rien retenir.
+        if (!taxonomy_exists(DiveLevels::TAXONOMY)) {
+            return [];
+        }
+
         // Le cache est posé AVANT le calcul : `user_has_cap` est un filtre très
         // sollicité, et les lectures ci-dessous peuvent le déclencher à nouveau.
         // Sans cette réservation, l'appel se rappellerait sans fin.

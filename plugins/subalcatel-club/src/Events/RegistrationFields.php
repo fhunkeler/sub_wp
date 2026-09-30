@@ -87,7 +87,7 @@ final class RegistrationFields
                 'group'  => 'shared',
                 'shared' => true,
                 'help'   => 'Un pot, un repas pour fêter la sortie ou un passage de niveau ? '
-                    . 'Cochez : les autres inscrits verront que vous êtes partant.',
+                    . 'Cochez : les autres inscrits verront que vous proposez un pot.',
             ],
             'shared_note' => [
                 'label'  => 'Commentaire libre',

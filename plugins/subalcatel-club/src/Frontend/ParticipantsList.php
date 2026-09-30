@@ -53,9 +53,9 @@ final class ParticipantsList
                     $waiting === [] ? '' : sprintf(', %d en attente', count($waiting))
                 )); ?>
                 <?php if ($festive > 0) : ?>
-                    <?php // Repérable d'un coup d'œil : y a-t-il un pot en vue ? ?>
+                    <?php // Repérable d'un coup d'œil : quelqu'un propose-t-il un pot ? ?>
                     <span class="sub-people__festive-count" title="<?php echo esc_attr(sprintf(
-                        '%d participant(s) partant(s) pour un moment convivial', $festive
+                        '%d participant(s) propose(nt) un pot', $festive
                     )); ?>">🍻 <?php echo (int) $festive; ?></span>
                 <?php endif; ?>
             </summary>
@@ -74,7 +74,7 @@ final class ParticipantsList
                             <span class="sub-people__wait">liste d’attente</span>
                         <?php endif; ?>
                         <?php if ($p['conviviality']) : ?>
-                            <span class="sub-people__festive" title="Partant pour un moment convivial">🍻 partant</span>
+                            <span class="sub-people__festive" title="Propose un moment convivial (pot, repas…)">🍻 propose un pot</span>
                         <?php endif; ?>
                         <?php if ($p['note'] !== '') : ?>
                             <span class="sub-people__note">« <?php echo esc_html($p['note']); ?> »</span>

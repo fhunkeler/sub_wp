@@ -74,7 +74,7 @@ final class ParticipantsList
                             <span class="sub-people__wait">liste d’attente</span>
                         <?php endif; ?>
                         <?php if ($p['conviviality']) : ?>
-                            <span class="sub-people__festive" title="Propose un moment convivial (pot, repas…)">🍻 propose un pot</span>
+                            <span class="sub-people__festive" title="Propose un moment convivial (pot, repas…)">🍻 pot</span>
                         <?php endif; ?>
                         <?php if ($p['note'] !== '') : ?>
                             <span class="sub-people__note">« <?php echo esc_html($p['note']); ?> »</span>

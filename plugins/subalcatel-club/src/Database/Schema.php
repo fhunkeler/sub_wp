@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Database;
 
 use Subalcatel\Club\Privacy\MemberPurge;
+use Subalcatel\Club\Support\Audit;
 
 /**
  * Schéma des tables métier, versionné.
@@ -16,7 +17,15 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 15;
+    private const VERSION        = 16;
+
+    /**
+     * Fin de la saison 2025-2026, et celle qui la remplace.
+     *
+     * Voir {@see self::extendTransitionSeason()}.
+     */
+    private const TRANSITION_SEASON_END      = '2026-09-30';
+    private const TRANSITION_SEASON_EXTENDED = '2026-12-31';
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -45,6 +54,8 @@ final class Schema
     public static function migrate(): void
     {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        $previous = (int) get_option(self::VERSION_OPTION, 0);
 
         global $wpdb;
         $charset = $wpdb->get_charset_collate();
@@ -425,6 +436,10 @@ final class Schema
 
         self::movePaymentLinksToCampaign();
 
+        if ($previous < 16) {
+            self::extendTransitionSeason();
+        }
+
         update_option(self::VERSION_OPTION, self::VERSION, false);
     }
 
@@ -484,6 +499,73 @@ final class Schema
         }
 
         delete_option('subalcatel_payment_links');
+    }
+
+    /**
+     * Prolonge la saison 2025-2026 jusqu'au 31/12/2026.
+     *
+     * La règle du club : une adhésion court du 15/09 au 31/12 de l'année
+     * suivante, et la campagne suivante ouvre le 15/09. Les trois mois et demi
+     * de recouvrement sont faits pour qu'un renouvellement en attente de
+     * validation ne coupe rien — l'ancienne adhésion couvre jusqu'à ce que la
+     * nouvelle soit validée.
+     *
+     * La saison 2025-2026 est la dernière de l'ancien cycle, de septembre à
+     * septembre : elle s'arrêtait le 30/09, quinze jours après l'ouverture de
+     * 2026-2027. Dès le 01/10, une adhésion renouvelée mais pas encore validée
+     * perdait tout ce qui suppose une adhésion à jour — ouvrir une sortie,
+     * s'y inscrire. On la cale sur la règle plutôt que d'en inventer une
+     * seconde pour les dossiers en attente.
+     *
+     * Trois endroits portent la date, et il faut les trois : la campagne, pour
+     * ce qu'affiche l'administration ; ses dossiers, que le rappel d'expiration
+     * lit ; la méta du compte, la seule que consulte le contrôle d'adhésion. Seul
+     * le 30/09/2026 exact est déplacé — une date déjà corrigée à la main, ou
+     * propre à un dossier, n'est pas touchée.
+     */
+    private static function extendTransitionSeason(): void
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $campaignIds = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$p}campaigns WHERE valid_until = %s",
+            self::TRANSITION_SEASON_END
+        )));
+
+        foreach ($campaignIds as $campaignId) {
+            $wpdb->update(
+                "{$p}campaigns",
+                ['valid_until' => self::TRANSITION_SEASON_EXTENDED],
+                ['id' => $campaignId]
+            );
+
+            $wpdb->update(
+                "{$p}applications",
+                ['valid_until' => self::TRANSITION_SEASON_EXTENDED],
+                ['campaign_id' => $campaignId, 'valid_until' => self::TRANSITION_SEASON_END]
+            );
+        }
+
+        $members = (int) $wpdb->query($wpdb->prepare(
+            "UPDATE {$wpdb->usermeta} SET meta_value = %s
+             WHERE meta_key = 'sub_membership_valid_until' AND meta_value = %s",
+            self::TRANSITION_SEASON_EXTENDED,
+            self::TRANSITION_SEASON_END
+        ));
+
+        // La méta est lue à travers le cache objet : sans ce vidage, un cache
+        // persistant servirait encore l'ancienne date.
+        wp_cache_flush();
+
+        if ($campaignIds !== [] || $members > 0) {
+            Audit::log('membership.season_extended', 'campaign', $campaignIds[0] ?? null, [
+                'from'      => self::TRANSITION_SEASON_END,
+                'to'        => self::TRANSITION_SEASON_EXTENDED,
+                'campaigns' => $campaignIds,
+                'members'   => $members,
+            ]);
+        }
     }
 
     /**

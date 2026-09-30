@@ -2,7 +2,7 @@
 /**
  * Test de fumée — liste sociale des participants.
  *
- *   docker exec sub_demo_wp wp --allow-root eval-file \
+ *   docker exec sub_demo_cli wp --allow-root eval-file \
  *     wp-content/plugins/subalcatel-club/tests/smoke-participants.php
  *
  * Un membre voit avec qui il plonge — nom, niveau, statut, et le mot que chacun
@@ -123,6 +123,21 @@ $check('Un adhérent à jour peut voir la liste', ClubDocuments::isActiveMember(
 $check('Une adhésion expirée ne le peut pas', !ClubDocuments::isActiveMember($lapsed),
     'la carte s’affiche avec le nombre de places, jamais les noms');
 $check('Un visiteur non connecté non plus', !ClubDocuments::isActiveMember(0));
+
+// --- Visible depuis l'espace membre, pas seulement l'agenda ------------------
+echo "\n--- Espace membre ---\n";
+
+wp_set_current_user($tom);
+$myPage = \Subalcatel\Club\Frontend\MyRegistrations::render();
+$check('« Mes inscriptions » montre les autres inscrits', str_contains($myPage, 'Léa Vidal'),
+    'un inscrit voit qui vient sans repasser par l’agenda');
+$check('Sans rien du dossier réservé au DP', !str_contains($myPage, '06 12 34 56 78')
+    && !str_contains($myPage, 'Allergie iode'));
+
+ob_start();
+\Subalcatel\Club\Frontend\ParticipantsList::render($service, $eventId, $lapsed);
+$check('Une adhésion expirée ne voit pas la liste', ob_get_clean() === '');
+wp_set_current_user(0);
 
 // --- Le champ « note partagée » est bien distinct du commentaire -------------
 echo "\n--- Séparation note partagée / commentaire privé ---\n";

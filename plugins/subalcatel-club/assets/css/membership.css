@@ -1886,6 +1886,12 @@
 	padding-top: 12px;
 }
 
+/* Dans une ligne du tableau de bord, la liste passe sous la sortie. */
+.sub-list__item > .sub-event__people {
+	flex-basis: 100%;
+	margin-top: 0;
+}
+
 .sub-event__people summary {
 	cursor: pointer;
 	font-weight: 600;

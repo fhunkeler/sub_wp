@@ -111,6 +111,25 @@ $check('Revenu P3, il le peut de nouveau',
     in_array('plongee-exploration', $slugs($service->creatableTypesFor($p3)), true),
     'aucune capacité à repositionner sur le compte');
 
+// --- Une question posée avant `init` ----------------------------------------
+echo "\n--- Droits demandés avant l'enregistrement des niveaux ---\n";
+
+// WordPress interroge les capacités dès qu'il identifie l'utilisateur, avant
+// que `init` n'enregistre la taxonomie des niveaux. On rejoue ce moment.
+global $wp_taxonomies;
+$taxonomy = $wp_taxonomies[DiveLevels::TAXONOMY];
+unset($wp_taxonomies[DiveLevels::TAXONOMY]);
+DerivedCapabilities::forget();
+
+$check('Avant `init`, aucun droit ne se déduit',
+    !user_can($p5, 'sub_create_exploration_event'));
+
+$wp_taxonomies[DiveLevels::TAXONOMY] = $taxonomy;
+
+$check('Ce vide n’est pas retenu pour la suite de la requête',
+    in_array('plongee-exploration', $slugs($service->creatableTypesFor($p5)), true),
+    'sinon un P5 connecté ne voit pas « Organiser une sortie »');
+
 // --- Le formulaire de l'espace membre ---------------------------------------
 echo "\n--- Formulaire [subalcatel_creer_sortie] ---\n";
 

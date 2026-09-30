@@ -46,8 +46,9 @@ final class OpeningHours
 
     /**
      * Nettoie une saisie de formulaire avant enregistrement. Une ligne sans
-     * jour ni horaire n'est qu'une ligne vide du formulaire — laissée pour
-     * ajouter un créneau plus tard — et n'est donc pas enregistrée.
+     * jour ni horaire n'est qu'une ligne vide du formulaire — ajoutée puis
+     * jamais remplie, ou la dernière vidée par « Retirer » — et n'est donc pas
+     * enregistrée.
      *
      * @param list<mixed> $days
      * @param list<mixed> $times

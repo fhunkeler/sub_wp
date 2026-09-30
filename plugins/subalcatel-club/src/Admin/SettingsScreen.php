@@ -655,58 +655,57 @@ final class SettingsScreen
 
     // ----------------------------------------------------------- Permanences
 
-    /**
-     * Nombre de lignes vides ajoutées en bas du tableau, pour saisir de
-     * nouveaux créneaux sans devoir d'abord enregistrer.
-     */
-    private const PERMANENCES_SPARE_ROWS = 3;
-
     public static function renderPermanences(): void
     {
-        $rows  = OpeningHours::all();
-        $blank = ['day' => '', 'time' => '', 'note' => ''];
-        $spare = array_fill(0, self::PERMANENCES_SPARE_ROWS, $blank);
+        $rows = OpeningHours::all();
+
+        // Toujours au moins une ligne : c'est elle que « Ajouter un créneau »
+        // clone, et sans elle il n'y aurait plus rien à saisir.
+        if ($rows === []) {
+            $rows = [['day' => '', 'time' => '', 'note' => '']];
+        }
         ?>
         <p class="description">
             Ces créneaux s’affichent sur la page Contact, via le raccourci
             <code>[subalcatel_permanences]</code> placé dans l’encart de contact du thème.
-            Une ligne laissée sans jour ni horaire n’est pas enregistrée — gardez les
-            lignes vides en bas telles quelles pour ajouter un créneau plus tard.
+            Ajoutez autant de créneaux que nécessaire, retirez ceux qui n’ont plus cours
+            avec ✕, puis enregistrez. Une ligne laissée sans jour ni horaire est ignorée.
         </p>
 
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <input type="hidden" name="action" value="sub_permanences_save">
             <?php wp_nonce_field('sub_permanences_save'); ?>
 
-            <div class="sub-scroll">
-            <table class="wp-list-table widefat striped" style="min-width:640px;">
+            <table class="sub-repeat" data-repeat>
                 <thead>
                     <tr>
                         <th>Jour</th>
                         <th>Horaire</th>
                         <th>Précision</th>
+                        <th style="width:40px;"></th>
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach (array_merge($rows, $spare) as $row) : ?>
+                <?php foreach ($rows as $row) : ?>
                     <tr>
-                        <td>
-                            <input type="text" name="day[]" class="regular-text"
+                        <td data-label="Jour">
+                            <input type="text" name="day[]"
                                    value="<?php echo esc_attr($row['day']); ?>" placeholder="Jeudi">
                         </td>
-                        <td>
-                            <input type="text" name="time[]" class="regular-text"
+                        <td data-label="Horaire">
+                            <input type="text" name="time[]"
                                    value="<?php echo esc_attr($row['time']); ?>" placeholder="19 h – 20 h">
                         </td>
-                        <td>
-                            <input type="text" name="note[]" class="regular-text"
+                        <td data-label="Précision">
+                            <input type="text" name="note[]"
                                    value="<?php echo esc_attr($row['note']); ?>" placeholder="hors vacances scolaires">
                         </td>
+                        <td class="sub-repeat__actions"><button type="button" class="button-link sub-repeat__remove" aria-label="Retirer ce créneau">✕</button></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            </div>
+            <button type="button" class="button sub-repeat__add" data-repeat-add>+ Ajouter un créneau</button>
 
             <p>
                 <button type="submit" class="button button-primary">Enregistrer</button>

@@ -59,6 +59,7 @@ use Subalcatel\Club\Support\TwoFactorGate;
 use Subalcatel\Club\Support\PasswordPolicy;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Privacy\AccountDeletion;
 use Subalcatel\Club\Privacy\MemberPurge;
@@ -162,6 +163,7 @@ final class Plugin
         OutingForm::register();
         OutingRoster::register();
         DailyDigest::register();
+        SendQuota::register();
         ClubDocumentsList::register();
         CalendarShortcode::register();
         SiteMapShortcode::register();

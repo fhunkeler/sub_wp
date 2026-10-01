@@ -464,6 +464,7 @@ final class DocumentService
                 'entity_type' => 'member_document',
                 'entity_id'   => (int) $row['id'],
                 'once'        => true,
+                'deferrable'  => true,
             ]);
 
             $sent += $ok ? 1 : 0;

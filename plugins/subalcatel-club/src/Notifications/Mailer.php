@@ -126,9 +126,18 @@ final class Mailer
         $subject = self::render((string) $template['subject'], $variables);
         $body    = self::render((string) $template['body'], $variables);
 
+        // Un rappel peut attendre demain : la garde `once` ne compte que les
+        // envois réussis, l'entretien quotidien le reprendra de lui-même.
+        if (!empty($context['deferrable']) && !SendQuota::allowsBulk(1)) {
+            SendQuota::noteDeferred();
+            self::log($templateCode, (string) $template['channel'], $email, $subject, 'deferred', $context);
+
+            return false;
+        }
+
         $sent = wp_mail($email, $subject, $body, $headers);
 
-        self::log($templateCode, (string) $template['channel'], $email, $subject, $sent, $context);
+        self::log($templateCode, (string) $template['channel'], $email, $subject, $sent ? 'sent' : 'failed', $context);
 
         return $sent;
     }
@@ -149,6 +158,8 @@ final class Mailer
         array $context = [],
         array $headers = [],
     ): int {
+        SendQuota::ensureBulk(self::messageCount($templateCode, $userIds));
+
         $sent = 0;
 
         foreach ($userIds as $userId) {
@@ -158,6 +169,31 @@ final class Mailer
         }
 
         return $sent;
+    }
+
+    /**
+     * Messages qu'un envoi groupé fera réellement partir : un par membre, plus
+     * la copie au représentant légal des mineurs quand le modèle la prévoit.
+     *
+     * @param list<int> $userIds
+     */
+    public static function messageCount(string $templateCode, array $userIds): int
+    {
+        $template = EmailTemplates::find($templateCode);
+
+        if ($template === null || (int) $template['published'] !== 1) {
+            return 0;
+        }
+
+        $count = count($userIds);
+
+        if ((int) ($template['copy_guardian'] ?? 0) === 1) {
+            foreach ($userIds as $userId) {
+                $count += LegalGuardian::of((int) $userId) === null ? 0 : 1;
+            }
+        }
+
+        return $count;
     }
 
     /**
@@ -220,7 +256,7 @@ final class Mailer
         string $channel,
         string $email,
         string $subject,
-        bool $sent,
+        string $status,
         array $context,
     ): void {
         global $wpdb;
@@ -234,8 +270,12 @@ final class Mailer
             'entity_type'     => $context['entity_type'] ?? null,
             'entity_id'       => $context['entity_id'] ?? null,
             'sender_id'       => $context['sender_id'] ?? null,
-            'status'          => $sent ? 'sent' : 'failed',
-            'error'           => $sent ? null : 'wp_mail a refusé l’envoi.',
+            'status'          => $status,
+            'error'           => match ($status) {
+                'sent'     => null,
+                'deferred' => 'Plafond quotidien d’envoi atteint : nouvel essai au prochain entretien quotidien.',
+                default    => 'wp_mail a refusé l’envoi.',
+            },
         ]);
     }
 

@@ -8,6 +8,7 @@ use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Notifications\QuotaExceeded;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -22,6 +23,9 @@ final class CampaignsScreen
 {
     /** Onglet de {@see ApplicationsScreen} où vivent les campagnes. */
     public const TAB = 'campagnes';
+
+    /** Campagnes dont l'annonce d'ouverture attend que le quota d'envoi le permette. */
+    public const OPTION_PENDING_NOTICES = 'subalcatel_pending_campaign_notices';
 
     public static function register(): void
     {
@@ -312,7 +316,10 @@ final class CampaignsScreen
             self::back('Campagne fermée.');
         }
 
-        self::notifyCampaignOpened($id);
+        $postponed = self::notifyCampaignOpened($id) === 'postponed'
+            ? ' L’annonce aux adhérents dépasserait le plafond d’envoi du jour : '
+                . 'elle partira automatiquement au prochain entretien quotidien.'
+            : '';
 
         // Ouvrir une campagne dont aucune page de paiement n'est renseignée
         // n'est pas une faute — le club peut n'encaisser que par chèque. Mais
@@ -321,10 +328,10 @@ final class CampaignsScreen
         // blocage : les inscriptions ne peuvent pas attendre une URL.
         $links = (new CampaignRepository())->paymentLinks($id);
 
-        self::back(array_filter($links) === []
+        self::back((array_filter($links) === []
             ? 'Campagne ouverte. Aucun lien de paiement n’y est renseigné : '
                 . 'les adhérents ne verront que la consigne écrite. Onglet « Règlement ».'
-            : 'Campagne ouverte.');
+            : 'Campagne ouverte.') . $postponed);
     }
 
     /**
@@ -337,8 +344,11 @@ final class CampaignsScreen
      *
      * Idempotent par campagne : rouvrir une campagne déjà annoncée (après
      * l'avoir fermée par erreur, par exemple) ne relance pas l'envoi.
+     *
+     * @return 'sent'|'postponed'|'skipped' `postponed` : le plafond d'envoi du
+     *         jour ne le permettait pas, l'entretien quotidien le reprendra.
      */
-    private static function notifyCampaignOpened(int $campaignId): void
+    public static function notifyCampaignOpened(int $campaignId): string
     {
         global $wpdb;
 
@@ -348,7 +358,7 @@ final class CampaignsScreen
         ), ARRAY_A);
 
         if (!$campaign) {
-            return;
+            return 'skipped';
         }
 
         $alreadySent = (int) $wpdb->get_var($wpdb->prepare(
@@ -359,7 +369,9 @@ final class CampaignsScreen
         ));
 
         if ($alreadySent > 0) {
-            return;
+            self::forgetPendingNotice($campaignId);
+
+            return 'skipped';
         }
 
         $userIds = $wpdb->get_col(
@@ -368,18 +380,84 @@ final class CampaignsScreen
         );
 
         if ($userIds === []) {
+            return 'skipped';
+        }
+
+        try {
+            Mailer::toUsers(EmailTemplates::CAMPAIGN_OPENED, array_map('intval', $userIds), [
+                'campagne' => (string) $campaign['title'],
+                'debut'    => DocumentService::frDate((string) $campaign['valid_from']),
+                'fin'      => DocumentService::frDate((string) $campaign['valid_until']),
+            ], [
+                'entity_type' => 'campaign',
+                'entity_id'   => $campaignId,
+                'sender_id'   => get_current_user_id(),
+            ]);
+        } catch (QuotaExceeded) {
+            // L'ouverture ne peut pas attendre le mail : les inscriptions sont
+            // possibles dès maintenant. Seule l'annonce est remise à plus tard.
+            $pending = self::pendingNotices();
+            $pending[] = $campaignId;
+            update_option(self::OPTION_PENDING_NOTICES, array_values(array_unique($pending)), false);
+
+            return 'postponed';
+        }
+
+        self::forgetPendingNotice($campaignId);
+
+        return 'sent';
+    }
+
+    /**
+     * Reprend les annonces d'ouverture reportées faute de quota.
+     *
+     * Seules les campagnes explicitement mises en attente sont reprises : une
+     * campagne ouverte avant l'existence de cette annonce n'en a aucune trace
+     * dans le journal, et ne doit pas déclencher un envoi au club entier le
+     * jour de la mise à jour.
+     */
+    public static function retryPendingNotices(): int
+    {
+        global $wpdb;
+
+        $sent = 0;
+
+        foreach (self::pendingNotices() as $campaignId) {
+            $status = $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM {$wpdb->prefix}sub_campaigns WHERE id = %d",
+                $campaignId
+            ));
+
+            if ($status !== 'open') {
+                self::forgetPendingNotice($campaignId);
+                continue;
+            }
+
+            $sent += self::notifyCampaignOpened($campaignId) === 'sent' ? 1 : 0;
+        }
+
+        return $sent;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function pendingNotices(): array
+    {
+        return array_map('intval', (array) get_option(self::OPTION_PENDING_NOTICES, []));
+    }
+
+    private static function forgetPendingNotice(int $campaignId): void
+    {
+        $pending = array_values(array_diff(self::pendingNotices(), [$campaignId]));
+
+        if ($pending === []) {
+            delete_option(self::OPTION_PENDING_NOTICES);
+
             return;
         }
 
-        Mailer::toUsers(EmailTemplates::CAMPAIGN_OPENED, array_map('intval', $userIds), [
-            'campagne' => (string) $campaign['title'],
-            'debut'    => DocumentService::frDate((string) $campaign['valid_from']),
-            'fin'      => DocumentService::frDate((string) $campaign['valid_until']),
-        ], [
-            'entity_type' => 'campaign',
-            'entity_id'   => $campaignId,
-            'sender_id'   => get_current_user_id(),
-        ]);
+        update_option(self::OPTION_PENDING_NOTICES, $pending, false);
     }
 
     public static function handleDelete(): void

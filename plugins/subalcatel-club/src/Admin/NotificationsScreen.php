@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Admin;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -26,6 +27,7 @@ final class NotificationsScreen
         add_action('admin_post_sub_template_save', [self::class, 'handleSave']);
         add_action('admin_post_sub_template_preview', [self::class, 'handlePreview']);
         add_action('admin_post_sub_daily_run', [self::class, 'handleRunDaily']);
+        add_action('admin_post_sub_mail_quota_save', [self::class, 'handleQuotaSave']);
     }
 
     public static function renderTemplates(): void
@@ -150,6 +152,8 @@ final class NotificationsScreen
             a été transmise — et le bureau finit par tout renvoyer « au cas où ».
         </p>
 
+        <?php self::renderQuota(); ?>
+
         <p>
             <?php AdminUi::actionButton(
                 'sub_daily_run',
@@ -194,15 +198,96 @@ final class NotificationsScreen
                         <?php echo esc_html($sender?->display_name ?? 'Automatique'); ?>
                     </td>
                     <td data-label="État">
-                        <?php echo $entry['status'] === 'sent'
-                            ? AdminUi::statusBadge('active')
-                            : AdminUi::statusBadge('refused'); ?>
+                        <?php echo AdminUi::statusBadge(match ($entry['status']) {
+                            'sent'     => 'active',
+                            'deferred' => 'deferred',
+                            default    => 'refused',
+                        }); ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
         <?php
+    }
+
+    /**
+     * Compteur du jour et réglage du plafond d'envoi.
+     *
+     * Le plafond suit l'offre du service d'envoi : le bureau qui change d'offre
+     * le relève ici, sans développeur.
+     */
+    private static function renderQuota(): void
+    {
+        $settings  = SendQuota::settings();
+        $sent      = SendQuota::sentToday();
+        $remaining = SendQuota::bulkRemaining();
+        ?>
+        <div class="sub-card">
+            <h3 style="margin-top:0;">Plafond d’envoi quotidien</h3>
+            <p>
+                <?php if ($settings['limit'] === 0) : ?>
+                    <strong><?php echo (int) $sent; ?></strong> courriel(s) envoyé(s) aujourd’hui — aucun plafond réglé.
+                <?php else : ?>
+                    <strong><?php echo (int) $sent; ?> / <?php echo (int) $settings['limit']; ?></strong>
+                    courriels envoyés aujourd’hui. Envois groupés encore possibles :
+                    <strong><?php echo (int) $remaining; ?></strong>.
+                <?php endif; ?>
+            </p>
+            <p class="description">
+                Une annonce de sortie, un message aux inscrits ou l’ouverture d’une campagne qui
+                dépasserait le plafond est refusé en entier, jamais envoyé à moitié. Les rappels
+                automatiques en excès sont reportés au lendemain. Les messages individuels
+                (mot de passe, confirmation de dossier) partent toujours : la réserve leur est gardée.
+            </p>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sub-form">
+                <input type="hidden" name="action" value="sub_mail_quota_save">
+                <?php wp_nonce_field('sub_mail_quota_save'); ?>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="sub-quota-limit">Plafond par jour</label></th>
+                        <td>
+                            <input type="number" min="0" step="1" id="sub-quota-limit" name="limit" class="small-text"
+                                   value="<?php echo (int) $settings['limit']; ?>">
+                            <p class="description">
+                                Celui de l’offre du service d’envoi (Brevo gratuit : 300). 0 : pas de plafond.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sub-quota-reserve">Réserve</label></th>
+                        <td>
+                            <input type="number" min="0" step="1" id="sub-quota-reserve" name="reserve" class="small-text"
+                                   value="<?php echo (int) $settings['reserve']; ?>">
+                            <p class="description">
+                                Part du plafond que les envois groupés ne peuvent pas entamer.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit"><button class="button">Enregistrer le plafond</button></p>
+            </form>
+        </div>
+        <?php
+    }
+
+    public static function handleQuotaSave(): void
+    {
+        check_admin_referer('sub_mail_quota_save');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $limit   = absint($_POST['limit'] ?? SendQuota::DEFAULT_LIMIT);
+        $reserve = absint($_POST['reserve'] ?? SendQuota::DEFAULT_RESERVE);
+
+        if ($limit > 0 && $reserve >= $limit) {
+            self::back('La réserve doit rester inférieure au plafond, sinon aucun envoi groupé ne partirait.', true, self::TAB_LOG);
+        }
+
+        SendQuota::save($limit, $reserve);
+        Audit::log('mail_quota.saved', 'system', null, ['limit' => $limit, 'reserve' => $reserve]);
+
+        self::back('Plafond d’envoi enregistré.', false, self::TAB_LOG);
     }
 
     /**
@@ -314,6 +399,8 @@ final class NotificationsScreen
             $result['doc_reminders'],
             $result['purge_warnings'],
             $result['membership_reminders']
-        ), false, self::TAB_LOG);
+        ) . ($result['deferred'] > 0
+            ? sprintf(' %d envoi(s) reporté(s) au lendemain : plafond quotidien atteint.', $result['deferred'])
+            : ''), false, self::TAB_LOG);
     }
 }

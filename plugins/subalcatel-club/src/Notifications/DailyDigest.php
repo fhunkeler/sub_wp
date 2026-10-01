@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Notifications;
 
+use Subalcatel\Club\Admin\CampaignsScreen;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Documents\DocumentTypes;
 use Subalcatel\Club\Identity\LegalGuardian;
@@ -40,7 +41,7 @@ final class DailyDigest
     }
 
     /**
-     * @return array{expired: int, purged: int, doc_reminders: int, purge_warnings: int, membership_reminders: int, came_of_age: int}
+     * @return array{expired: int, purged: int, doc_reminders: int, purge_warnings: int, membership_reminders: int, came_of_age: int, campaign_notices: int, deferred: int}
      */
     public static function run(?string $onDate = null): array
     {
@@ -53,6 +54,10 @@ final class DailyDigest
             'purge_warnings'       => $documents->warnBeforePurge(15, $onDate),
             'membership_reminders' => self::membershipReminders($onDate),
             'came_of_age'          => self::comeOfAge($onDate),
+            // Après les rappels : une annonce de campagne reportée passe
+            // avant eux si elle tient, mais ne doit pas les priver du quota.
+            'campaign_notices'     => CampaignsScreen::retryPendingNotices(),
+            'deferred'             => SendQuota::deferredCount(),
         ];
 
         Audit::log('notifications.daily', 'system', null, $result);
@@ -170,6 +175,7 @@ final class DailyDigest
                         'entity_type' => 'member_document_j' . $band['days'],
                         'entity_id'   => (int) $document['id'],
                         'once'        => true,
+                        'deferrable'  => true,
                     ]);
 
                     $sent += $ok ? 1 : 0;
@@ -221,6 +227,7 @@ final class DailyDigest
                         'entity_type' => 'application_j' . $band['days'],
                         'entity_id'   => (int) $application['id'],
                         'once'        => true,
+                        'deferrable'  => true,
                     ]);
 
                     $sent += $ok ? 1 : 0;

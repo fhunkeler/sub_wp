@@ -178,6 +178,7 @@ final class AdminUi
             'active'            => ['Active', '#17795e', '#fff'],
             'refused'           => ['Refusée', '#b82a1e', '#fff'],
             'cancelled'         => ['Annulée', '#566b84', '#fff'],
+            'deferred'          => ['Reporté', '#f2c14e', '#142f52'],
         ];
 
         [$label, $bg, $fg] = $map[$status] ?? [$status, '#c4d3e3', '#142f52'];

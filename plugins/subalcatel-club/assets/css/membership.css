@@ -1892,6 +1892,31 @@
 	margin-top: 0;
 }
 
+/* --- Sorties prévues, en tête de l'espace membre --- */
+
+.sub-outings__signup {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.sub-outings__signup .sub-event__status {
+	margin: 0;
+}
+
+.sub-outings .sub-button {
+	width: auto;
+	padding: 0 24px;
+}
+
+/* Formulaire déplié, motif d'un refus : la ligne entière, sous la sortie. */
+.sub-outings__signup:has(.sub-event__signup[open]),
+.sub-outings__signup:has(.sub-event__blocked) {
+	flex-basis: 100%;
+	align-items: stretch;
+}
+
 .sub-event__people summary {
 	cursor: pointer;
 	font-weight: 600;

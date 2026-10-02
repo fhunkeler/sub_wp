@@ -38,13 +38,7 @@ final class AgendaShortcode
             \Subalcatel\Club\VERSION
         );
 
-        wp_enqueue_script(
-            'subalcatel-signup',
-            \Subalcatel\Club\PLUGIN_URL . 'assets/js/signup.js',
-            [],
-            \Subalcatel\Club\VERSION,
-            true
-        );
+        self::enqueueSignupScript();
 
         $service = new EventService();
         $events  = $service->upcoming(20, get_current_user_id());
@@ -65,7 +59,6 @@ final class AgendaShortcode
 
         foreach ($events as $event) {
             $eventId    = (int) $event['id'];
-            $decision   = $service->checkEligibility($eventId, $userId);
             $confirmed  = $service->confirmedCount($eventId);
             $capacity   = (int) $event['capacity'];
             $registered = self::registrationOf($eventId, $userId);
@@ -90,34 +83,9 @@ final class AgendaShortcode
                     <?php endif; ?>
                 </p>
 
+                <?php self::renderSignup($service, $event, $userId); ?>
                 <?php if ($registered !== null && $registered !== 'cancelled') : ?>
-                    <p class="sub-event__status sub-event__status--<?php echo esc_attr($registered); ?>">
-                        <?php echo $registered === 'confirmed'
-                            ? 'Vous êtes inscrit.'
-                            : 'Vous êtes en liste d’attente.'; ?>
-                    </p>
-                    <?php self::renderAction('sub_event_cancel', $eventId, 'Me désinscrire', 'sub-button--ghost'); ?>
                     <?php self::renderOrganizerForm($eventId, (int) ($event['organizer_id'] ?? 0)); ?>
-
-                <?php elseif ($decision->allowed) : ?>
-                    <?php
-                    $label = $capacity > 0 && $confirmed >= $capacity
-                        ? 'Rejoindre la liste d’attente'
-                        : 'M’inscrire';
-                    $fields = RegistrationFields::forType($service->typeOf($eventId));
-
-                    if ($fields === []) {
-                        self::renderAction('sub_event_register', $eventId, $label);
-                    } else {
-                        self::renderRegistrationForm($eventId, $label, $fields, $userId);
-                    }
-                    ?>
-
-                <?php else : ?>
-                    <p class="sub-event__blocked">
-                        <strong>Inscription impossible.</strong>
-                        <?php echo esc_html($decision->reason); ?>
-                    </p>
                 <?php endif; ?>
 
                 <?php ParticipantsList::render($service, $eventId, $userId); ?>
@@ -128,6 +96,78 @@ final class AgendaShortcode
         echo '</div>';
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Ce qu'un membre peut faire d'une sortie : s'en désinscrire, s'y inscrire,
+     * ou lire pourquoi il ne le peut pas.
+     *
+     * Partagé avec le tableau de bord de l'espace membre, qui propose les
+     * sorties dès l'arrivée : le formulaire y est le même, et le motif d'un
+     * refus aussi — une sortie annoncée sans moyen de s'y inscrire, ni raison
+     * donnée, ne vaut pas mieux qu'une sortie absente.
+     *
+     * Le retour du formulaire revient à la page d'où il est parti : l'écran
+     * qui l'affiche doit donc afficher aussi {@see Notice::fromQuery()}.
+     *
+     * @param array<string, mixed> $event
+     */
+    public static function renderSignup(EventService $service, array $event, int $userId): void
+    {
+        $eventId    = (int) $event['id'];
+        $registered = self::registrationOf($eventId, $userId);
+
+        if ($registered !== null && $registered !== 'cancelled') {
+            ?>
+            <p class="sub-event__status sub-event__status--<?php echo esc_attr($registered); ?>">
+                <?php echo $registered === 'confirmed'
+                    ? 'Vous êtes inscrit.'
+                    : 'Vous êtes en liste d’attente.'; ?>
+            </p>
+            <?php
+            self::renderAction('sub_event_cancel', $eventId, 'Me désinscrire', 'sub-button--ghost');
+
+            return;
+        }
+
+        $decision = $service->checkEligibility($eventId, $userId);
+
+        if (!$decision->allowed) {
+            ?>
+            <p class="sub-event__blocked">
+                <strong>Inscription impossible.</strong>
+                <?php echo esc_html($decision->reason); ?>
+            </p>
+            <?php
+
+            return;
+        }
+
+        $capacity = (int) $event['capacity'];
+        $label    = $capacity > 0 && $service->confirmedCount($eventId) >= $capacity
+            ? 'Rejoindre la liste d’attente'
+            : 'M’inscrire';
+        $fields   = RegistrationFields::forType($service->typeOf($eventId));
+
+        if ($fields === []) {
+            self::renderAction('sub_event_register', $eventId, $label);
+        } else {
+            self::renderRegistrationForm($eventId, $label, $fields, $userId);
+        }
+    }
+
+    /**
+     * Le script qui révèle les champs dépendants du formulaire d'inscription.
+     */
+    public static function enqueueSignupScript(): void
+    {
+        wp_enqueue_script(
+            'subalcatel-signup',
+            \Subalcatel\Club\PLUGIN_URL . 'assets/js/signup.js',
+            [],
+            \Subalcatel\Club\VERSION,
+            true
+        );
     }
 
     /**
@@ -163,7 +203,7 @@ final class AgendaShortcode
                     <fieldset class="sub-signup__group">
                         <legend><?php echo esc_html($groupLabel); ?></legend>
                         <?php foreach ($groupFields as $name => $field) : ?>
-                            <?php self::renderRegistrationField($name, $field, $userId); ?>
+                            <?php self::renderRegistrationField($eventId, $name, $field, $userId); ?>
                         <?php endforeach; ?>
                     </fieldset>
                 <?php endforeach; ?>
@@ -223,9 +263,11 @@ final class AgendaShortcode
     /**
      * @param array<string, mixed> $field
      */
-    private static function renderRegistrationField(string $name, array $field, int $userId): void
+    private static function renderRegistrationField(int $eventId, string $name, array $field, int $userId): void
     {
-        $id      = 'sub-reg-' . $name;
+        // Plusieurs formulaires sur la même page : sans l'identifiant de la
+        // sortie, chaque libellé pointerait le champ du premier formulaire.
+        $id      = sprintf('sub-reg-%d-%s', $eventId, $name);
         $value   = RegistrationFields::defaultValue($userId, $name, $field);
         $depends = isset($field['depends_on'])
             ? sprintf(

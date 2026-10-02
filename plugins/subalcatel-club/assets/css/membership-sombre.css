@@ -1,0 +1,714 @@
+/*
+ * Mode sombre — GÉNÉRÉ depuis membership.css par outils/mode_sombre.py.
+ * Ne pas modifier à la main : relancer le script après toute modification
+ * de la feuille source.
+ */
+
+:root[data-theme="dark"] .sub-membership {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-membership__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-membership__dates {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-field {
+	border: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-field legend {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-field__required {
+	color: #e89992;
+}
+
+:root[data-theme="dark"] .sub-field__help {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-choice:hover {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-choice__price {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-membership .sub-choice--fixed {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-tag {
+	background: #121e25;
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-membership .sub-input label {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-membership .sub-input input,
+:root[data-theme="dark"] .sub-membership .sub-input textarea {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-membership .sub-input__help {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-membership .sub-input__error,
+:root[data-theme="dark"] .sub-membership .sub-field__error {
+	color: #e89992;
+}
+
+:root[data-theme="dark"] .sub-summary {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-summary__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-summary__empty {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-summary__line {
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .sub-summary__line--discount {
+	color: #aceddb;
+}
+
+:root[data-theme="dark"] .sub-summary__total strong {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-summary__note {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-button:focus-visible {
+	outline: 2px solid #94b3db;
+}
+
+:root[data-theme="dark"] .sub-notice {
+	background: #111a22;
+	color: #b5d4ef;
+}
+
+:root[data-theme="dark"] .sub-notice--success {
+	background: #0f2019;
+	color: #c3f2e4;
+}
+
+:root[data-theme="dark"] .sub-notice--error {
+	background: #2a1110;
+	color: #eeb8ad;
+}
+
+:root[data-theme="dark"] .sub-notice--warning,
+:root[data-theme="dark"] .sub-notice--waiting {
+	background: #261f0d;
+	color: #f1e4c0;
+}
+
+:root[data-theme="dark"] .sub-notice--info {
+	background: #111a22;
+	color: #b5d4ef;
+}
+
+:root[data-theme="dark"] .sub-agenda {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-event {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-event__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-event__meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-event__status--waiting {
+	background: #594820;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-event__blocked {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-button--ghost {
+	color: #e8b091;
+}
+
+:root[data-theme="dark"] .sub-button--ghost:hover {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-calendar__nav {
+	border: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-calendar__nav:hover {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-calendar__grid th {
+	border-bottom: 2px solid #29424f;
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-calendar__day {
+	border: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-calendar__day--empty {
+	background: #132030;
+}
+
+:root[data-theme="dark"] .sub-calendar__day--today {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-calendar__day--today .sub-calendar__number {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-calendar__number {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-calendar__row {
+	border-bottom: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-calendar__weekday {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-calendar__place {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-calendar__empty {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-calendar__subscribe {
+	border: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-doclib__search input[type="search"] {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-doclib__group h3 {
+	border-bottom: 2px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-doclib__item {
+	border-bottom: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-doclib__meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-doclib__desc {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-panel-block {
+	border: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-danger-zone {
+	border: 1px solid #2c405b;
+	background: #131f2f;
+}
+
+:root[data-theme="dark"] .sub-danger-zone h2 {
+	color: #ecb2a6;
+}
+
+:root[data-theme="dark"] .sub-button--danger {
+	color: #ecb2a6;
+}
+
+:root[data-theme="dark"] .sub-profile {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-section {
+	border-top: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-section__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-profile label {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-profile input[type='text'],
+:root[data-theme="dark"] .sub-profile input[type='tel'],
+:root[data-theme="dark"] .sub-profile input[type='email'],
+:root[data-theme="dark"] .sub-profile input[type='date'],
+:root[data-theme="dark"] .sub-profile select,
+:root[data-theme="dark"] .sub-profile textarea {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-readonly {
+	background: #121e25;
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-input__help {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-tabs {
+	border-bottom: 2px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-tabs__tab {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-tabs__tab:hover {
+	background: #121e25;
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-tabs__tab[aria-selected='true'] {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-documents {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-doc {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-doc--missing {
+	border-left-color: #394551;
+}
+
+:root[data-theme="dark"] .sub-doc__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-doc__state {
+	background: #121e25;
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-doc--pending .sub-doc__state {
+	background: #594820;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-doc__help,
+:root[data-theme="dark"] .sub-doc__filename,
+:root[data-theme="dark"] .sub-doc__warning {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-doc__form {
+	border-top: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-doc__form label {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-doc__form input[type='date'] {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-file {
+	border: 1px solid #3a5579;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-file__button {
+	background: #121e25;
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-file__name {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-file__name--chosen {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-file:hover .sub-file__button {
+	background: #16222f;
+}
+
+:root[data-theme="dark"] .sub-signup__group {
+	border: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-signup__group legend {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-signup label {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-signup input[type='text'],
+:root[data-theme="dark"] .sub-signup input[type='number'],
+:root[data-theme="dark"] .sub-signup select,
+:root[data-theme="dark"] .sub-signup textarea {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-dashboard,
+:root[data-theme="dark"] .sub-membership-view,
+:root[data-theme="dark"] .sub-registrations {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-dashboard__greeting {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-actions__title,
+:root[data-theme="dark"] .sub-block__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-actions__item {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-actions__item--waiting {
+	border-left-color: #394551;
+}
+
+:root[data-theme="dark"] .sub-actions__why {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-card-ok {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-card-ok p {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-list__item {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-pill {
+	background: #121e25;
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-pill--waiting {
+	background: #594820;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-shortcuts {
+	border-top: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-shortcuts a {
+	color: #a0cdeb;
+}
+
+:root[data-theme="dark"] .sub-steps__step {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-steps__mark {
+	background: #16222f;
+}
+
+:root[data-theme="dark"] .sub-steps__step--current {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-lines td {
+	border-bottom: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-lines__value {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-lines__row--discount {
+	color: #aceddb;
+}
+
+:root[data-theme="dark"] .sub-membership-view__meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-membership-view__subtitle {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-membership-view__cancel {
+	border-top: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-membership-view__cancel small {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-registration {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-registration__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-registration__meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-registration__answers {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-registration__comment {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-upcoming__item {
+	border-bottom: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-upcoming__meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-upcoming__empty {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-login input[type="text"],
+:root[data-theme="dark"] .sub-login input[type="password"] {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-pricing__season {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-plan {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-plan__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-plan__amount {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-plan__unit {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-plan__note {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-pricing__table th,
+:root[data-theme="dark"] .sub-pricing__table td {
+	border-bottom: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-pricing__table thead th {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-pricing__table tbody th {
+	background: #142031;
+}
+
+:root[data-theme="dark"] .sub-pricing__scope {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-pricing__cta {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-pricing__amount--credit {
+	color: #aceddb;
+}
+
+:root[data-theme="dark"] .sub-pricing__amount--credit {
+	color: #aceddb;
+}
+
+:root[data-theme="dark"] .sub-signup input[type="text"],
+:root[data-theme="dark"] .sub-signup input[type="email"],
+:root[data-theme="dark"] .sub-signup input[type="password"] {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-event__people {
+	border-top: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-event__people summary {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-people__item {
+	border-bottom: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] .sub-people__item--self {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-people__you {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-people__wait {
+	color: #eccda4;
+}
+
+:root[data-theme="dark"] .sub-people__note {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-people__festive {
+	color: #eccda4;
+}
+
+:root[data-theme="dark"] .sub-people__festive-count {
+	color: #eccda4;
+}
+
+:root[data-theme="dark"] .sub-outing label {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-outing input:not([type='hidden']),
+:root[data-theme="dark"] .sub-outing select,
+:root[data-theme="dark"] .sub-outing textarea {
+	border: 1px solid #3a5579;
+}
+
+:root[data-theme="dark"] .sub-outing .sub-input__help {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-outing .sub-help,
+:root[data-theme="dark"] .sub-dashboard .sub-help {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-organised {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-organised__count {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-organised__back a {
+	color: #a0cdeb;
+}
+
+:root[data-theme="dark"] .sub-organised__message {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-organised__message summary {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-roster__title {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-roster__meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-roster th,
+:root[data-theme="dark"] .sub-roster td {
+	border-bottom: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-roster thead th {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-roster__mail {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-roster__minor {
+	background: #594820;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-roster__comment {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-roster__empty,
+:root[data-theme="dark"] .sub-roster__legal {
+	color: #aebbca;
+}
+
+@media screen and (max-width: 782px) {
+	:root[data-theme="dark"] .sub-roster tr {
+		border: 1px solid #394551;
+		background: #152233;
+	}
+	:root[data-theme="dark"] .sub-roster td::before {
+		color: #a8ceeb;
+	}
+}
+
+:root[data-theme="dark"] .sub-password label {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-password input[type='password'] {
+	border: 1px solid #3a5579;
+	background: #152233;
+}

@@ -150,7 +150,9 @@ html {
 .sub-header .wp-block-navigation a {
 	color: var(--sub-abysse);
 	text-decoration: none;
-	padding: 9px 13px;
+	/* 10 px et non 13 : depuis l'ajout de la bascule d'apparence, c'est ce
+	   qui permet à l'en-tête de tenir sur une ligne dans ses 1 200 px. */
+	padding: 9px 10px;
 	border-radius: var(--sub-r-pastille);
 }
 
@@ -1668,5 +1670,152 @@ label {
 	   ligne au-delà de 1248 px. */
 	.sub-header .wp-block-navigation .has-child > .wp-block-navigation-item__content {
 		padding-right: 2px;
+	}
+}
+
+/* ------------------------------------------------------------------
+   21. Sélecteur d'apparence (Système / Clair / Sombre)
+   Bloc subalcatel/apparence — inc/apparence.php, assets/js/apparence.js.
+   Compact (icônes seules) dans l'en-tête, avec libellés dans le pied.
+   ------------------------------------------------------------------ */
+.sub-apparence {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 3px;
+	border: 1px solid var(--sub-trait);
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-blanc);
+}
+
+.sub-apparence[hidden] {
+	display: none;
+}
+
+.sub-apparence__choix {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: var(--sub-r-pastille);
+	background: transparent;
+	color: var(--sub-ardoise);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.sub-apparence__choix:hover {
+	color: var(--sub-abysse);
+}
+
+.sub-apparence__choix[aria-pressed="true"] {
+	background: var(--sub-lavande-pale);
+	color: var(--sub-abysse);
+}
+
+.sub-apparence__choix::before {
+	content: "";
+	flex: none;
+	width: 16px;
+	height: 16px;
+	background: currentColor;
+	-webkit-mask: var(--sub-icone) center / contain no-repeat;
+	mask: var(--sub-icone) center / contain no-repeat;
+}
+
+.sub-apparence-bascule,
+.sub-apparence-bascule[data-apparence="systeme"],
+.sub-apparence__choix--systeme {
+	--sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='12' rx='2'/%3E%3Cpath d='M8 20h8M12 16v4'/%3E%3C/svg%3E");
+}
+
+.sub-apparence-bascule[data-apparence="clair"],
+.sub-apparence__choix--clair {
+	--sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+}
+
+.sub-apparence-bascule[data-apparence="sombre"],
+.sub-apparence__choix--sombre {
+	--sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/svg%3E");
+}
+
+/* Bascule de l'en-tête : un bouton rond de 40 px, icône du choix en cours. */
+.sub-apparence-bascule {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 1.5px solid var(--sub-trait);
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-blanc);
+	color: var(--sub-abysse);
+	cursor: pointer;
+}
+
+.sub-apparence-bascule[hidden] {
+	display: none;
+}
+
+.sub-apparence-bascule:hover {
+	border-color: var(--sub-abysse);
+}
+
+.sub-apparence-bascule::before {
+	content: "";
+	width: 20px;
+	height: 20px;
+	background: currentColor;
+	-webkit-mask: var(--sub-icone) center / contain no-repeat;
+	mask: var(--sub-icone) center / contain no-repeat;
+}
+
+.sub-apparence-bascule__texte {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+}
+
+/* Pied de page marine. */
+.sub-footer .sub-apparence {
+	border-color: rgba(255, 255, 255, 0.18);
+	background: transparent;
+}
+
+.sub-footer .sub-apparence__choix {
+	color: #b0c4da;
+}
+
+.sub-footer .sub-apparence__choix:hover,
+.sub-footer .sub-apparence__choix[aria-pressed="true"] {
+	background: rgba(255, 255, 255, 0.12);
+	color: var(--sub-blanc);
+}
+
+/* Sous 600 px, l'en-tête est plein : le sélecteur reste dans le pied. */
+@media (max-width: 599px) {
+	.sub-header .sub-apparence-bascule {
+		display: none;
+	}
+}
+
+/* Au-delà de 1 248 px, une seule ligne : logo, navigation, outils. Les
+   gouttières passent de 24 à 16 px pour y loger la bascule d'apparence. */
+@media (min-width: 1248px) {
+	.sub-header > .wp-block-group {
+		column-gap: 16px;
+	}
+
+	.sub-header__outils {
+		gap: 8px;
 	}
 }

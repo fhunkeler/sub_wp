@@ -1,0 +1,244 @@
+/*
+ * Mode sombre — GÉNÉRÉ depuis site.css par outils/mode_sombre.py.
+ * Ne pas modifier à la main : relancer le script après toute modification
+ * de la feuille source.
+ */
+
+:root[data-theme="dark"] .sub-skip-link {
+	background: #594820;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-header {
+	border-bottom: 1px solid #343e4b;
+}
+
+:root[data-theme="dark"] .sub-header .wp-block-navigation a {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-header .wp-block-navigation a:hover {
+	background: rgba(255, 255, 255, 0.07);
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-header .wp-block-navigation .current-menu-item > a,
+:root[data-theme="dark"] .sub-header .wp-block-navigation .current_page_ancestor > a {
+	color: #bdd3ef;
+	background: #121422;
+}
+
+:root[data-theme="dark"] .sub-baseline {
+	color: #9299d4;
+}
+
+:root[data-theme="dark"] .sub-header .wp-block-navigation__responsive-container-open:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .sub-compte__lien {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-btn--fantome {
+	background: #152233;
+	color: #bdd3ef;
+	border-color: #94b3db;
+}
+
+:root[data-theme="dark"] .sub-btn--fantome:hover {
+	border-color: #94b3db;
+}
+
+:root[data-theme="dark"] .is-style-sub-carte {
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-vignette--repli::after {
+	background-color: #152233;
+}
+
+:root[data-theme="dark"] .is-style-sub-panneau {
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-une {
+	background: #152233;
+}
+
+:root[data-theme="dark"] .is-style-sub-alerte-info {
+	background: #111a22;
+	color: #b5d4ef;
+}
+
+:root[data-theme="dark"] .is-style-sub-alerte-attention {
+	background: #261f0d;
+	color: #f1e4c0;
+}
+
+:root[data-theme="dark"] .is-style-sub-alerte-succes {
+	background: #0f2019;
+	color: #c3f2e4;
+}
+
+:root[data-theme="dark"] .sub-badge--neutre {
+	background: #121e25;
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-badge--info {
+	background: #0e151b;
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-badge--attente {
+	background: #594820;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .is-style-sub-chapeau {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .is-style-sub-surtitre {
+	color: #a0cdeb;
+}
+
+:root[data-theme="dark"] .is-style-sub-liste-cochee li::before {
+	color: #aceddb;
+}
+
+:root[data-theme="dark"] .sub-fil-ariane {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-fil-ariane a {
+	color: #a0cdeb;
+}
+
+:root[data-theme="dark"] .sub-fil-ariane [aria-current="page"] {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-app {
+	background: #121e25;
+}
+
+:root[data-theme="dark"] .sub-tuile {
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-tuile__libelle {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-tuile__valeur {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-tuile__valeur--alerte {
+	color: #e89992;
+}
+
+:root[data-theme="dark"] .sub-tuile__detail {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .wp-block-table th {
+	color: #aebbca;
+	border-bottom: 2px solid #394551;
+}
+
+:root[data-theme="dark"] .wp-block-table td {
+	border-bottom: 1px solid #29424f;
+}
+
+:root[data-theme="dark"] :where(input[type="text"], input[type="email"], input[type="url"], input[type="password"],
+	input[type="search"], input[type="number"], input[type="tel"], input[type="date"],
+	select, textarea) {
+	border: 1.5px solid #3a5579;
+	background: #152233;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-article-meta {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-todo {
+	background: #2e220e;
+	color: #f0dcba;
+}
+
+:root[data-theme="dark"] .is-style-sub-surtitre.sub-surtitre--corail {
+	color: #eab89c;
+}
+
+:root[data-theme="dark"] .sub-hero--clair :where(h1, h2) {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-hero--clair h1 mark {
+	color: #9299d4;
+}
+
+:root[data-theme="dark"] .sub-hero--clair .is-style-sub-surtitre {
+	border: 1px solid #343e4b;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-atout--club::before {
+	background-color: #121422;
+}
+
+:root[data-theme="dark"] .sub-atout--tous::before {
+	background-color: #25170d;
+}
+
+:root[data-theme="dark"] .sub-atout--formation::before {
+	background-color: #0f181f;
+}
+
+:root[data-theme="dark"] .sub-niveau {
+	background: #121e2d;
+}
+
+:root[data-theme="dark"] .sub-niveau__profondeur {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-footer .wp-block-site-logo img {
+	background: #111c27;
+}
+
+:root[data-theme="dark"] .sub-section-filet {
+	border-block: 1px solid #343e4b;
+}
+
+:root[data-theme="dark"] .sub-apparence {
+	border: 1px solid #343e4b;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-apparence__choix {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-apparence__choix:hover {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-apparence__choix[aria-pressed="true"] {
+	background: #121422;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-apparence-bascule {
+	border: 1.5px solid #343e4b;
+	background: #152233;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-apparence-bascule:hover {
+	border-color: #94b3db;
+}

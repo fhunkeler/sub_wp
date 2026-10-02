@@ -64,6 +64,16 @@ final class Assets
             [],
             \Subalcatel\Club\VERSION
         );
+
+        // Mode sombre des écrans du club : règles actives seulement sous
+        // `html[data-theme="dark"]`, posé par le thème. Feuille GÉNÉRÉE depuis
+        // membership.css par themes/subalcatel/outils/mode_sombre.py.
+        wp_enqueue_style(
+            'subalcatel-membership-sombre',
+            \Subalcatel\Club\PLUGIN_URL . 'assets/css/membership-sombre.css',
+            ['subalcatel-membership'],
+            \Subalcatel\Club\VERSION
+        );
     }
 
     /**

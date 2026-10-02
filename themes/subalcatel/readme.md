@@ -95,3 +95,19 @@ subalcatel/
 - Logo par défaut : rendu du bloc « Logo du site » sans pièce jointe, avec et sans lien, avec et sans largeur — texte alternatif correct dans chaque cas.
 
 **Non vérifié** : le rendu réel dans WordPress. Il demande de démarrer la pile Docker et d'installer le site — à faire avant tout arbitrage du bureau sur la base d'une capture d'écran.
+
+## Mode sombre
+
+Chaque visiteur choisit l'apparence : **Système** (par défaut, suit le réglage de l'appareil), **Clair** ou **Sombre**. Le choix est gardé dans le navigateur (`localStorage`, clé `sub-apparence`) ; rien n'est stocké côté serveur.
+
+- Sélecteur : bloc `subalcatel/apparence` — bouton rond dans l'en-tête (à partir de 600 px), trois boutons libellés dans le pied de page.
+- `inc/apparence.php` imprime en tête de page le script qui pose `data-theme="dark|light"` sur `<html>` avant l'affichage (pas de flash clair).
+- Feuilles : `assets/css/sombre-site.css` est **générée** depuis `site.css` ; `assets/css/sombre.css` est écrite à la main (page, titres, liens, classes de couleur de l'éditeur, retouches). L'extension a sa propre feuille générée, `plugins/subalcatel-club/assets/css/membership-sombre.css`.
+- **Après toute modification de `site.css` ou de `membership.css`, régénérer :**
+
+```bash
+python3 themes/subalcatel/outils/mode_sombre.py themes/subalcatel/assets/css/site.css themes/subalcatel/assets/css/sombre-site.css
+python3 themes/subalcatel/outils/mode_sombre.py plugins/subalcatel-club/assets/css/membership.css plugins/subalcatel-club/assets/css/membership-sombre.css
+```
+
+Sans JavaScript, le site reste en clair et le sélecteur est masqué. L'écran de connexion natif (`wp-login.php`) est déjà sombre et n'est pas concerné.

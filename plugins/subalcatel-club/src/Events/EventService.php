@@ -1115,7 +1115,14 @@ final class EventService
     }
 
     /**
-     * Le membre a-t-il l'un des niveaux acceptés ?
+     * Le membre a-t-il le niveau qu'exige la sortie ?
+     *
+     * Le niveau saisi est un plancher — « Niveau plongeur minimum », dit le
+     * formulaire, et « ouvrir au P2 ouvre aussi aux P3, P4 et P5 ». La
+     * comparaison est donc celle de l'inscription ({@see EligibilityPolicy::meetsDiveLevel()}),
+     * et non une égalité de niveau : une sortie ouverte au PA20 restait sinon
+     * invisible pour 128 adhérents sur 136, P5 compris, alors que tous pouvaient
+     * s'y inscrire.
      *
      * Une sortie sans niveau déclaré s'adresse à tous : c'est le réglage par
      * défaut, et il ne faut pas qu'oublier de cocher revienne à n'annoncer à
@@ -1126,15 +1133,9 @@ final class EventService
     private function matchesAcceptedLevels(array $event, int $userId): bool
     {
         $accepted = json_decode((string) ($event['accepted_levels'] ?? ''), true);
-        $accepted = is_array($accepted) ? array_filter(array_map('strval', $accepted)) : [];
+        $accepted = is_array($accepted) ? array_values(array_filter(array_map('strval', $accepted))) : [];
 
-        if ($accepted === []) {
-            return true;
-        }
-
-        $level = DiveLevels::forUser($userId);
-
-        return $level !== null && in_array($level->slug, $accepted, true);
+        return $this->policy->meetsDiveLevel($userId, $accepted)->allowed;
     }
 
     /**

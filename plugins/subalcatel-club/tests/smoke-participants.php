@@ -137,6 +137,26 @@ $check('Sans rien du dossier réservé au DP', !str_contains($myPage, '06 12 34 
 ob_start();
 \Subalcatel\Club\Frontend\ParticipantsList::render($service, $eventId, $lapsed);
 $check('Une adhésion expirée ne voit pas la liste', ob_get_clean() === '');
+
+// Pas besoin d'être inscrit : savoir qui vient, et si quelqu'un propose un
+// pot, aide justement à se décider.
+ob_start();
+\Subalcatel\Club\Frontend\ParticipantsList::render($service, $eventId, $upToDate);
+$nonInscrit = (string) ob_get_clean();
+$check('Un adhérent non inscrit voit les participants', str_contains($nonInscrit, 'Léa Vidal'));
+$check('… et le pot, sans déplier la liste',
+    str_contains($nonInscrit, 'Pot proposé par Léa Vidal')
+    && strpos($nonInscrit, 'Pot proposé') < strpos($nonInscrit, '<details'));
+
+$vide = $service->create('plongee-exploration', [
+    'title'     => 'Sortie test sans inscrit',
+    'starts_at' => gmdate('Y-m-d H:i:s', time() + 7 * 86400),
+], $dp);
+ob_start();
+\Subalcatel\Club\Frontend\ParticipantsList::render($service, $vide, $upToDate);
+$check('Sans inscrit, la liste le dit', str_contains((string) ob_get_clean(), 'Aucun inscrit pour l’instant'),
+    'ne rien afficher laissait croire la liste réservée aux inscrits');
+$wpdb->delete("{$wpdb->prefix}sub_events", ['id' => $vide]);
 wp_set_current_user(0);
 
 // --- Le champ « note partagée » est bien distinct du commentaire -------------

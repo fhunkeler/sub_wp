@@ -1986,11 +1986,17 @@
 	white-space: nowrap;
 }
 
+/* Le pot, au-dessus de la liste repliée : visible sans la déplier. */
 .sub-people__festive-count {
-	margin-left: 8px;
-	font-size: 0.85rem;
-	font-weight: 400;
+	margin: 0 0 8px;
+	font-weight: 600;
 	color: #a66000;
+}
+
+.sub-people__empty {
+	margin: 0;
+	font-size: 0.9rem;
+	opacity: 0.8;
 }
 
 /* --- Organiser une sortie --- */

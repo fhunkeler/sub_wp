@@ -53,6 +53,16 @@ final class Updater
         'theme-'  => self::THEME_SLUG,
     ];
 
+    /**
+     * Nom des archives jointes aux releases, sans la version. Il ne nomme que
+     * le fichier : le dossier racine, lui, reste le slug — c'est lui que
+     * WordPress lit pour savoir quoi remplacer.
+     */
+    private const ARCHIVES = [
+        self::PLUGIN_SLUG => 'subalcatel-plugin',
+        self::THEME_SLUG  => 'subalcatel-theme',
+    ];
+
     private const CACHE = 'subalcatel_releases';
 
     /**
@@ -560,17 +570,27 @@ final class Updater
             // dont le dossier racine porte le nom du slug. Celle que GitHub
             // fabrique seul (« Source code ») a pour racine `sub_wp-<balise>` :
             // WordPress l'installerait comme une **seconde** extension et
-            // désactiverait l'ancienne. D'où ce nom exact, et pas un motif.
-            $attendu = $slug . '-' . $version . '.zip';
+            // désactiverait l'ancienne. D'où des noms exacts, et pas un motif.
+            //
+            // Le second est l'ancien nom (`<slug>-<version>.zip`), encore
+            // accepté le temps que tous les sites aient une version qui
+            // connaît le nouveau : les releases jointes sous l'ancien nom
+            // seulement restent ainsi installables.
+            $attendus = [
+                self::ARCHIVES[$slug] . '-' . $version . '.zip',
+                $slug . '-' . $version . '.zip',
+            ];
             $paquet = '';
 
-            foreach ((array) ($release['assets'] ?? []) as $piece) {
-                if (!is_array($piece) || ($piece['name'] ?? '') !== $attendu) {
-                    continue;
-                }
+            foreach ($attendus as $attendu) {
+                foreach ((array) ($release['assets'] ?? []) as $piece) {
+                    if (!is_array($piece) || ($piece['name'] ?? '') !== $attendu) {
+                        continue;
+                    }
 
-                $paquet = (string) ($prive ? ($piece['url'] ?? '') : ($piece['browser_download_url'] ?? ''));
-                break;
+                    $paquet = (string) ($prive ? ($piece['url'] ?? '') : ($piece['browser_download_url'] ?? ''));
+                    break 2;
+                }
             }
 
             if ($paquet === '') {

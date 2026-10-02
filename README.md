@@ -19,8 +19,11 @@ blanche pour que cela le reste.
 python3 build-packages.py dist
 ```
 
-Le script produit `dist/subalcatel-club-<version>.zip` et
-`dist/subalcatel-<version>.zip`, prêts pour *Extensions → Ajouter → Téléverser*.
+Le script produit `dist/subalcatel-plugin-<version>.zip` (l'extension) et
+`dist/subalcatel-theme-<version>.zip` (le thème), prêts pour *Extensions →
+Ajouter → Téléverser* et *Apparence → Thèmes → Ajouter → Téléverser*. Seul le
+nom du fichier change : à l'intérieur, les dossiers restent `subalcatel-club/`
+et `subalcatel/`, que WordPress lit pour savoir quoi remplacer.
 Il refuse de construire si un identifiant figure dans les fichiers, et exclut
 `tests/` de l'archive livrée.
 

@@ -76,8 +76,8 @@ $payload = static function (string $balise, string $archive, string $corps): arr
 };
 
 $jeu = [
-    $payload('plugin-9.9.9', 'subalcatel-club-9.9.9.zip', "## Nouveautés\n* Une ligne de note"),
-    $payload('theme-9.9.9', 'subalcatel-9.9.9.zip', "## Nouveautés du thème\n* Une autre ligne"),
+    $payload('plugin-9.9.9', 'subalcatel-plugin-9.9.9.zip', "## Nouveautés\n* Une ligne de note"),
+    $payload('theme-9.9.9', 'subalcatel-theme-9.9.9.zip', "## Nouveautés du thème\n* Une autre ligne"),
 ];
 
 $servir = static function ($court, $args, $url) use ($jeu) {
@@ -208,6 +208,46 @@ $check('Il n’affiche jamais la valeur d’un jeton',
 $check('Il offre de refaire l’appel', str_contains($ecran, 'sub_updates_refresh'));
 
 wp_set_current_user(0);
+
+// --- Nom des archives jointes ------------------------------------------------
+//
+// Les archives s'appellent désormais `subalcatel-plugin-…` et
+// `subalcatel-theme-…`. L'ancien nom reste accepté le temps que tous les sites
+// connaissent le nouveau ; « Source code », jamais — sa racine n'est pas le slug.
+echo "\n--- Nom des archives ---\n";
+
+$avecPieces = static function (array $noms) use ($payload): string {
+    $release = $payload('plugin-9.9.9', '', '');
+    $release['assets'] = array_map(
+        static fn (string $nom): array => ['name' => $nom, 'browser_download_url' => 'https://example.test/' . $nom],
+        $noms
+    );
+
+    remove_all_filters('pre_http_request');
+    add_filter('pre_http_request', static fn ($court, $args, $url): array => [
+        'headers'  => [],
+        'body'     => (string) wp_json_encode([$release]),
+        'response' => ['code' => 200, 'message' => 'OK'],
+        'cookies'  => [],
+        'filename' => null,
+    ], 10, 3);
+    delete_site_transient('subalcatel_releases');
+
+    $trouvee = Updater::derniere(Updater::PLUGIN_SLUG);
+    remove_all_filters('pre_http_request');
+
+    return $trouvee === null ? '' : basename((string) $trouvee['package']);
+};
+
+$check('Le nouveau nom est trouvé',
+    $avecPieces(['subalcatel-plugin-9.9.9.zip']) === 'subalcatel-plugin-9.9.9.zip');
+$check('L’ancien nom l’est encore',
+    $avecPieces(['subalcatel-club-9.9.9.zip']) === 'subalcatel-club-9.9.9.zip',
+    'transition : releases jointes sous l’ancien nom seulement');
+$check('Les deux joints : le nouveau l’emporte',
+    $avecPieces(['subalcatel-club-9.9.9.zip', 'subalcatel-plugin-9.9.9.zip']) === 'subalcatel-plugin-9.9.9.zip');
+$check('« Source code » n’est jamais retenu',
+    $avecPieces(['sub_wp-plugin-9.9.9.zip']) === '');
 
 // --- Nettoyage ----------------------------------------------------------------
 remove_all_filters('pre_http_request');

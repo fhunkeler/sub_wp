@@ -155,7 +155,7 @@ jobs:
               theme)  slug=subalcatel ;;
             esac
 
-            ARCHIVE="dist/$slug-$version.zip"
+            ARCHIVE="dist/subalcatel-$paquet-$version.zip"
 
             # Le script nomme l'archive d'après la version qu'il a lue dans
             # l'en-tête. Si elle manque ici, c'est que la construction a produit
@@ -169,7 +169,14 @@ jobs:
             # L'étiquette se pose sur le commit qui porte le numéro, et non sur
             # celui qui a déclenché l'exécution : c'est ce décalage d'un commit
             # qui empêche la publication de se rappeler elle-même sans fin.
-            gh release create "$etiquette" "$ARCHIVE" \
+            # Transition : la même archive part aussi sous l'ancien nom
+            # (`<slug>-<version>.zip`), le seul que cherchent les sites dont
+            # l'extension est antérieure au changement de nom. À retirer une
+            # fois tous les sites passés à une version qui connaît le nouveau.
+            ANCIEN="dist/$slug-$version.zip"
+            cp "$ARCHIVE" "$ANCIEN"
+
+            gh release create "$etiquette" "$ARCHIVE" "$ANCIEN" \
               --repo "$GITHUB_REPOSITORY" \
               --target "${{ steps.poser.outputs.sha }}" \
               --title "$slug $version" \

@@ -37,6 +37,12 @@ if not SOURCE.is_dir():
 PLUGIN = ("plugins", "subalcatel-club")
 THEME = ("themes", "subalcatel")
 
+# Nom du fichier, sans la version. Il ne touche pas au dossier racine de
+# l'archive, qui reste le slug : WordPress installerait sinon une seconde
+# extension à côté de la première. L'outil de mise à jour de l'extension
+# cherche ces mêmes noms dans les releases (`Updater::ARCHIVES`).
+ARCHIVES = {PLUGIN[1]: "subalcatel-plugin", THEME[1]: "subalcatel-theme"}
+
 ROUGE, VERT, JAUNE, GRIS, NUL = "\033[31m", "\033[32m", "\033[33m", "\033[90m", "\033[0m"
 
 # Répertoires jamais empaquetés.
@@ -167,7 +173,7 @@ def construire(famille: str, slug: str, sortie: Path, exclusions: set[str]) -> b
         print(f"\n  {ROUGE}Archive {slug} NON construite : des identifiants y figurent.{NUL}")
         return False
 
-    archive = sortie / f"{slug}-{version}.zip"
+    archive = sortie / f"{ARCHIVES[slug]}-{version}.zip"
     archive.unlink(missing_ok=True)
 
     # `deflated` et non `stored` : l'archive voyage par formulaire web, où la

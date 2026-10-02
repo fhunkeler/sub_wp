@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Côté de l'image livrée, en pixels.
  *
- * L'en-tête l'affiche à 40 px et le pied de page à 36 px : 256 px couvre les
+ * L'en-tête l'affiche à 52 px et le pied de page à 36 px : 256 px couvre les
  * écrans à forte densité jusqu'à ×6 sans peser plus de 25 ko.
  */
 const SUBALCATEL_LOGO_SOURCE = 256;

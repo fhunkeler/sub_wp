@@ -25,15 +25,24 @@
 	--sub-sable: var(--wp--preset--color--sable);
 	--sub-algue: var(--wp--preset--color--algue);
 	--sub-alerte: var(--wp--preset--color--alerte);
+	--sub-lavande: var(--wp--preset--color--lavande);
+	--sub-lavande-pale: var(--wp--preset--color--lavande-pale);
+	--sub-nacre: var(--wp--preset--color--nacre);
+	--sub-brume-claire: var(--wp--preset--color--brume-claire);
+	--sub-corail-pale: var(--wp--preset--color--corail-pale);
+
+	/* Filet des cartes et des bandeaux clairs (refonte d'octobre 2026) : les
+	   cartes sont cernées d'un trait plutôt que portées par une ombre. */
+	--sub-trait: #dde5ef;
 
 	/* Assez foncé pour que le contour d'un champ atteigne 3:1 sur blanc
 	   (WCAG 1.4.11) — la brume de la charte plafonne à 1,52. */
 	--sub-brume-fonce: var(--wp--custom--bordure--champ);
 
 	--sub-r-champ: 4px;
-	--sub-r-carte: 12px;
+	--sub-r-carte: 20px;
 	--sub-r-pastille: 999px;
-	--sub-ombre-1: 0 1px 2px rgba(20, 47, 82, 0.08), 0 0 0 1px rgba(20, 47, 82, 0.05);
+	--sub-ombre-1: 0 0 0 1px var(--sub-trait);
 	--sub-ombre-2: 0 8px 24px rgba(20, 47, 82, 0.12);
 }
 
@@ -48,8 +57,10 @@
 	border-radius: var(--sub-r-champ);
 }
 
-/* Sur fond sombre, le lagon ne ressort pas assez : on passe au sable. */
-.sub-header :where(a, button):focus-visible,
+/* Sur fond sombre, le lagon ne ressort pas assez : on passe au sable.
+   L'en-tête est clair depuis la refonte d'octobre 2026 ; seul son menu mobile,
+   resté marine, garde le sable. */
+.sub-header .is-menu-open :where(a, button):focus-visible,
 .sub-footer :where(a, button):focus-visible {
 	outline-color: var(--sub-sable);
 }
@@ -103,6 +114,33 @@
 .sub-header {
 	position: relative;
 	z-index: 20;
+	border-bottom: 1px solid var(--sub-trait);
+}
+
+/* En-tête collant. C'est l'enveloppe de la partie de modèle qu'on colle, et
+   non le <header> lui-même : celui-ci est le seul enfant de son <div>, il n'a
+   donc aucune hauteur dans laquelle glisser. Décalé sous la barre
+   d'administration quand elle est là ; sous 600 px, WordPress la rend
+   défilante (`position: absolute`), le décalage tombe alors à zéro. */
+.wp-site-blocks > .wp-block-template-part:has(> .sub-header) {
+	position: sticky;
+	top: var(--wp-admin--admin-bar--height, 0px);
+	z-index: 100;
+}
+
+.sub-header {
+	box-shadow: 0 4px 14px -8px rgba(20, 47, 82, 0.25);
+}
+
+@media (max-width: 600px) {
+	.wp-site-blocks > .wp-block-template-part:has(> .sub-header) {
+		top: 0;
+	}
+}
+
+/* Une ancre (#sub-contenu, #formations…) ne doit pas atterrir sous l'en-tête. */
+html {
+	scroll-padding-top: 140px;
 }
 
 .sub-header .wp-block-site-title a {
@@ -110,21 +148,45 @@
 }
 
 .sub-header .wp-block-navigation a {
-	color: #cfddec;
+	color: var(--sub-abysse);
 	text-decoration: none;
 	padding: 9px 13px;
-	border-radius: var(--sub-r-champ);
+	border-radius: var(--sub-r-pastille);
 }
 
 .sub-header .wp-block-navigation a:hover {
-	background: rgba(255, 255, 255, 0.09);
-	color: var(--sub-blanc);
+	background: rgba(20, 47, 82, 0.07);
+	color: var(--sub-abysse);
 }
 
 .sub-header .wp-block-navigation .current-menu-item > a,
 .sub-header .wp-block-navigation .current_page_ancestor > a {
+	color: var(--sub-abysse);
+	background: var(--sub-lavande-pale);
+}
+
+/* Les sous-menus déroulants restent marine (couleur de superposition du bloc
+   Navigation) : sans ces règles, le survol de l'en-tête clair y peignait le
+   lien en marine sur fond marine. */
+.sub-header .wp-block-navigation .wp-block-navigation__submenu-container a {
 	color: var(--sub-blanc);
-	box-shadow: inset 0 -2px 0 var(--sub-lagon);
+	border-radius: var(--sub-r-champ);
+}
+
+.sub-header .wp-block-navigation .wp-block-navigation__submenu-container a:hover,
+.sub-header .wp-block-navigation .wp-block-navigation__submenu-container a:focus-visible {
+	background: rgba(255, 255, 255, 0.12);
+	color: var(--sub-blanc);
+}
+
+.sub-header .wp-block-navigation .wp-block-navigation__submenu-container .current-menu-item > a {
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--sub-blanc);
+	box-shadow: inset 3px 0 0 var(--sub-sable);
+}
+
+.sub-header .wp-block-navigation .wp-block-navigation__submenu-container :where(a, button):focus-visible {
+	outline-color: var(--sub-sable);
 }
 
 .sub-baseline {
@@ -133,13 +195,9 @@
 	font-weight: 500;
 	letter-spacing: 0.18em;
 	text-transform: uppercase;
-	/* Le bleu des bulles du logo, et non le lagon de la palette : sur l'abysse
-	   celui-ci tombe à 3,73:1, et ces 10,5 px en capitales ne bénéficient
-	   d'aucune tolérance « grand texte ». Ici on est à 6,21:1.
-	   Même raison que le #cfddec des liens de navigation : une teinte claire
-	   qui n'existe que sur fond sombre n'a pas sa place dans la palette de
-	   l'éditeur, où elle serait posée sur du blanc. */
-	color: #64bbdc;
+	/* La lavande du poulpe sur la brume claire de l'en-tête : 5,4:1, au-dessus
+	   du seuil de 4,5 qu'exigent ces 10,5 px en capitales. */
+	color: var(--sub-lavande);
 	line-height: 1.3;
 }
 
@@ -247,7 +305,10 @@
 	border-radius: var(--sub-r-pastille);
 }
 
-.sub-header .wp-block-navigation__responsive-container-open:hover,
+.sub-header .wp-block-navigation__responsive-container-open:hover {
+	background: rgba(20, 47, 82, 0.08);
+}
+
 .sub-header .wp-block-navigation__responsive-container-close:hover {
 	background: rgba(255, 255, 255, 0.09);
 }
@@ -348,8 +409,14 @@
 .sub-header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item.has-child > .wp-block-navigation-item__content {
 	position: sticky;
 	top: 0;
-	z-index: 1;
-	background: var(--sub-abysse);
+	/* Au-dessus de la liste des sous-entrées : core lui donne `z-index: 2`, et
+	   comme l'entrée est un élément flexible, ce z-index s'applique — avec 1,
+	   les sous-entrées défilaient PAR-DESSUS le libellé de section. */
+	z-index: 3;
+	/* Un cran plus clair que le panneau, avec une ombre portée : on voit que
+	   la liste glisse dessous. */
+	background: #1d4170;
+	box-shadow: 0 6px 10px -4px rgba(7, 20, 38, 0.55);
 }
 
 /* Sous-entrées : décalées et tenues par un filet vertical, plus légères que leur
@@ -397,7 +464,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 9px;
-	color: var(--sub-blanc);
+	color: var(--sub-abysse);
 	text-decoration: none;
 	font-weight: 600;
 	font-size: 15px;
@@ -411,7 +478,7 @@
 	width: 32px;
 	height: 32px;
 	border-radius: var(--sub-r-pastille);
-	background: var(--sub-lagon);
+	background: var(--sub-lavande);
 	color: var(--sub-blanc);
 	display: inline-flex;
 	align-items: center;
@@ -423,11 +490,14 @@
 
 /* Boutons hors bloc « Bouton » de l'éditeur. */
 .sub-btn {
+	/* Bordure et rembourrage compris dans les 44 px minimum : en content-box,
+	   le bouton montait à 68 px et dictait la hauteur de tout l'en-tête. */
+	box-sizing: border-box;
 	gap: 8px;
-	padding: 11px 18px;
-	border-radius: var(--sub-r-carte);
+	padding: 11px 20px;
+	border-radius: var(--sub-r-pastille);
 	font-size: 15px;
-	font-weight: 600;
+	font-weight: 700;
 	line-height: 1.2;
 	text-decoration: none;
 	border: 1.5px solid transparent;
@@ -445,13 +515,14 @@
 }
 
 .sub-btn--fantome {
-	background: transparent;
-	color: var(--sub-blanc);
-	border-color: rgba(255, 255, 255, 0.4);
+	background: var(--sub-blanc);
+	color: var(--sub-abysse);
+	border-color: var(--sub-abysse);
 }
 
 .sub-btn--fantome:hover {
-	border-color: var(--sub-blanc);
+	background: var(--sub-abysse);
+	border-color: var(--sub-abysse);
 	color: var(--sub-blanc);
 }
 
@@ -762,7 +833,7 @@
 }
 
 .has-abysse-background-color .is-style-sub-surtitre,
-.sub-hero .is-style-sub-surtitre {
+.sub-hero:not(.sub-hero--clair) .is-style-sub-surtitre {
 	color: var(--sub-sable);
 }
 
@@ -798,8 +869,9 @@
 	overflow: hidden;
 }
 
-/* Rayons de lumière, visibles même sans photo de fond. */
-.sub-hero::after {
+/* Rayons de lumière, visibles même sans photo de fond. Bandeau sombre
+   seulement : la variante claire de l'accueil porte une vague à la place. */
+.sub-hero:not(.sub-hero--clair)::after {
 	content: "";
 	position: absolute;
 	inset: 0;
@@ -818,7 +890,7 @@
 	z-index: 1;
 }
 
-.sub-hero :where(h1, h2) {
+.sub-hero:not(.sub-hero--clair) :where(h1, h2) {
 	color: var(--sub-blanc);
 }
 
@@ -852,7 +924,8 @@
 	font-size: 14.5px;
 }
 
-.sub-footer :where(h2, h3, h4) {
+.sub-footer :where(h2, h3, h4),
+.sub-footer .wp-block-site-title a {
 	color: var(--sub-blanc);
 }
 
@@ -881,6 +954,15 @@
 .sub-app {
 	background: var(--sub-ecume);
 	min-height: 60vh;
+}
+
+/* Le fond écume doit toucher l'en-tête et le pied de page : le blockGap de
+   24 px que le cœur pose entre les enfants de .wp-site-blocks laissait une
+   bande de nacre au-dessus et au-dessous de l'espace membre. */
+.wp-site-blocks > .sub-app,
+.wp-site-blocks > .sub-app + .wp-block-template-part,
+#sub-contenu.sub-app {
+	margin-block-start: 0;
 }
 
 .sub-tuile {
@@ -1087,4 +1169,415 @@ label {
 	gap: var(--wp--preset--spacing--30, 1rem);
 	align-items: flex-start;
 	justify-content: center;
+}
+
+/* ------------------------------------------------------------------
+   18. Accueil — refonte d'octobre 2026
+   D'après la maquette « Subalcatel – Site web » : bandeau clair où le poulpe
+   détouré tient la place d'une photo, cartes cernées d'un filet, pastilles
+   d'icônes, liste des niveaux, bande marine pour les sorties.
+   ------------------------------------------------------------------ */
+
+/* Surtitres orange sur fond clair. Le corail foncé de la palette plafonne à
+   4,3:1 sur la nacre, sous le seuil exigé par ces 12,5 px en capitales : on
+   l'assombrit d'un cran, 5,4:1. */
+.is-style-sub-surtitre.sub-surtitre--corail {
+	color: #a84a14;
+}
+
+/* --- Bandeau clair --- */
+.sub-hero--clair {
+	padding-bottom: 0 !important;
+}
+
+.sub-hero--clair :where(h1, h2) {
+	color: var(--sub-abysse);
+}
+
+/* « ensemble. » en lavande : un <mark> sans fond, posé depuis l'éditeur par
+   l'outil « Surligner ». */
+.sub-hero--clair h1 mark {
+	background: none;
+	color: var(--sub-lavande);
+}
+
+.sub-hero--clair .is-style-sub-surtitre {
+	width: fit-content;
+	padding: 6px 14px;
+	border: 1px solid var(--sub-trait);
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-blanc);
+	letter-spacing: 0.08em;
+}
+
+.sub-hero__logo img {
+	width: 100%;
+	max-width: 480px;
+	height: auto;
+	margin-inline: auto;
+	border-radius: 0;
+}
+
+/* Vague de transition vers la nacre de la page. Décor pur : un pseudo-élément,
+   rien dans le contenu que le rédacteur aurait à préserver. */
+.sub-hero--clair::after {
+	content: "";
+	display: block;
+	position: relative;
+	z-index: 1;
+	height: 60px;
+	margin-top: var(--wp--preset--spacing--40);
+	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 80' preserveAspectRatio='none'%3E%3Cpath d='M0 40C240 0 480 80 720 40s480-40 720 0v40H0z' fill='%23F6F8FB'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+}
+
+/* Infos pratiques sous les boutons : pastille d'icône + texte. */
+.sub-info {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sub-info::before {
+	content: "";
+	flex: none;
+	width: 20px;
+	height: 20px;
+	background: var(--sub-lavande);
+}
+
+.sub-info--lieu::before {
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.sub-info--horaire::before {
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* --- Atouts du club : carte + pastille d'icône --- */
+.sub-atout::before {
+	content: "";
+	display: block;
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: 26px;
+}
+
+.sub-atout--club::before {
+	background-color: var(--sub-lavande-pale);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B57B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Ccircle cx='17' cy='9' r='2.5'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Cpath d='M15 14.5c3 0 6 1.8 6 5.5'/%3E%3C/svg%3E");
+}
+
+.sub-atout--tous::before {
+	background-color: var(--sub-corail-pale);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C0561A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0'/%3E%3Cpath d='M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0'/%3E%3Cpath d='M12 3v5'/%3E%3C/svg%3E");
+}
+
+.sub-atout--formation::before {
+	background-color: #dcebf7;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D5480' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l9 4.5-9 4.5-9-4.5z'/%3E%3Cpath d='M7 10v5c0 1.7 2.2 3 5 3s5-1.3 5-3v-5'/%3E%3C/svg%3E");
+}
+
+.is-style-sub-carte.sub-atout {
+	padding: var(--wp--preset--spacing--30);
+}
+
+.is-style-sub-carte.sub-atout > * {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+/* --- Niveaux de formation --- */
+.sub-niveau {
+	padding: 18px 22px;
+	border-radius: 16px;
+	background: var(--sub-nacre);
+	box-shadow: var(--sub-ombre-1);
+}
+
+.sub-niveau__pastille {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 56px;
+	margin: 0;
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-lavande);
+	color: var(--sub-blanc);
+	font-family: var(--wp--preset--font-family--titre);
+	font-size: 19px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.sub-niveau__texte {
+	flex: 1;
+}
+
+.sub-niveau__texte > * {
+	margin: 0;
+}
+
+.sub-niveau__profondeur {
+	margin: 0;
+	font-family: var(--wp--preset--font-family--titre);
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--sub-profond);
+	white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+	.sub-niveau__profondeur {
+		display: none;
+	}
+}
+
+/* --- Bande marine des sorties ---
+   Le balisage vient du court-code [subalcatel_prochaines_sorties] de
+   l'extension, dont la feuille le dessine pour un fond clair. On le
+   reprend ici, et ici seulement : ailleurs la liste garde son aspect. */
+.sub-bande-sorties a {
+	color: var(--sub-blanc);
+}
+
+.sub-bande-sorties .is-style-sub-chapeau {
+	color: #b9cbe0;
+}
+
+.sub-bande-sorties .sub-upcoming__list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sub-bande-sorties .sub-upcoming__item {
+	align-items: center;
+	gap: 22px;
+	padding: 18px 22px;
+	border: 1px solid #2a5079;
+	border-radius: 18px;
+	background: #16385c;
+}
+
+.sub-bande-sorties .sub-upcoming__item:last-child {
+	border-bottom: 1px solid #2a5079;
+}
+
+.sub-bande-sorties .sub-upcoming__date {
+	flex-basis: 64px;
+	padding: 0;
+	background: none;
+}
+
+.sub-bande-sorties .sub-upcoming__day {
+	font-family: var(--wp--preset--font-family--titre);
+	font-size: 30px;
+	line-height: 1;
+}
+
+.sub-bande-sorties .sub-upcoming__month {
+	margin-top: 4px;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	color: #f4a56b;
+}
+
+.sub-bande-sorties .sub-upcoming__name {
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.sub-bande-sorties .sub-upcoming__meta,
+.sub-bande-sorties .sub-upcoming__empty {
+	color: #b9cbe0;
+}
+
+/* --- Carte d'appel final --- */
+.sub-cta-carte {
+	border-radius: 28px;
+}
+
+.sub-cta-carte p {
+	color: #e4e7fa;
+}
+
+/* Le logo est détouré jusque dans l'anneau pour l'en-tête clair. Sur le
+   pied de page marine, son contour se perdrait : on lui rend une pastille. */
+.sub-footer .wp-block-site-logo img {
+	padding: 3px;
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-brume-claire);
+}
+
+/* Section blanche cernée de filets, posée sur la nacre de la page. */
+.sub-section-filet {
+	border-block: 1px solid var(--sub-trait);
+}
+
+/* Le bandeau clair prolonge l'en-tête : pas de bande de nacre entre les deux
+   (le blockGap de 24 px que le cœur pose au-dessus de <main>). */
+#sub-contenu:has(> .sub-hero--clair:first-child),
+#sub-contenu:has(> .alignfull.has-background:first-child) {
+	margin-block-start: 0;
+}
+
+/* Idem en bas : une page qui finit sur un bandeau coloré le colle au pied. */
+.wp-site-blocks > #sub-contenu:has(> .alignfull.has-background:last-child) + .wp-block-template-part {
+	margin-block-start: 0;
+}
+
+/* ------------------------------------------------------------------
+   19. En-tête resserré : au défilement (classe posée par assets/js/en-tete.js)
+   et, en permanence, sur mobile.
+   Le rembourrage du <header> est un style en ligne du bloc Groupe : seul
+   `!important` le reprend.
+   ------------------------------------------------------------------ */
+.sub-header {
+	--sub-entete-duree: 200ms;
+	--sub-entete-courbe: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.sub-header,
+.sub-header > .wp-block-group,
+.sub-header .wp-block-site-logo img,
+.sub-header .wp-block-site-title,
+.sub-header .sub-baseline,
+.sub-header .wp-block-navigation a {
+	transition-duration: var(--sub-entete-duree);
+	transition-timing-function: var(--sub-entete-courbe);
+}
+
+.sub-header {
+	transition-property: padding, box-shadow;
+}
+
+.sub-header > .wp-block-group {
+	transition-property: row-gap;
+}
+
+.sub-header .wp-block-site-logo img {
+	transition-property: width;
+}
+
+.sub-header .wp-block-site-title {
+	transition-property: font-size;
+}
+
+.sub-header .wp-block-navigation a {
+	transition-property: padding, background-color, color;
+}
+
+/* La baseline se replie au lieu de disparaître d'un coup. */
+.sub-header .sub-baseline {
+	max-height: 2.6em;
+	overflow: hidden;
+	transition-property: max-height, opacity;
+}
+
+/* Recalcul de la place réservée : aucune animation parasite. */
+.sub-header.sub-header--sans-transition,
+.sub-header.sub-header--sans-transition * {
+	transition: none !important;
+}
+
+/* Place réservée par le script : l'enveloppe garde la hauteur dépliée,
+   l'en-tête rétrécit dedans, et la bande libérée laisse passer les clics. */
+.sub-entete-reserve {
+	pointer-events: none;
+}
+
+.sub-entete-reserve > .sub-header {
+	pointer-events: auto;
+}
+
+.sub-header .wp-block-site-logo img {
+	height: auto;
+}
+
+.sub-header.sub-header--compact {
+	padding-top: 6px !important;
+	padding-bottom: 6px !important;
+	box-shadow: 0 6px 18px -8px rgba(20, 47, 82, 0.3);
+}
+
+.sub-header--compact .wp-block-site-logo img {
+	width: 38px;
+}
+
+.sub-header--compact .wp-block-site-title {
+	font-size: 20px;
+}
+
+.sub-header--compact .sub-baseline {
+	max-height: 0;
+	opacity: 0;
+}
+
+/* Tablette : la navigation a sa propre ligne ; on la rapproche de la première. */
+@media (min-width: 600px) and (max-width: 1247px) {
+	.sub-header--compact > .wp-block-group {
+		row-gap: 2px;
+	}
+
+	.sub-header--compact .wp-block-navigation a {
+		padding-top: 6px;
+		padding-bottom: 6px;
+	}
+}
+
+/* Mobile : en-tête d'une soixantaine de pixels, compact d'office. */
+@media (max-width: 599px) {
+	.sub-header {
+		padding-top: 8px !important;
+		padding-bottom: 8px !important;
+	}
+
+	.sub-header > .wp-block-group {
+		gap: 12px;
+		flex-wrap: nowrap;
+	}
+
+	.sub-header .wp-block-site-logo img {
+		width: 36px;
+	}
+
+	.sub-header .wp-block-site-title {
+		font-size: 18px;
+	}
+
+	.sub-header .sub-btn {
+		padding: 0 14px;
+		font-size: 14px;
+	}
+
+	.sub-header.sub-header--compact {
+		padding-top: 4px !important;
+		padding-bottom: 4px !important;
+	}
+
+	.sub-header--compact .wp-block-site-logo img {
+		width: 32px;
+	}
+}
+
+/* Très petits écrans : le titre cède la place, le logo suffit à identifier
+   le club (il porte le lien vers l'accueil et le nom en texte alternatif). */
+@media (max-width: 359px) {
+	.sub-header .wp-block-site-title {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sub-header {
+		--sub-entete-duree: 0ms;
+	}
 }

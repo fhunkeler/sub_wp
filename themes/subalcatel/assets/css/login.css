@@ -25,7 +25,7 @@ body.login {
 	background: linear-gradient(168deg, #1d5480 0%, #1b3c63 48%, #142f52 100%);
 	background-attachment: fixed;
 	color: #cfddec;
-	font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Le logo du club remplace celui de WordPress — et le nom du club redevient
@@ -37,7 +37,10 @@ body.login {
 	flex-direction: column;
 	align-items: center;
 	justify-content: flex-end;
-	background-image: url(../img/logo.png);
+	/* La pastille à fond clair, et non logo.png : depuis la refonte d'octobre
+	   2026 celui-ci est détouré jusque dans l'anneau, pour l'en-tête clair. Posé
+	   sur ce dégradé marine, le contour du poulpe disparaîtrait. */
+	background-image: url(../img/favicon-270.png);
 	background-size: 72px 72px;
 	background-position: center top;
 	width: auto;
@@ -47,7 +50,7 @@ body.login {
 	overflow: visible;
 	text-indent: 0;
 	color: #fff;
-	font-family: Outfit, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 	font-size: 21px;
 	font-weight: 700;
 	line-height: 1.2;

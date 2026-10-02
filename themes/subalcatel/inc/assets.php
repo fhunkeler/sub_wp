@@ -46,6 +46,19 @@ function subalcatel_enqueue_styles(): void {
 		array( 'subalcatel-style' ),
 		subalcatel_asset_version( 'assets/css/site.css' )
 	);
+
+	// En-tête compact au défilement : bascule une classe, rien de plus. Sans
+	// JavaScript, l'en-tête reste simplement à sa taille normale.
+	wp_enqueue_script(
+		'subalcatel-en-tete',
+		SUBALCATEL_URI . '/assets/js/en-tete.js',
+		array(),
+		subalcatel_asset_version( 'assets/js/en-tete.js' ),
+		array(
+			'in_footer' => true,
+			'strategy'  => 'defer',
+		)
+	);
 }
 add_action( 'wp_enqueue_scripts', 'subalcatel_enqueue_styles' );
 

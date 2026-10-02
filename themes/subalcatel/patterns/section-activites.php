@@ -28,7 +28,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"is-style-sub-chapeau"} -->
-<p class="is-style-sub-chapeau">Cinq façons de se mettre à l'eau avec nous, toute l'année.</p>
+<p class="is-style-sub-chapeau">Cinq façons de se mettre à l'eau avec nous, en piscine l'hiver et en mer à la belle saison.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:columns {"align":"wide","className":"is-style-sub-cartes sub-cartes--cinq","style":{"spacing":{"margin":{"top":"var:preset|spacing|40"}}}} -->
@@ -40,7 +40,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"fontSize":"petit","textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color has-petit-font-size">Deux créneaux par semaine, de septembre à juin. Entraînement, formation et apnée.</p>
+<p class="has-ardoise-color has-text-color has-petit-font-size">Un créneau le mercredi, de novembre à mars. Entraînement, formation et apnée.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"petit"} -->

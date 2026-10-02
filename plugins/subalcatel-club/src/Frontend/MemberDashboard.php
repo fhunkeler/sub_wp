@@ -16,15 +16,19 @@ use Subalcatel\Club\Policy\EligibilityPolicy;
 /**
  * Tableau de bord du membre : shortcode [subalcatel_espace_membre].
  *
- * Une seule question guide cet écran : qu'est-ce que je dois faire ? Ce qui
- * appelle une action passe en tête, avec le lien pour la traiter. Le reste —
- * ce qui va bien — vient après, en plus discret.
+ * Le membre arrive ici d'abord pour plonger : les sorties prévues ouvrent donc
+ * l'écran, avec de quoi s'y inscrire sur place. Vient ensuite la question
+ * qu'est-ce que je dois faire ? — ce qui appelle une action, avec le lien pour
+ * la traiter. Le reste — ce qui va bien — vient après, en plus discret.
  *
  * C'est l'inverse d'un tableau de bord classique, qui commence par des
  * compteurs. Un compteur n'a jamais fait renouveler personne.
  */
 final class MemberDashboard
 {
+    /** Au-delà, l'agenda prend le relais : l'espace n'a pas à le recopier. */
+    private const OUTINGS_SHOWN = 5;
+
     public static function register(): void
     {
         add_shortcode('subalcatel_espace_membre', [self::class, 'render']);
@@ -46,6 +50,8 @@ final class MemberDashboard
             \Subalcatel\Club\VERSION
         );
 
+        AgendaShortcode::enqueueSignupScript();
+
         $userId = get_current_user_id();
         $user   = wp_get_current_user();
 
@@ -66,6 +72,8 @@ final class MemberDashboard
         ob_start();
         ?>
         <div class="sub-dashboard">
+            <?php echo Notice::fromQuery(); // déjà échappé ?>
+
             <p class="sub-dashboard__greeting">
                 Bonjour <?php echo esc_html($user->first_name ?: $user->display_name); ?>.
                 <?php
@@ -76,9 +84,8 @@ final class MemberDashboard
                 ?>
             </p>
 
+            <?php self::renderOutings($userId); ?>
             <?php self::renderActions($userId); ?>
-            <?php self::renderNextOutings($userId); ?>
-            <?php self::renderOpenOutings($userId); ?>
             <?php self::renderOrganiser($userId); ?>
             <?php self::renderOffice(); ?>
             <?php self::renderShortcuts(); ?>
@@ -209,109 +216,73 @@ final class MemberDashboard
         return $actions;
     }
 
-    private static function renderNextOutings(int $userId): void
-    {
-        global $wpdb;
-
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT e.*, r.status AS my_status
-             FROM {$wpdb->prefix}sub_event_registrations r
-             INNER JOIN {$wpdb->prefix}sub_events e ON e.id = r.event_id
-             WHERE r.user_id = %d AND r.status IN ('confirmed','waiting')
-               AND e.starts_at >= %s
-             ORDER BY e.starts_at ASC LIMIT 5",
-            $userId,
-            current_time('mysql')
-        ), ARRAY_A) ?: [];
-
-        if ($rows === []) {
-            return;
-        }
-
-        $service = new EventService();
-        ?>
-        <section class="sub-block">
-            <h2 class="sub-block__title">Vos prochaines sorties</h2>
-
-            <ul class="sub-list">
-                <?php foreach ($rows as $row) : ?>
-                    <li class="sub-list__item">
-                        <span class="sub-list__main">
-                            <strong><?php echo esc_html((string) $row['title']); ?></strong><br>
-                            <?php echo esc_html(self::frDateTime((string) $row['starts_at'])); ?>
-                            <?php if (!empty($row['location'])) : ?>
-                                — <?php echo esc_html((string) $row['location']); ?>
-                            <?php endif; ?>
-                        </span>
-                        <?php if ($row['my_status'] === 'waiting') : ?>
-                            <span class="sub-pill sub-pill--waiting">Liste d’attente</span>
-                        <?php else : ?>
-                            <span class="sub-pill sub-pill--ok">Inscrit</span>
-                        <?php endif; ?>
-                        <?php ParticipantsList::render($service, (int) $row['id'], $userId); ?>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </section>
-        <?php
-    }
-
     /**
-     * Sorties auxquelles ce membre peut réellement s'inscrire.
+     * Les prochaines sorties du club, et de quoi s'y inscrire.
      *
-     * Proposer des sorties inaccessibles serait décourageant : on filtre par
-     * l'éligibilité, pas seulement par la date.
+     * Toutes celles que ce membre peut voir, et non celles seulement où il est
+     * admissible : un membre dont le certificat a expiré disparaissait de
+     * toutes les sorties sans savoir qu'il y en avait. Il les voit désormais,
+     * chacune avec le motif qui l'en écarte — et la rubrique « À faire », juste
+     * dessous, avec le moyen de le lever.
+     *
+     * Le formulaire est celui de l'agenda ({@see AgendaShortcode::renderSignup()}),
+     * pour qu'une sortie ne s'inscrive pas de deux façons selon l'écran.
      */
-    private static function renderOpenOutings(int $userId): void
+    private static function renderOutings(int $userId): void
     {
-        $service = new EventService();
-        $open    = [];
-
-        foreach ($service->upcoming(20, get_current_user_id()) as $event) {
-            $eventId = (int) $event['id'];
-
-            if (self::isRegistered($eventId, $userId)) {
-                continue;
-            }
-
-            if (!$service->checkEligibility($eventId, $userId)->allowed) {
-                continue;
-            }
-
-            $open[] = $event;
-
-            if (count($open) === 4) {
-                break;
-            }
-        }
-
-        if ($open === []) {
-            return;
-        }
+        $service  = new EventService();
+        $upcoming = $service->upcoming(20, $userId);
+        $shown    = array_slice($upcoming, 0, self::OUTINGS_SHOWN);
+        $agenda   = Pages::url(Pages::AGENDA);
         ?>
-        <section class="sub-block">
-            <h2 class="sub-block__title">Ouvert à votre niveau</h2>
+        <section class="sub-block sub-outings">
+            <h2 class="sub-block__title">Sorties prévues</h2>
 
-            <ul class="sub-list">
-                <?php foreach ($open as $event) : ?>
-                    <?php
-                    $confirmed = $service->confirmedCount((int) $event['id']);
-                    $capacity  = (int) $event['capacity'];
-                    ?>
-                    <li class="sub-list__item">
-                        <span class="sub-list__main">
-                            <strong><?php echo esc_html((string) $event['title']); ?></strong><br>
-                            <?php echo esc_html(self::frDateTime((string) $event['starts_at'])); ?>
-                            <?php if ($capacity > 0) : ?>
-                                — <?php echo esc_html(sprintf('%d/%d', $confirmed, $capacity)); ?>
-                            <?php endif; ?>
-                        </span>
-                        <a class="sub-button sub-button--small" href="<?php echo esc_url(Pages::url(Pages::AGENDA)); ?>">
-                            S’inscrire
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+            <?php if ($shown === []) : ?>
+                <p class="sub-help">
+                    Aucune sortie programmée pour l’instant. Le calendrier se remplit
+                    vite en saison : revenez bientôt.
+                </p>
+            <?php else : ?>
+                <ul class="sub-list">
+                    <?php foreach ($shown as $event) : ?>
+                        <?php
+                        $eventId  = (int) $event['id'];
+                        $capacity = (int) $event['capacity'];
+                        ?>
+                        <li class="sub-list__item sub-outings__item">
+                            <span class="sub-list__main">
+                                <strong><?php echo esc_html((string) $event['title']); ?></strong><br>
+                                <?php echo esc_html(self::frDateTime((string) $event['starts_at'])); ?>
+                                <?php if (!empty($event['location'])) : ?>
+                                    — <?php echo esc_html((string) $event['location']); ?>
+                                <?php endif; ?>
+                                <?php if ($capacity > 0) : ?>
+                                    <br><small><?php echo esc_html(sprintf(
+                                        '%d place(s) sur %d',
+                                        $service->confirmedCount($eventId),
+                                        $capacity
+                                    )); ?></small>
+                                <?php endif; ?>
+                            </span>
+                            <div class="sub-outings__signup">
+                                <?php AgendaShortcode::renderSignup($service, $event, $userId); ?>
+                            </div>
+                            <?php ParticipantsList::render($service, $eventId, $userId); ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <?php if ($agenda !== '') : ?>
+                <p class="sub-block__links">
+                    <a href="<?php echo esc_url($agenda); ?>">
+                        <?php echo count($upcoming) > count($shown)
+                            ? esc_html(sprintf('Toutes les sorties (%d de plus)', count($upcoming) - count($shown)))
+                            : 'Tout l’agenda'; ?>
+                    </a>
+                </p>
+            <?php endif; ?>
         </section>
         <?php
     }
@@ -484,20 +455,6 @@ final class MemberDashboard
             <?php endforeach; ?>
         </nav>
         <?php
-    }
-
-    private static function isRegistered(int $eventId, int $userId): bool
-    {
-        global $wpdb;
-
-        $status = $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM {$wpdb->prefix}sub_event_registrations
-             WHERE event_id = %d AND user_id = %d",
-            $eventId,
-            $userId
-        ));
-
-        return $status !== null && $status !== 'cancelled';
     }
 
     private static function daysUntil(string $isoDate): ?int

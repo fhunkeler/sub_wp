@@ -1561,9 +1561,9 @@ label {
 		font-size: 14px;
 	}
 
-	/* Connecté : l'avatar suffit, le nom reste lu par les lecteurs d'écran ;
-	   « Déconnexion » passe en petit bouton (32 px, au-dessus des 24 px de la
-	   WCAG 2.5.8) pour ne plus écraser le logo et le menu. */
+	/* Connecté : l'avatar suffit, le nom reste lu par les lecteurs d'écran.
+	   « Déconnexion » devient une icône ronde de 40 px ; son libellé reste
+	   dans le lien, masqué à l'écran, et donne son nom accessible. */
 	.sub-header .sub-compte__nom {
 		position: absolute;
 		width: 1px;
@@ -1577,11 +1577,30 @@ label {
 		gap: 8px;
 	}
 
-	.sub-header .sub-btn--sm {
-		min-height: 32px;
-		padding: 0 10px;
-		font-size: 13px;
-		border-width: 1px;
+	.sub-header .sub-btn--deconnexion {
+		width: 40px;
+		min-width: 40px;
+		min-height: 40px;
+		padding: 0;
+		border-width: 1.5px;
+	}
+
+	.sub-header .sub-btn--deconnexion::before {
+		content: "";
+		width: 20px;
+		height: 20px;
+		background: currentColor;
+		-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpath d='M16 17l5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3C/svg%3E") center / contain no-repeat;
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpath d='M16 17l5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3C/svg%3E") center / contain no-repeat;
+	}
+
+	.sub-header .sub-btn--deconnexion .sub-btn__libelle {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
 	}
 
 	.sub-header.sub-header--compact {

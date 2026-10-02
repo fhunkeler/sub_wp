@@ -201,7 +201,7 @@ final class ApplicationService
      *
      * L'adresse est saisie librement sur la campagne (onglet Règlement), pas
      * choisie parmi les adhérents comme [OfficePosition] : le bureau voulait
-     * pouvoir viser une boîte fonctionnelle (secretariat@…), pas seulement un
+     * pouvoir viser une boîte fonctionnelle (secretaire@…), pas seulement un
      * compte du club. Elle suit la campagne pour la même raison que les liens
      * de paiement — qui doit être prévenu change avec la saison. Case vide,
      * envoi silencieux — un rappel ne doit pas échouer faute d'adresse saisie.

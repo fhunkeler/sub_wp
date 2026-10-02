@@ -29,7 +29,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"petit","textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color has-petit-font-size">Moniteur fédéral 2<sup>e</sup> degré · au club depuis 2011</p>
+<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:president@subalcatel.fr">president@subalcatel.fr</a></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column -->
 
@@ -47,7 +47,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"petit","textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:secretariat@subalcatel.net">secretariat@subalcatel.net</a></p>
+<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:secretaire@subalcatel.fr">secretaire@subalcatel.fr</a></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column -->
 
@@ -65,7 +65,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"petit","textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:tresorerie@subalcatel.net">tresorerie@subalcatel.net</a></p>
+<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:tresorier@subalcatel.fr">tresorier@subalcatel.fr</a></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column --></div>
 <!-- /wp:columns -->

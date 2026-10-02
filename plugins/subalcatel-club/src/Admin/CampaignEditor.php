@@ -710,7 +710,7 @@ final class CampaignEditor
                     <td>
                         <input type="email" id="sub-campaign-notify-email" name="notify_email"
                                value="<?php echo esc_attr($notifyEmail); ?>"
-                               class="regular-text" placeholder="secretariat@subalcatel.fr">
+                               class="regular-text" placeholder="secretaire@subalcatel.fr">
                     </td>
                 </tr>
             </table>

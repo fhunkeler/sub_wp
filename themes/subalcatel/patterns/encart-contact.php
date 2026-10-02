@@ -28,7 +28,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"fontSize":"petit"} -->
-<p class="has-petit-font-size">Question générale : <a href="mailto:contact@subalcatel.net">contact@subalcatel.net</a><br>Adhésions : <a href="mailto:secretariat@subalcatel.net">secretariat@subalcatel.net</a><br>Trésorerie : <a href="mailto:tresorerie@subalcatel.net">tresorerie@subalcatel.net</a></p>
+<p class="has-petit-font-size">Question générale : <a href="mailto:contact@subalcatel.fr">contact@subalcatel.fr</a><br>Adhésions : <a href="mailto:secretaire@subalcatel.fr">secretaire@subalcatel.fr</a><br>Trésorerie : <a href="mailto:tresorier@subalcatel.fr">tresorier@subalcatel.fr</a></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"micro","textColor":"ardoise"} -->

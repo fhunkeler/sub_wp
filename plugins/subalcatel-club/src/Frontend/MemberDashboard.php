@@ -268,6 +268,7 @@ final class MemberDashboard
                             <div class="sub-outings__signup">
                                 <?php AgendaShortcode::renderSignup($service, $event, $userId); ?>
                             </div>
+                            <?php EventDetails::render($service, $event); ?>
                             <?php ParticipantsList::render($service, $eventId, $userId); ?>
                         </li>
                     <?php endforeach; ?>

@@ -587,6 +587,14 @@
 	border-top: 1px solid #394551;
 }
 
+:root[data-theme="dark"] .sub-event__details > summary {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-event__facts dt {
+	color: #a8ceeb;
+}
+
 :root[data-theme="dark"] .sub-event__people summary {
 	color: #a8ceeb;
 }

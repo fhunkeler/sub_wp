@@ -35,3 +35,4 @@ require_once SUBALCATEL_DIR . '/inc/blocks.php';
 require_once SUBALCATEL_DIR . '/inc/logo.php';
 require_once SUBALCATEL_DIR . '/inc/icone.php';
 require_once SUBALCATEL_DIR . '/inc/connexion.php';
+require_once SUBALCATEL_DIR . '/inc/apparence.php';

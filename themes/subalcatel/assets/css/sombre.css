@@ -1,0 +1,189 @@
+/**
+ * Sub Alcatel — mode sombre, partie écrite à la main.
+ *
+ * Le mode s'active par `data-theme="dark"` sur <html>, posé avant le premier
+ * affichage par le script de tête (inc/apparence.php) selon le choix du
+ * visiteur : Système (préférence du système), Clair ou Sombre.
+ *
+ * Trois feuilles :
+ *   - sombre-site.css : GÉNÉRÉE depuis site.css (outils/mode_sombre.py) ;
+ *   - sombre.css      : celle-ci, chargée après — la base (page, titres,
+ *     liens, classes de couleur de l'éditeur) et les corrections qui ne se
+ *     calculent pas ;
+ *   - membership-sombre.css : générée, dans l'extension, pour ses écrans.
+ *
+ * Contrastes vérifiés sur le fond de page (#0c1626) et les cartes (#152233) :
+ * texte 13,9:1, texte doux 8,6:1, liens 9,3:1.
+ */
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+
+	--sub-d-fond: #0c1626;
+	--sub-d-surface: #152233;
+	--sub-d-surface-haute: #1c2c42;
+	--sub-d-texte: #dbe5f1;
+	--sub-d-titre: #eef3f9;
+	--sub-d-doux: #aebbca;
+	--sub-d-lien: #8cc4f0;
+	--sub-d-lavande: #a9b0f2;
+	--sub-d-trait: #26364b;
+
+	/* Raccourcis de site.css réinterprétés : seuls ceux qui ne servent QUE
+	   de filet ou d'ombre sont redéfinis, les autres sont repris règle par
+	   règle par la feuille générée. */
+	--sub-trait: var(--sub-d-trait);
+	--sub-ombre-1: 0 0 0 1px var(--sub-d-trait);
+	--sub-ombre-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* --- Page, titres, liens --------------------------------------------- */
+:root[data-theme="dark"] body {
+	background-color: var(--sub-d-fond);
+	color: var(--sub-d-texte);
+}
+
+:root[data-theme="dark"] :is(h1, h2, h3, h4, h5),
+:root[data-theme="dark"] .wp-block-post-title,
+:root[data-theme="dark"] .wp-block-post-title a,
+:root[data-theme="dark"] .wp-block-site-title a {
+	color: var(--sub-d-titre);
+}
+
+:root[data-theme="dark"] h6,
+:root[data-theme="dark"] .wp-block-post-date,
+:root[data-theme="dark"] .wp-block-post-excerpt,
+:root[data-theme="dark"] figcaption,
+:root[data-theme="dark"] .wp-element-caption {
+	color: var(--sub-d-doux);
+}
+
+/* Liens du contenu (sans classe) et liens des blocs du cœur. Les liens
+   habillés en bouton, eux, portent une classe et gardent leur couleur — les
+   boutons de l'extension (.sub-button…) notamment. */
+:root[data-theme="dark"] a:not([class]),
+:root[data-theme="dark"] .wp-block-post-terms a,
+:root[data-theme="dark"] .wp-block-query-pagination a,
+:root[data-theme="dark"] .wp-block-read-more,
+:root[data-theme="dark"] .wp-block-navigation-item__content {
+	color: var(--sub-d-lien);
+}
+
+:root[data-theme="dark"] .wp-block-post-title a:hover {
+	color: var(--sub-d-lien);
+}
+
+/* --- Classes de couleur de l'éditeur ---------------------------------
+   Le cœur les déclare avec !important : il faut la même arme. Les textes
+   sombres passent en clair, les fonds clairs en surfaces sombres ; le blanc
+   en texte, les fonds marine, lavande et corail restent tels quels. */
+:root[data-theme="dark"] .has-abysse-color { color: var(--sub-d-titre) !important; }
+:root[data-theme="dark"] .has-ardoise-color { color: var(--sub-d-doux) !important; }
+:root[data-theme="dark"] .has-profond-color,
+:root[data-theme="dark"] .has-lien-color { color: var(--sub-d-lien) !important; }
+:root[data-theme="dark"] .has-lavande-color,
+:root[data-theme="dark"] .has-poulpe-color { color: var(--sub-d-lavande) !important; }
+:root[data-theme="dark"] .has-corail-fonce-color { color: #f2a36d !important; }
+:root[data-theme="dark"] .has-algue-color { color: #6fd1b2 !important; }
+:root[data-theme="dark"] .has-alerte-color { color: #f08f86 !important; }
+
+:root[data-theme="dark"] .has-nacre-background-color { background-color: var(--sub-d-fond) !important; }
+:root[data-theme="dark"] .has-blanc-background-color { background-color: var(--sub-d-surface) !important; }
+:root[data-theme="dark"] .has-ecume-background-color,
+:root[data-theme="dark"] .has-brume-claire-background-color { background-color: #101d30 !important; }
+:root[data-theme="dark"] .has-brume-background-color,
+:root[data-theme="dark"] .has-lavande-pale-background-color,
+:root[data-theme="dark"] .has-corail-pale-background-color { background-color: var(--sub-d-surface-haute) !important; }
+/* Les bandes marine restent marine, un cran plus profond que la page
+   ne suffirait pas à les distinguer : on les éclaircit légèrement. */
+:root[data-theme="dark"] .has-abysse-background-color:not(.wp-block-navigation__responsive-container),
+:root[data-theme="dark"] .wp-block-navigation__responsive-container.is-menu-open.has-abysse-background-color { background-color: #12294a !important; }
+
+/* --- Blocs du cœur --------------------------------------------------- */
+:root[data-theme="dark"] .wp-block-separator { color: var(--sub-d-trait); border-color: var(--sub-d-trait); }
+:root[data-theme="dark"] .wp-block-code,
+:root[data-theme="dark"] code { background-color: var(--sub-d-surface-haute); color: var(--sub-d-texte); }
+:root[data-theme="dark"] .wp-block-quote { border-left-color: var(--sub-d-lavande); }
+
+/* Bouton contour (« Essayer : le baptême… ») : son filet marine est écrit en
+   ligne par l'éditeur ; il suit désormais la couleur du texte. */
+:root[data-theme="dark"] .is-style-outline > .wp-block-button__link {
+	border-color: currentColor !important;
+}
+
+/* --- En-tête, bandeau, logo ------------------------------------------ */
+:root[data-theme="dark"] .sub-header {
+	box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* Le contour marine du poulpe se perd sur le fond sombre : un liseré clair
+   le redessine, sans toucher à l'image. */
+:root[data-theme="dark"] .sub-header .wp-block-site-logo img,
+:root[data-theme="dark"] .sub-hero__logo img {
+	filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55)) drop-shadow(0 0 10px rgba(140, 196, 240, 0.12));
+}
+
+:root[data-theme="dark"] .sub-hero--clair::after {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 80' preserveAspectRatio='none'%3E%3Cpath d='M0 40C240 0 480 80 720 40s480-40 720 0v40H0z' fill='%230c1626'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .sub-info::before {
+	background: var(--sub-d-lavande);
+}
+
+/* Filigrane des vignettes sans photo : la couleur ne sert que de masque et
+   doit rester blanche (la feuille générée l'avait assombrie). */
+:root[data-theme="dark"] .sub-vignette--repli::after {
+	background-color: #ffffff;
+}
+
+/* Pastilles d'icône des atouts : les traits sont dessinés en couleurs
+   claires de la charte ; sur fond sombre on les éclaircit d'un cran. */
+:root[data-theme="dark"] .sub-atout::before {
+	filter: brightness(1.6) saturate(0.9);
+}
+
+:root[data-theme="dark"] .sub-niveau__pastille {
+	background: #5a66c9;
+}
+
+/* Carte d'adhésion : la lavande tient, mais le texte secondaire doit rester
+   clair (la feuille générée ne touche pas aux textes déjà clairs). */
+:root[data-theme="dark"] .sub-cta-carte {
+	background-color: #3d4aa8 !important;
+}
+
+/* --- Sélecteur d'apparence ------------------------------------------- */
+:root[data-theme="dark"] .sub-apparence {
+	border-color: var(--sub-d-trait);
+	background: var(--sub-d-surface);
+}
+
+:root[data-theme="dark"] .sub-apparence__choix {
+	color: var(--sub-d-doux);
+}
+
+:root[data-theme="dark"] .sub-apparence__choix[aria-pressed="true"] {
+	background: var(--sub-d-surface-haute);
+	color: var(--sub-d-titre);
+}
+
+:root[data-theme="dark"] .sub-footer .sub-apparence {
+	border-color: rgba(255, 255, 255, 0.18);
+	background: transparent;
+}
+
+:root[data-theme="dark"] .sub-footer .sub-apparence__choix {
+	color: #b0c4da;
+}
+
+:root[data-theme="dark"] .sub-footer .sub-apparence__choix:hover,
+:root[data-theme="dark"] .sub-footer .sub-apparence__choix[aria-pressed="true"] {
+	background: rgba(255, 255, 255, 0.12);
+	color: #ffffff;
+}
+
+/* Pied de page : un cran sous la page, pour qu'il s'en détache. */
+:root[data-theme="dark"] .sub-footer.has-abysse-background-color {
+	background-color: #08101c !important;
+}

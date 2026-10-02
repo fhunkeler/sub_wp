@@ -47,7 +47,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"petit","textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:secretariat@subalcatel.net">secretariat@subalcatel.net</a></p>
+<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:secretariat@subalcatel.fr">secretariat@subalcatel.fr</a></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column -->
 
@@ -65,7 +65,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"petit","textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:tresorerie@subalcatel.net">tresorerie@subalcatel.net</a></p>
+<p class="has-ardoise-color has-text-color has-petit-font-size"><a href="mailto:tresorerie@subalcatel.fr">tresorerie@subalcatel.fr</a></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column --></div>
 <!-- /wp:columns -->

@@ -82,6 +82,12 @@ $check('La réunion du bureau reste au bureau', $vue('office', [], $office));
 $check('… et n’atteint pas les autres membres', !$vue('office', [], $p1));
 $check('Une sortie P3 atteint un P3', $vue('levels', ['p3'], $p3));
 $check('… et pas un P1', !$vue('levels', ['p3'], $p1));
+
+// Le niveau saisi est un plancher, pas un niveau exact. Une sortie ouverte au
+// PA20 restait invisible au P5 qui l'aurait encadrée (prod, octobre 2026).
+$check('Une sortie P3 atteint un P5', $vue('levels', ['p3'], $p5));
+$check('Une sortie PA20 atteint un P3', $vue('levels', ['pa20'], $p3));
+$check('… et pas un P1', !$vue('levels', ['pa20'], $p1));
 $check('Une sortie sans niveau s’adresse à tous', $vue('levels', [], $p1));
 $check('Un visiteur non connecté ne voit rien', !$vue('members', [], 0));
 

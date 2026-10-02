@@ -12,8 +12,8 @@
 ?>
 <!-- wp:group {"className":"is-style-sub-panneau","align":"wide","style":{"spacing":{"blockGap":"var:preset|spacing|20"}},"layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignwide is-style-sub-panneau"><!-- wp:group {"style":{"spacing":{"blockGap":"12px"}},"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between","verticalAlignment":"center"}} -->
-<div class="wp-block-group"><!-- wp:heading {"level":3} -->
-<h3 class="wp-block-heading">Niveau 1 — Plongeur encadré 20 m</h3>
+<div class="wp-block-group"><!-- wp:heading {"fontSize":"grand"} -->
+<h2 class="wp-block-heading has-grand-font-size">Niveau 1 — Plongeur encadré 20 m</h2>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"sub-badge sub-badge--info"} -->
@@ -27,8 +27,8 @@
 
 <!-- wp:columns {"style":{"spacing":{"margin":{"top":"var:preset|spacing|20"}}}} -->
 <div class="wp-block-columns" style="margin-top:var(--wp--preset--spacing--20)"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:heading {"level":4,"fontSize":"micro","textColor":"ardoise","style":{"typography":{"textTransform":"uppercase","letterSpacing":"0.07em"}}} -->
-<h4 class="wp-block-heading has-ardoise-color has-text-color has-micro-font-size" style="letter-spacing:0.07em;text-transform:uppercase">Prérequis</h4>
+<div class="wp-block-column"><!-- wp:heading {"level":3,"fontSize":"micro","textColor":"ardoise","style":{"typography":{"textTransform":"uppercase","letterSpacing":"0.07em"}}} -->
+<h3 class="wp-block-heading has-ardoise-color has-text-color has-micro-font-size" style="letter-spacing:0.07em;text-transform:uppercase">Prérequis</h3>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"fontSize":"petit"} -->
@@ -37,8 +37,8 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:heading {"level":4,"fontSize":"micro","textColor":"ardoise","style":{"typography":{"textTransform":"uppercase","letterSpacing":"0.07em"}}} -->
-<h4 class="wp-block-heading has-ardoise-color has-text-color has-micro-font-size" style="letter-spacing:0.07em;text-transform:uppercase">Durée</h4>
+<div class="wp-block-column"><!-- wp:heading {"level":3,"fontSize":"micro","textColor":"ardoise","style":{"typography":{"textTransform":"uppercase","letterSpacing":"0.07em"}}} -->
+<h3 class="wp-block-heading has-ardoise-color has-text-color has-micro-font-size" style="letter-spacing:0.07em;text-transform:uppercase">Durée</h3>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"fontSize":"petit"} -->
@@ -47,8 +47,8 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:heading {"level":4,"fontSize":"micro","textColor":"ardoise","style":{"typography":{"textTransform":"uppercase","letterSpacing":"0.07em"}}} -->
-<h4 class="wp-block-heading has-ardoise-color has-text-color has-micro-font-size" style="letter-spacing:0.07em;text-transform:uppercase">Coût</h4>
+<div class="wp-block-column"><!-- wp:heading {"level":3,"fontSize":"micro","textColor":"ardoise","style":{"typography":{"textTransform":"uppercase","letterSpacing":"0.07em"}}} -->
+<h3 class="wp-block-heading has-ardoise-color has-text-color has-micro-font-size" style="letter-spacing:0.07em;text-transform:uppercase">Coût</h3>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"fontSize":"petit"} -->

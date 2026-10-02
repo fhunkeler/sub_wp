@@ -1561,6 +1561,29 @@ label {
 		font-size: 14px;
 	}
 
+	/* Connecté : l'avatar suffit, le nom reste lu par les lecteurs d'écran ;
+	   « Déconnexion » passe en petit bouton (32 px, au-dessus des 24 px de la
+	   WCAG 2.5.8) pour ne plus écraser le logo et le menu. */
+	.sub-header .sub-compte__nom {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+	}
+
+	.sub-header .sub-compte {
+		gap: 8px;
+	}
+
+	.sub-header .sub-btn--sm {
+		min-height: 32px;
+		padding: 0 10px;
+		font-size: 13px;
+		border-width: 1px;
+	}
+
 	.sub-header.sub-header--compact {
 		padding-top: 4px !important;
 		padding-bottom: 4px !important;

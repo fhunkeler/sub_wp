@@ -62,7 +62,8 @@ $eventId = $service->create('plongee-exploration', [
     'starts_at'       => gmdate('Y-m-d H:i:s', time() + 3 * 86400),
     'location'        => 'Trégastel',
     'capacity'        => 8,
-    'accepted_levels' => ['p1', 'p2', 'p3', 'p5'],
+    'accepted_levels' => ['p2', 'p3', 'p5'],
+    'description'     => 'Rendez-vous au port, gonflage la veille.',
 ], $dp);
 
 $vue = static function (int $userId): string {
@@ -83,6 +84,13 @@ $check('Les sorties passent avant « À faire » / « à jour »',
 $check('Le formulaire d’inscription est sur place',
     str_contains($html, 'name="action" value="sub_event_register"')
     && str_contains($html, 'name="event_id" value="' . $eventId . '"'));
+
+// Le détail de la sortie s'ouvre sur place, sans repasser par l'agenda.
+$check('Le détail de la sortie se déplie dans l’espace', str_contains($html, 'Détails de la sortie'));
+$check('… avec la description', str_contains($html, 'gonflage la veille'));
+$check('… le directeur de plongée', str_contains($html, esc_html(get_userdata($dp)->display_name)));
+$check('… le niveau demandé, en plancher', str_contains($html, 'À partir de P2'));
+$check('… et la clôture des inscriptions', str_contains($html, 'Inscriptions jusqu’au'));
 
 $service->register($eventId, $aJour);
 $html = $vue($aJour);

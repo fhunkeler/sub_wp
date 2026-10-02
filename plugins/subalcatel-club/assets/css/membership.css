@@ -1892,6 +1892,60 @@
 	margin-top: 0;
 }
 
+/* --- Détail d'une sortie, à déplier sur place --- */
+
+.sub-event__details {
+	margin-top: 12px;
+}
+
+/* Dans une ligne du tableau de bord, le détail passe sous la sortie. */
+.sub-list__item > .sub-event__details {
+	flex-basis: 100%;
+	margin-top: 0;
+}
+
+.sub-event__details > summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: var(--sub-profond, #1d5480);
+}
+
+.sub-event__details[open] > summary {
+	margin-bottom: 10px;
+}
+
+.sub-event__description p {
+	margin: 0 0 10px;
+}
+
+.sub-event__facts {
+	display: grid;
+	grid-template-columns: minmax(8em, max-content) 1fr;
+	gap: 6px 16px;
+	margin: 0;
+}
+
+.sub-event__facts dt {
+	font-weight: 600;
+	color: var(--sub-profond, #1d5480);
+}
+
+.sub-event__facts dd {
+	margin: 0;
+}
+
+/* Sur téléphone, l'intitulé passe au-dessus de sa valeur. */
+@media (max-width: 480px) {
+	.sub-event__facts {
+		grid-template-columns: 1fr;
+		gap: 2px;
+	}
+
+	.sub-event__facts dd {
+		margin-bottom: 8px;
+	}
+}
+
 /* --- Sorties prévues, en tête de l'espace membre --- */
 
 .sub-outings__signup {

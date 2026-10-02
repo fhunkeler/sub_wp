@@ -83,6 +83,8 @@ final class AgendaShortcode
                     <?php endif; ?>
                 </p>
 
+                <?php EventDetails::render($service, $event); ?>
+
                 <?php self::renderSignup($service, $event, $userId); ?>
                 <?php if ($registered !== null && $registered !== 'cancelled') : ?>
                     <?php self::renderOrganizerForm($eventId, (int) ($event['organizer_id'] ?? 0)); ?>

@@ -1577,6 +1577,13 @@ label {
 		gap: 8px;
 	}
 
+	/* Avatar et icône de déconnexion : même pastille de 40 px, côte à côte. */
+	.sub-header .sub-avatar {
+		width: 40px;
+		height: 40px;
+		font-size: 14px;
+	}
+
 	.sub-header .sub-btn--deconnexion {
 		width: 40px;
 		min-width: 40px;

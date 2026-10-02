@@ -902,13 +902,16 @@ html {
 	color: var(--sub-ardoise);
 }
 
+/* Soulignés en permanence : la couleur seule ne distingue pas les liens du
+   texte voisin (1,2:1 entre le bleu lien et l'ardoise ; RGAA 10.6, WCAG 1.4.1). */
 .sub-fil-ariane a {
 	color: var(--sub-lien);
-	text-decoration: none;
+	text-decoration: underline;
+	text-underline-offset: 2px;
 }
 
 .sub-fil-ariane a:hover {
-	text-decoration: underline;
+	text-decoration-thickness: 2px;
 }
 
 .sub-fil-ariane [aria-current="page"] {
@@ -1579,5 +1582,42 @@ label {
 @media (prefers-reduced-motion: reduce) {
 	.sub-header {
 		--sub-entete-duree: 0ms;
+	}
+}
+
+/* ------------------------------------------------------------------
+   20. Accessibilité — compléments RGAA
+   ------------------------------------------------------------------ */
+
+/* Texte lu par les lecteurs d'écran, invisible à l'écran (titres de section
+   qui structurent la page sans être affichés). */
+.sub-visuellement-masque {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Boutons d'ouverture des sous-menus : core les dessine à 9 × 9 px. On porte
+   leur surface cliquable à 24 × 24 (WCAG 2.5.8). Les marges négatives ne
+   reprennent que la hauteur : reprises aussi sur les côtés, la cible
+   chevauchait le lien voisin, ce que le critère interdit tout autant. */
+@media (min-width: 600px) {
+	.sub-header .wp-block-navigation-submenu__toggle {
+		box-sizing: content-box;
+		padding: 7.5px;
+		margin: -7.5px 0;
+	}
+
+	/* La place prise par le bouton est rendue par le lien parent, dont le
+	   rembourrage droit fond : la barre garde sa largeur et tient sur une
+	   ligne au-delà de 1248 px. */
+	.sub-header .wp-block-navigation .has-child > .wp-block-navigation-item__content {
+		padding-right: 2px;
 	}
 }

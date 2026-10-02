@@ -42,9 +42,24 @@
 					"name": "Encre de poulpe"
 				},
 				{
+					"slug": "lavande",
+					"color": "#4B57B8",
+					"name": "Lavande (corps du poulpe)"
+				},
+				{
 					"slug": "ecume",
 					"color": "#E9F4FA",
 					"name": "Écume"
+				},
+				{
+					"slug": "nacre",
+					"color": "#F6F8FB",
+					"name": "Nacre (fond de page)"
+				},
+				{
+					"slug": "brume-claire",
+					"color": "#EDF2F7",
+					"name": "Brume claire (bandeaux)"
 				},
 				{
 					"slug": "blanc",
@@ -62,6 +77,11 @@
 					"name": "Brume"
 				},
 				{
+					"slug": "lavande-pale",
+					"color": "#E6E8F8",
+					"name": "Lavande pâle"
+				},
+				{
 					"slug": "corail",
 					"color": "#F0801F",
 					"name": "Orange corail"
@@ -70,6 +90,11 @@
 					"slug": "corail-fonce",
 					"color": "#C0561A",
 					"name": "Orange corail foncé"
+				},
+				{
+					"slug": "corail-pale",
+					"color": "#FDEBDD",
+					"name": "Corail pâle"
 				},
 				{
 					"slug": "sable",
@@ -114,13 +139,13 @@
 			"fontFamilies": [
 				{
 					"slug": "titre",
-					"name": "Montserrat (titres)",
-					"fontFamily": "Montserrat, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+					"name": "Bricolage Grotesque (titres)",
+					"fontFamily": "\"Bricolage Grotesque\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
 				},
 				{
 					"slug": "texte",
-					"name": "Lora (texte)",
-					"fontFamily": "Lora, system-ui, -apple-system, \"Segoe UI\", Roboto, serif"
+					"name": "Instrument Sans (texte)",
+					"fontFamily": "\"Instrument Sans\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
 				}
 			],
 			"fontSizes": [
@@ -154,37 +179,37 @@
 				{
 					"slug": "grand",
 					"name": "Grand (H3)",
-					"size": "22px",
+					"size": "24px",
 					"fluid": {
-						"min": "20px",
-						"max": "22px"
+						"min": "21px",
+						"max": "24px"
 					}
 				},
 				{
 					"slug": "titre-2",
 					"name": "Titre de section (H2)",
-					"size": "28px",
+					"size": "42px",
 					"fluid": {
-						"min": "24px",
-						"max": "28px"
+						"min": "30px",
+						"max": "44px"
 					}
 				},
 				{
 					"slug": "titre-1",
 					"name": "Titre de page (H1)",
-					"size": "36px",
+					"size": "48px",
 					"fluid": {
-						"min": "30px",
-						"max": "36px"
+						"min": "34px",
+						"max": "52px"
 					}
 				},
 				{
 					"slug": "display",
 					"name": "Display (hero)",
-					"size": "48px",
+					"size": "68px",
 					"fluid": {
-						"min": "36px",
-						"max": "48px"
+						"min": "40px",
+						"max": "72px"
 					}
 				}
 			]
@@ -249,7 +274,7 @@
 				{
 					"slug": "carte",
 					"name": "Carte",
-					"shadow": "0 1px 2px rgba(20,47,82,.08), 0 0 0 1px rgba(20,47,82,.05)"
+					"shadow": "0 0 0 1px #DDE5EF"
 				},
 				{
 					"slug": "flottant",
@@ -267,7 +292,7 @@
 		"custom": {
 			"rayon": {
 				"champ": "4px",
-				"carte": "12px",
+				"carte": "20px",
 				"pastille": "999px"
 			},
 			"bordure": {
@@ -278,13 +303,13 @@
 	},
 	"styles": {
 		"color": {
-			"background": "var:preset|color|blanc",
+			"background": "var:preset|color|nacre",
 			"text": "var:preset|color|abysse"
 		},
 		"typography": {
 			"fontFamily": "var:preset|font-family|texte",
 			"fontSize": "var:preset|font-size|corps",
-			"lineHeight": "1.65",
+			"lineHeight": "1.6",
 			"fontWeight": "400"
 		},
 		"spacing": {
@@ -317,7 +342,8 @@
 				"typography": {
 					"fontFamily": "var:preset|font-family|titre",
 					"fontWeight": "700",
-					"lineHeight": "1.2"
+					"lineHeight": "1.1",
+					"letterSpacing": "-0.02em"
 				},
 				"color": {
 					"text": "var:preset|color|abysse"
@@ -326,31 +352,31 @@
 			"h1": {
 				"typography": {
 					"fontSize": "var:preset|font-size|titre-1",
-					"lineHeight": "1.15",
-					"letterSpacing": "-0.015em"
+					"lineHeight": "1.05",
+					"letterSpacing": "-0.025em"
 				}
 			},
 			"h2": {
 				"typography": {
 					"fontSize": "var:preset|font-size|titre-2",
-					"fontWeight": "600",
-					"lineHeight": "1.25"
+					"fontWeight": "700",
+					"lineHeight": "1.1"
 				},
 				"color": {
-					"text": "var:preset|color|profond"
+					"text": "var:preset|color|abysse"
 				}
 			},
 			"h3": {
 				"typography": {
 					"fontSize": "var:preset|font-size|grand",
-					"fontWeight": "600",
-					"lineHeight": "1.3"
+					"fontWeight": "700",
+					"lineHeight": "1.25"
 				}
 			},
 			"h4": {
 				"typography": {
 					"fontSize": "var:preset|font-size|moyen",
-					"fontWeight": "600",
+					"fontWeight": "700",
 					"lineHeight": "1.35"
 				}
 			},
@@ -377,21 +403,21 @@
 					"text": "var:preset|color|blanc"
 				},
 				"border": {
-					"radius": "12px",
+					"radius": "999px",
 					"width": "0"
 				},
 				"spacing": {
 					"padding": {
-						"top": "13px",
-						"bottom": "13px",
-						"left": "22px",
-						"right": "22px"
+						"top": "14px",
+						"bottom": "14px",
+						"left": "26px",
+						"right": "26px"
 					}
 				},
 				"typography": {
 					"fontFamily": "var:preset|font-family|texte",
-					"fontSize": "var:preset|font-size|petit",
-					"fontWeight": "600",
+					"fontSize": "var:preset|font-size|corps",
+					"fontWeight": "700",
 					"lineHeight": "1.2",
 					"textDecoration": "none"
 				},
@@ -419,14 +445,15 @@
 			"core/site-title": {
 				"typography": {
 					"fontFamily": "var:preset|font-family|titre",
-					"fontSize": "19px",
+					"fontSize": "24px",
 					"fontWeight": "700",
-					"lineHeight": "1.2"
+					"lineHeight": "1.2",
+					"letterSpacing": "-0.01em"
 				},
 				"elements": {
 					"link": {
 						"color": {
-							"text": "var:preset|color|blanc"
+							"text": "var:preset|color|abysse"
 						},
 						"typography": {
 							"textDecoration": "none"
@@ -482,7 +509,7 @@
 			"core/navigation": {
 				"typography": {
 					"fontSize": "var:preset|font-size|petit",
-					"fontWeight": "500"
+					"fontWeight": "600"
 				}
 			},
 			"core/separator": {
@@ -492,13 +519,13 @@
 			},
 			"core/image": {
 				"border": {
-					"radius": "12px"
+					"radius": "16px"
 				}
 			},
 			"core/quote": {
 				"border": {
 					"left": {
-						"color": "var:preset|color|lagon",
+						"color": "var:preset|color|lavande",
 						"width": "4px",
 						"style": "solid"
 					}

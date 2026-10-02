@@ -42,16 +42,20 @@ function subalcatel_login_styles(): void {
 
 	$declarations = '';
 
-	foreach ( subalcatel_font_files() as $slug => $fichier ) {
-		if ( ! file_exists( SUBALCATEL_DIR . '/assets/fonts/' . $fichier ) ) {
-			continue;
-		}
+	foreach ( subalcatel_font_files() as $slug => $faces ) {
+		foreach ( $faces as $face ) {
+			if ( ! file_exists( SUBALCATEL_DIR . '/assets/fonts/' . $face['fichier'] ) ) {
+				continue;
+			}
 
-		$declarations .= sprintf(
-			"@font-face{font-family:%s;font-weight:400 700;font-style:normal;font-display:swap;src:url(%s) format('woff2');}",
-			'titre' === $slug ? 'Outfit' : 'Inter',
-			esc_url( SUBALCATEL_URI . '/assets/fonts/' . $fichier )
-		);
+			$declarations .= sprintf(
+				"@font-face{font-family:'%s';font-weight:%s;font-style:%s;font-display:swap;src:url(%s) format('woff');}",
+				'titre' === $slug ? 'Bricolage Grotesque' : 'Instrument Sans',
+				$face['graisse'],
+				$face['style'],
+				esc_url( SUBALCATEL_URI . '/assets/fonts/' . $face['fichier'] )
+			);
+		}
 	}
 
 	if ( '' !== $declarations ) {

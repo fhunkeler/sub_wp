@@ -1,5 +1,18 @@
 # Images du thème
 
+> **Refonte d'octobre 2026.** `logo.png`, `logo-complet.png` et le nouveau
+> `logo-accueil.png` (640 px, bandeau de la page d'accueil) sont désormais
+> **détourés en entier**, intérieur de l'anneau compris : l'en-tête est passé
+> sur fond clair (brume `#EDF2F7`), où le poulpe se lit sans pastille. Le
+> détourage a été fait par segmentation des zones de fond (tolérance sur la
+> couleur de fond, puis suppression des zones connexes de plus de 250 px,
+> reflet du masque conservé), bords adoucis et décontaminés.
+> Les favicons ne changent pas : à 32 px, le fond clair de l'anneau reste
+> utile sur les onglets sombres. L'écran de connexion, sur dégradé marine,
+> utilise `favicon-270.png` pour la même raison, et le pied de page pose une
+> pastille claire sous le logo (`site.css`).
+> La section « Régénérer » ci-dessous décrit l'ancienne chaîne.
+
 Toutes les images de ce dossier sont dérivées d'**un seul fichier source** :
 `logo-subalcatel-source.jpg`, à la racine du dépôt — le logo fourni par le club
 en août 2026, un JPEG de 1024 × 1024.

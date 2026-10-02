@@ -4,7 +4,7 @@
  *
  * Les polices ne sont JAMAIS chargées depuis fonts.googleapis.com : un tel
  * appel transmet l'adresse IP des visiteurs à Google sans base légale, ce qui
- * a déjà été sanctionné en Europe. Les fichiers .woff2 sont déposés dans
+ * a déjà été sanctionné en Europe. Les fichiers .woff sont déposés dans
  * assets/fonts/ (voir le README de ce dossier).
  *
  * Les déclarations @font-face ne sont injectées dans theme.json que si les
@@ -24,12 +24,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Fichiers attendus, par famille.
  *
- * @return array<string, string> Slug de famille => nom de fichier.
+ * Refonte d'octobre 2026 : Bricolage Grotesque pour les titres, Instrument Sans
+ * pour le texte. Les deux sont livrées en graisses statiques 400 et 700 (plus
+ * l'italique du texte), sous-ensemble latin, au format WOFF : environ 150 Ko au
+ * total. Une graisse intermédiaire (500, 600) demandée par un bloc se résout
+ * sur la plus proche, sans requête supplémentaire.
+ *
+ * @return array<string, array<int, array{fichier: string, graisse: string, style: string}>>
  */
 function subalcatel_font_files(): array {
 	return array(
-		'titre' => 'montserrat-variable.woff2',
-		'texte' => 'lora-variable.woff2',
+		'titre' => array(
+			array( 'fichier' => 'bricolage-grotesque-regular.woff', 'graisse' => '400', 'style' => 'normal' ),
+			array( 'fichier' => 'bricolage-grotesque-bold.woff', 'graisse' => '700', 'style' => 'normal' ),
+		),
+		'texte' => array(
+			array( 'fichier' => 'instrument-sans-regular.woff', 'graisse' => '400', 'style' => 'normal' ),
+			array( 'fichier' => 'instrument-sans-italic.woff', 'graisse' => '400', 'style' => 'italic' ),
+			array( 'fichier' => 'instrument-sans-bold.woff', 'graisse' => '700', 'style' => 'normal' ),
+		),
 	);
 }
 
@@ -43,35 +56,41 @@ function subalcatel_font_files(): array {
 function subalcatel_register_font_faces( $theme_json ) {
 	$replis   = array(
 		'titre' => 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-		'texte' => 'system-ui, -apple-system, "Segoe UI", Roboto, serif',
+		'texte' => 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
 	);
 	$families = array();
 
 	$definitions = array(
-		'titre' => array( 'Montserrat', 'Montserrat (titres)' ),
-		'texte' => array( 'Lora', 'Lora (texte)' ),
+		'titre' => array( 'Bricolage Grotesque', 'Bricolage Grotesque (titres)' ),
+		'texte' => array( 'Instrument Sans', 'Instrument Sans (texte)' ),
 	);
 
-	foreach ( subalcatel_font_files() as $slug => $file ) {
-		if ( ! file_exists( SUBALCATEL_DIR . '/assets/fonts/' . $file ) ) {
-			continue;
+	foreach ( subalcatel_font_files() as $slug => $faces ) {
+		list( $family, $label ) = $definitions[ $slug ];
+
+		$font_faces = array();
+		foreach ( $faces as $face ) {
+			if ( ! file_exists( SUBALCATEL_DIR . '/assets/fonts/' . $face['fichier'] ) ) {
+				continue;
+			}
+			$font_faces[] = array(
+				'fontFamily'  => $family,
+				'fontWeight'  => $face['graisse'],
+				'fontStyle'   => $face['style'],
+				'fontDisplay' => 'swap',
+				'src'         => array( 'file:./assets/fonts/' . $face['fichier'] ),
+			);
 		}
 
-		list( $family, $label ) = $definitions[ $slug ];
+		if ( empty( $font_faces ) ) {
+			continue;
+		}
 
 		$families[] = array(
 			'slug'       => $slug,
 			'name'       => $label,
 			'fontFamily' => sprintf( '"%s", %s', $family, $replis[ $slug ] ),
-			'fontFace'   => array(
-				array(
-					'fontFamily'  => $family,
-					'fontWeight'  => '400 700',
-					'fontStyle'   => 'normal',
-					'fontDisplay' => 'swap',
-					'src'         => array( 'file:./assets/fonts/' . $file ),
-				),
-			),
+			'fontFace'   => $font_faces,
 		);
 	}
 
@@ -102,9 +121,11 @@ function subalcatel_missing_fonts_notice(): void {
 	}
 
 	$missing = array();
-	foreach ( subalcatel_font_files() as $file ) {
-		if ( ! file_exists( SUBALCATEL_DIR . '/assets/fonts/' . $file ) ) {
-			$missing[] = $file;
+	foreach ( subalcatel_font_files() as $faces ) {
+		foreach ( $faces as $face ) {
+			if ( ! file_exists( SUBALCATEL_DIR . '/assets/fonts/' . $face['fichier'] ) ) {
+				$missing[] = $face['fichier'];
+			}
 		}
 	}
 

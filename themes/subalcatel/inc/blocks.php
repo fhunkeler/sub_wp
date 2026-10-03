@@ -470,3 +470,29 @@ function subalcatel_hide_redundant_featured_image( string $block_content, array 
 		: $block_content;
 }
 add_filter( 'render_block_core/post-featured-image', 'subalcatel_hide_redundant_featured_image', 20, 3 );
+
+/**
+ * Chapeau de page : seulement s'il a été rédigé.
+ *
+ * Les gabarits Tarifs, Agenda, Formations… affichent l'extrait sous le titre.
+ * Sans extrait saisi, WordPress en fabrique un avec le début du contenu — que
+ * la page affiche juste en dessous : le même paragraphe deux fois de suite.
+ * Hors d'une boucle de requête, on n'affiche donc l'extrait que s'il a été
+ * écrit à la main ; dans les listes d'articles, l'extrait automatique reste
+ * utile et n'est pas touché.
+ *
+ * @param string   $html     Rendu du bloc.
+ * @param array    $block    Bloc analysé.
+ * @param WP_Block $instance Instance, porteuse du contexte.
+ * @return string
+ */
+function subalcatel_excerpt_only_if_written( string $html, array $block, $instance ): string {
+	if ( isset( $instance->context['queryId'] ) ) {
+		return $html;
+	}
+
+	$post_id = (int) ( $instance->context['postId'] ?? get_the_ID() );
+
+	return $post_id && has_excerpt( $post_id ) ? $html : '';
+}
+add_filter( 'render_block_core/post-excerpt', 'subalcatel_excerpt_only_if_written', 10, 3 );

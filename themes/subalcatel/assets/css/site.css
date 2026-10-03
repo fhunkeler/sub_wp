@@ -1851,3 +1851,92 @@ label {
 .sub-app:has(.sub-dashboard) .wp-block-post-content > :not(.alignwide):not(.alignfull) {
 	max-width: var(--wp--style--global--wide-size, 1200px);
 }
+
+/* ------------------------------------------------------------------
+   22. Passe d'ergonomie
+   ------------------------------------------------------------------ */
+
+/* Bandeau d'accueil sur mobile : le poulpe passe AVANT le texte, en
+   vignette. Empilé après les boutons, il arrivait en fin d'écran, énorme,
+   comme un oubli. */
+@media (max-width: 781px) {
+	.sub-hero--clair .wp-block-columns {
+		flex-direction: column;
+	}
+
+	.sub-hero--clair .wp-block-column:has(.sub-hero__logo) {
+		order: -1;
+	}
+
+	.sub-hero__logo img {
+		max-width: 180px;
+	}
+}
+
+/* Mobile : les grands espacements verticaux (72 et 96 px) fondent. Sur un
+   écran de 800 px de haut, ils laissaient un tiers d'écran vide entre le
+   bandeau de titre et le contenu. `html:root` pour passer devant les
+   variables que le cœur pose sur :root. */
+@media (max-width: 781px) {
+	html:root {
+		--wp--preset--spacing--50: 32px;
+		--wp--preset--spacing--60: 40px;
+		--wp--preset--spacing--70: 48px;
+	}
+
+	/* Trombinoscope : vignette de 140 px au lieu de 260 sur mobile. */
+	.is-style-sub-carte > .wp-block-group.has-background[style*="min-height"] {
+		min-height: 140px !important;
+	}
+}
+
+/* Plusieurs boutons côte à côte : seul le premier est plein, les suivants
+   passent en contour. Deux boutons orange identiques empilés ne disaient
+   pas lequel était l'action principale (« Voir les tarifs » / « Comment
+   adhérer »). Les boutons à couleur choisie dans l'éditeur ne sont pas
+   touchés. */
+.wp-block-buttons > .wp-block-button + .wp-block-button:not(.is-style-outline) > .wp-block-button__link:not(.has-background) {
+	background: transparent;
+	color: var(--sub-abysse);
+	box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.wp-block-buttons > .wp-block-button + .wp-block-button:not(.is-style-outline) > .wp-block-button__link:not(.has-background):hover {
+	background: var(--sub-abysse);
+	color: var(--sub-blanc);
+}
+
+/* Pied de page : une adresse électronique se coupe où elle peut, plutôt que
+   de déborder de sa colonne. */
+.sub-footer a[href^="mailto:"] {
+	overflow-wrap: anywhere;
+}
+
+/* Catégories de la page Actualités : des pastilles en ligne, pas une liste
+   à puces qui repoussait les articles d'un demi-écran. */
+.wp-block-categories-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding-left: 0;
+	list-style: none;
+}
+
+.wp-block-categories-list a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 36px;
+	padding: 0 14px;
+	border: 1px solid var(--sub-trait);
+	border-radius: var(--sub-r-pastille);
+	background: var(--sub-blanc);
+	color: var(--sub-abysse);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.wp-block-categories-list a:hover,
+.wp-block-categories-list .current-cat > a {
+	border-color: var(--sub-lavande);
+	background: var(--sub-lavande-pale);
+}

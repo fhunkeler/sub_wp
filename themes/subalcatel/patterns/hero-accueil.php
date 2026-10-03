@@ -24,7 +24,7 @@ $subalcatel_logo = esc_url( get_theme_file_uri( 'assets/img/logo-accueil.png' ) 
 <div class="wp-block-group alignfull sub-hero sub-hero--clair has-abysse-color has-brume-claire-background-color has-text-color has-background" style="padding-top:var(--wp--preset--spacing--60);padding-bottom:0"><!-- wp:columns {"verticalAlignment":"center","align":"wide","style":{"spacing":{"blockGap":{"left":"var:preset|spacing|50"}}}} -->
 <div class="wp-block-columns alignwide are-vertically-aligned-center"><!-- wp:column {"verticalAlignment":"center","width":"55%","style":{"spacing":{"blockGap":"var:preset|spacing|30"}}} -->
 <div class="wp-block-column is-vertically-aligned-center" style="flex-basis:55%"><!-- wp:paragraph {"className":"is-style-sub-surtitre"} -->
-<p class="is-style-sub-surtitre">Plongée loisir associative · FFESSM depuis 1974</p>
+<p class="is-style-sub-surtitre">Plongée loisir associative<span class="sub-surtitre__suite"> · FFESSM depuis 1974</span></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":1,"fontSize":"display"} -->

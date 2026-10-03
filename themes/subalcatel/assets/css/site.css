@@ -2001,3 +2001,94 @@ html.sub-fondu-apparence *::before,
 html.sub-fondu-apparence *::after {
 	transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, fill 300ms ease, box-shadow 300ms ease !important;
 }
+
+/* ------------------------------------------------------------------
+   24. Accueil animé
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+
+	/* 2. Apparition du bandeau : surtitre, titre, texte, infos, boutons
+	   arrivent l'un après l'autre (fondu + 12 px), une seule fois. */
+	@keyframes sub-apparition {
+		from {
+			opacity: 0;
+			transform: translateY(12px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes sub-apparition-logo {
+		from {
+			opacity: 0;
+			transform: scale(0.96);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > * {
+		animation: sub-apparition 500ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+	}
+
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(2) { animation-delay: 70ms; }
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(3) { animation-delay: 140ms; }
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(4) { animation-delay: 210ms; }
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(5) { animation-delay: 280ms; }
+
+	.sub-hero__logo {
+		animation: sub-apparition-logo 700ms cubic-bezier(0.22, 0.61, 0.36, 1) 100ms both;
+	}
+
+	/* Toutes les pages : le haut de page arrive de la même façon — fil
+	   d'Ariane, titre, chapeau ou image, puis les trois premiers blocs du
+	   contenu. Les titres des cartes d'une liste d'articles ne sont pas
+	   concernés : seul le titre de la page bouge. */
+	#sub-contenu .sub-fil-ariane,
+	#sub-contenu .wp-block-post-title:not(.wp-block-post-template *),
+	#sub-contenu .wp-block-post-excerpt:not(.wp-block-post-template *),
+	#sub-contenu .wp-block-post-featured-image:not(.wp-block-post-template *):not(.sub-une *),
+	#sub-contenu .wp-block-post-content > :nth-child(-n + 3),
+	#sub-contenu .wp-block-query-title,
+	#sub-contenu h1:not(.wp-block-post-template *) {
+		animation: sub-apparition 500ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+	}
+
+	#sub-contenu .wp-block-post-title:not(.wp-block-post-template *),
+	#sub-contenu .wp-block-query-title,
+	#sub-contenu h1:not(.wp-block-post-template *) {
+		animation-delay: 70ms;
+	}
+
+	#sub-contenu .wp-block-post-excerpt:not(.wp-block-post-template *),
+	#sub-contenu .wp-block-post-featured-image:not(.wp-block-post-template *):not(.sub-une *) {
+		animation-delay: 140ms;
+	}
+
+	#sub-contenu .wp-block-post-content > :nth-child(1) { animation-delay: 210ms; }
+	#sub-contenu .wp-block-post-content > :nth-child(2) { animation-delay: 280ms; }
+	#sub-contenu .wp-block-post-content > :nth-child(3) { animation-delay: 350ms; }
+}
+
+/* Pastille du bandeau d'accueil : toujours sur une ligne. Quand la colonne
+   est trop étroite pour la phrase entière (mobile, et la tranche
+   782–900 px où les deux colonnes se serrent), la seconde moitié
+   « · FFESSM depuis 1974 » s'efface plutôt que de faire passer la
+   pastille sur deux lignes, où ses bords arrondis se déformaient. */
+.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) {
+	container-type: inline-size;
+}
+
+.sub-hero--clair .is-style-sub-surtitre {
+	white-space: nowrap;
+}
+
+@container (max-width: 420px) {
+	.sub-surtitre__suite {
+		display: none;
+	}
+}

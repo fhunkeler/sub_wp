@@ -2073,3 +2073,22 @@ html.sub-fondu-apparence *::after {
 	#sub-contenu .wp-block-post-content > :nth-child(2) { animation-delay: 280ms; }
 	#sub-contenu .wp-block-post-content > :nth-child(3) { animation-delay: 350ms; }
 }
+
+/* Pastille du bandeau d'accueil : toujours sur une ligne. Quand la colonne
+   est trop étroite pour la phrase entière (mobile, et la tranche
+   782–900 px où les deux colonnes se serrent), la seconde moitié
+   « · FFESSM depuis 1974 » s'efface plutôt que de faire passer la
+   pastille sur deux lignes, où ses bords arrondis se déformaient. */
+.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) {
+	container-type: inline-size;
+}
+
+.sub-hero--clair .is-style-sub-surtitre {
+	white-space: nowrap;
+}
+
+@container (max-width: 420px) {
+	.sub-surtitre__suite {
+		display: none;
+	}
+}

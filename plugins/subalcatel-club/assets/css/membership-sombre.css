@@ -452,7 +452,8 @@
 	color: #bdd3ef;
 }
 
-:root[data-theme="dark"] .sub-shortcuts__item:hover {
+:root[data-theme="dark"] .sub-shortcuts__item:hover,
+:root[data-theme="dark"] .sub-shortcuts__item:focus-visible {
 	color: #a0cdeb;
 }
 

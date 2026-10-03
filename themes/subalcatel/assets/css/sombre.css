@@ -187,3 +187,14 @@
 :root[data-theme="dark"] .sub-footer.has-abysse-background-color {
 	background-color: #08101c !important;
 }
+
+/* Tuiles de l'espace membre (extension) : l'icône est un fond, que la
+   feuille générée laisse en bleu lien — trop sombre ici. */
+:root[data-theme="dark"] .sub-shortcuts__item::before {
+	background-color: var(--sub-d-lien);
+}
+
+:root[data-theme="dark"] .sub-shortcuts__item:hover::before,
+:root[data-theme="dark"] .sub-shortcuts__item:focus-visible::before {
+	background-color: #f2a36d;
+}

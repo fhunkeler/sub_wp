@@ -1506,9 +1506,32 @@
 	text-decoration: none;
 }
 
-.sub-shortcuts__item:hover {
+.sub-shortcuts__item {
+	transition: border-color 200ms ease, color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.sub-shortcuts__item::before {
+	transition: background-color 200ms ease;
+}
+
+.sub-shortcuts__item:hover,
+.sub-shortcuts__item:focus-visible {
 	border-color: var(--sub-lien);
 	color: var(--sub-lien);
+	box-shadow: 0 6px 16px -8px rgba(20, 47, 82, 0.35);
+}
+
+/* Au survol, l'icône prend l'orange de l'action et la tuile se soulève. */
+.sub-shortcuts__item:hover::before,
+.sub-shortcuts__item:focus-visible::before {
+	background-color: var(--sub-corail-fonce);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.sub-shortcuts__item:hover,
+	.sub-shortcuts__item:focus-visible {
+		transform: translateY(-2px);
+	}
 }
 
 .sub-shortcuts__item::before {

@@ -1945,3 +1945,59 @@ label {
 	border-color: var(--sub-lavande);
 	background: var(--sub-lavande-pale);
 }
+
+/* ------------------------------------------------------------------
+   23. Animations légères
+   Courtes (150–250 ms), déclenchées par le visiteur (survol, choix), jamais
+   en boucle. Toutes s'effacent quand le système demande moins d'animation.
+   ------------------------------------------------------------------ */
+
+/* Cartes cliquables (activités, actualités) : elles se soulèvent de 3 px et
+   leur photo zoome à peine. Les cartes sans lien (atouts du club) ne bougent
+   pas : un mouvement au survol promettrait un clic qui n'existe pas. */
+.is-style-sub-carte:has(a),
+.sub-une {
+	transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+.is-style-sub-carte:has(a) :where(.wp-block-post-featured-image, .wp-block-image) img,
+.sub-une .wp-block-post-featured-image img {
+	transition: transform 400ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.is-style-sub-carte:has(a):hover,
+	.sub-une:hover {
+		transform: translateY(-3px);
+		box-shadow: var(--sub-ombre-2);
+	}
+
+	.is-style-sub-carte:has(a):hover :where(.wp-block-post-featured-image, .wp-block-image) img,
+	.sub-une:hover .wp-block-post-featured-image img {
+		transform: scale(1.03);
+	}
+}
+
+/* Flèche des liens « En savoir plus → » : enveloppée par assets/js/agrements.js,
+   elle avance de 3 px au survol. */
+.sub-fleche {
+	display: inline-block;
+	transition: transform 200ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	a:hover .sub-fleche,
+	a:focus-visible .sub-fleche {
+		transform: translateX(3px);
+	}
+}
+
+/* Changement d'apparence : fondu des couleurs pendant 300 ms, au lieu d'une
+   bascule sèche. La classe n'est posée que le temps de la transition
+   (assets/js/apparence.js) : le reste du temps, aucune transition globale
+   ne ralentit la page. */
+html.sub-fondu-apparence *,
+html.sub-fondu-apparence *::before,
+html.sub-fondu-apparence *::after {
+	transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, fill 300ms ease, box-shadow 300ms ease !important;
+}

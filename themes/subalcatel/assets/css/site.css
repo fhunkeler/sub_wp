@@ -1234,15 +1234,20 @@ label {
 }
 
 /* Infos pratiques sous les boutons : pastille d'icône + texte. */
+/* L'icône est posée en absolu, et non en élément flexible : le texte peut
+   alors contenir du gras (« <strong>Piscine</strong> de novembre… ») sans
+   que chaque morceau devienne une colonne. */
 .sub-info {
-	display: flex;
-	align-items: center;
-	gap: 8px;
+	position: relative;
+	margin: 0;
+	padding-left: 30px;
 }
 
 .sub-info::before {
 	content: "";
-	flex: none;
+	position: absolute;
+	left: 0;
+	top: 0.15em;
 	width: 20px;
 	height: 20px;
 	background: var(--sub-lavande);

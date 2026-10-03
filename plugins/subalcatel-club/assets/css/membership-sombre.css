@@ -437,12 +437,36 @@
 	color: #bdd3ef;
 }
 
-:root[data-theme="dark"] .sub-shortcuts {
-	border-top: 1px solid #394551;
+:root[data-theme="dark"] .sub-dash-head__hello {
+	color: #bdd3ef;
 }
 
-:root[data-theme="dark"] .sub-shortcuts a {
+:root[data-theme="dark"] .sub-pill--alerte {
+	background: #2a1110;
+	color: #ecb2a6;
+}
+
+:root[data-theme="dark"] .sub-shortcuts__item {
+	border: 1px solid #394551;
+	background: #152233;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-shortcuts__item:hover {
 	color: #a0cdeb;
+}
+
+:root[data-theme="dark"] .sub-dash-card {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-dash-card__title {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-dash-card .sub-actions__item {
+	border-left: 4px solid #394551;
 }
 
 :root[data-theme="dark"] .sub-steps__step {

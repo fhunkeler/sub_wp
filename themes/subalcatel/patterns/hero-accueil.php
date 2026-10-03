@@ -28,12 +28,22 @@ $subalcatel_logo = esc_url( get_theme_file_uri( 'assets/img/logo-accueil.png' ) 
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":1,"fontSize":"display"} -->
-<h1 class="wp-block-heading has-display-font-size">Explorer le monde sous-marin, <mark style="background-color:rgba(0, 0, 0, 0)" class="has-inline-color has-lavande-color">ensemble.</mark></h1>
+<h1 class="wp-block-heading has-display-font-size">Plongeons <mark style="background-color:rgba(0, 0, 0, 0)" class="has-inline-color has-lavande-color">ensemble.</mark></h1>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"textColor":"ardoise","fontSize":"moyen","style":{"typography":{"lineHeight":"1.55"}}} -->
-<p class="has-ardoise-color has-text-color has-moyen-font-size" style="line-height:1.55">Sub Alcatel est un club géré par ses adhérents. Piscine l'hiver, sorties en mer d'avril à octobre, formations du niveau 1 au niveau 4 : débutant ou confirmé, on vous forme et on vous emmène.</p>
+<p class="has-ardoise-color has-text-color has-moyen-font-size" style="line-height:1.55">Un club géré par ses adhérents, à Lannion. Débutant ou confirmé, du baptême au niveau 4 : on vous forme et on vous emmène.</p>
 <!-- /wp:paragraph -->
+
+<!-- wp:group {"style":{"spacing":{"blockGap":"10px"}},"textColor":"abysse","fontSize":"corps","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-group has-abysse-color has-text-color has-corps-font-size"><!-- wp:paragraph {"className":"sub-info sub-info--horaire"} -->
+<p class="sub-info sub-info--horaire"><strong>Piscine</strong> de novembre à mars, le mercredi</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph {"className":"sub-info sub-info--lieu"} -->
+<p class="sub-info sub-info--lieu"><strong>Mer</strong> d'avril à octobre, le mercredi et le dimanche</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->
 
 <!-- wp:buttons {"style":{"spacing":{"margin":{"top":"var:preset|spacing|20"},"blockGap":"12px"}}} -->
 <div class="wp-block-buttons" style="margin-top:var(--wp--preset--spacing--20)"><!-- wp:button -->
@@ -43,17 +53,7 @@ $subalcatel_logo = esc_url( get_theme_file_uri( 'assets/img/logo-accueil.png' ) 
 <!-- wp:button {"backgroundColor":"blanc","textColor":"abysse","className":"is-style-outline","style":{"border":{"width":"2px","color":"#142F52"}}} -->
 <div class="wp-block-button is-style-outline"><a class="wp-block-button__link has-abysse-color has-blanc-background-color has-text-color has-background has-border-color wp-element-button" style="border-color:#142F52;border-width:2px" href="/nous-rejoindre/bapteme/">Essayer : le baptême découverte</a></div>
 <!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|30","margin":{"top":"var:preset|spacing|10"}}},"textColor":"ardoise","fontSize":"petit","layout":{"type":"flex","flexWrap":"wrap"}} -->
-<div class="wp-block-group has-ardoise-color has-text-color has-petit-font-size" style="margin-top:var(--wp--preset--spacing--10)"><!-- wp:paragraph {"className":"sub-info sub-info--horaire"} -->
-<p class="sub-info sub-info--horaire">Piscine de novembre à mars : le mercredi</p>
-<!-- /wp:paragraph -->
-
-<!-- wp:paragraph {"className":"sub-info sub-info--lieu"} -->
-<p class="sub-info sub-info--lieu">Mer d'avril à octobre : le mercredi et le dimanche</p>
-<!-- /wp:paragraph --></div>
-<!-- /wp:group --></div>
+<!-- /wp:buttons --></div>
 <!-- /wp:column -->
 
 <!-- wp:column {"verticalAlignment":"center","width":"45%"} -->

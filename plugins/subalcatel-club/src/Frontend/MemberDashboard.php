@@ -69,26 +69,56 @@ final class MemberDashboard
                 . 'peut être réexaminée.</p></div>';
         }
 
+        $actions = self::collectActions($userId);
+        $urgent  = array_filter($actions, static fn (array $a): bool => $a['level'] === 'urgent') !== [];
+        $level   = DiveLevels::forUser($userId);
+        $active  = (new EligibilityPolicy())->hasActiveMembership($userId)->allowed;
+
         ob_start();
         ?>
-        <div class="sub-dashboard">
+        <div class="sub-dashboard alignwide">
             <?php echo Notice::fromQuery(); // déjà échappé ?>
 
-            <p class="sub-dashboard__greeting">
-                Bonjour <?php echo esc_html($user->first_name ?: $user->display_name); ?>.
-                <?php
-                $level = DiveLevels::forUser($userId);
-                if ($level !== null) {
-                    printf('Niveau %s.', esc_html($level->name));
-                }
-                ?>
-            </p>
+            <header class="sub-dash-head">
+                <p class="sub-dash-head__hello">
+                    Bonjour <?php echo esc_html($user->first_name ?: $user->display_name); ?>
+                </p>
+                <p class="sub-dash-head__meta">
+                    <?php if ($level !== null) : ?>
+                        <span class="sub-pill"><?php echo esc_html(sprintf('Niveau %s', $level->name)); ?></span>
+                    <?php endif; ?>
+                    <?php if ($active) : ?>
+                        <span class="sub-pill sub-pill--ok">Adhésion à jour</span>
+                    <?php else : ?>
+                        <span class="sub-pill sub-pill--alerte">Adhésion à régulariser</span>
+                    <?php endif; ?>
+                </p>
+            </header>
 
-            <?php self::renderOutings($userId); ?>
-            <?php self::renderActions($userId); ?>
-            <?php self::renderOrganiser($userId); ?>
-            <?php self::renderOffice(); ?>
             <?php self::renderShortcuts(); ?>
+
+            <div class="sub-dash-grid">
+                <div class="sub-dash-main">
+                    <?php
+                    // Une action bloquante (adhésion, certificat) passe devant les
+                    // sorties : sans elle, le bouton « S'inscrire » ne mène nulle
+                    // part. Sinon, on vient d'abord ici pour plonger.
+                    if ($urgent) {
+                        self::renderActions($actions);
+                        self::renderOutings($userId);
+                    } else {
+                        self::renderOutings($userId);
+                        self::renderActions($actions);
+                    }
+                    ?>
+                </div>
+
+                <aside class="sub-dash-side" aria-label="Autres rubriques">
+                    <?php self::renderOrganiser($userId); ?>
+                    <?php self::renderOffice(); ?>
+                    <?php self::renderAppearance(); ?>
+                </aside>
+            </div>
         </div>
         <?php
 
@@ -96,12 +126,34 @@ final class MemberDashboard
     }
 
     /**
+     * Réglage d'apparence (Système / Clair / Sombre), fourni par le thème.
+     *
+     * Sur un téléphone, l'en-tête n'a pas la place de la bascule : sans cette
+     * carte, le réglage n'existait qu'au pied de chaque page, où personne ne le
+     * cherche. Le bloc appartient au thème ; sans lui, la carte disparaît.
+     */
+    private static function renderAppearance(): void
+    {
+        if (!\WP_Block_Type_Registry::get_instance()->is_registered('subalcatel/apparence')) {
+            return;
+        }
+        ?>
+        <section class="sub-dash-card sub-dash-card--apparence">
+            <h2 class="sub-dash-card__title">Affichage</h2>
+            <p class="sub-help">Apparence du site sur cet appareil.</p>
+            <?php echo do_blocks('<!-- wp:subalcatel/apparence /-->'); // rendu du bloc, échappé par le thème ?>
+        </section>
+        <?php
+    }
+
+    /**
      * Ce qui demande une action, et rien d'autre.
      */
-    private static function renderActions(int $userId): void
+    /**
+     * @param list<array{level: string, title: string, detail: string, action: string, url: string}> $actions
+     */
+    private static function renderActions(array $actions): void
     {
-        $actions = self::collectActions($userId);
-
         if ($actions === []) {
             ?>
             <div class="sub-card-ok">
@@ -113,8 +165,8 @@ final class MemberDashboard
             return;
         }
         ?>
-        <section class="sub-actions">
-            <h2 class="sub-actions__title">
+        <section class="sub-dash-card sub-actions">
+            <h2 class="sub-dash-card__title">
                 <?php echo count($actions) === 1 ? 'Une chose à faire' : 'À faire'; ?>
             </h2>
 
@@ -235,8 +287,8 @@ final class MemberDashboard
         $shown    = array_slice($upcoming, 0, self::OUTINGS_SHOWN);
         $agenda   = Pages::url(Pages::AGENDA);
         ?>
-        <section class="sub-block sub-outings">
-            <h2 class="sub-block__title">Sorties prévues</h2>
+        <section class="sub-dash-card sub-outings">
+            <h2 class="sub-dash-card__title">Sorties prévues</h2>
 
             <?php if ($shown === []) : ?>
                 <p class="sub-help">
@@ -312,8 +364,8 @@ final class MemberDashboard
             return;
         }
         ?>
-        <section class="sub-block">
-            <h2 class="sub-block__title">Vous encadrez</h2>
+        <section class="sub-dash-card">
+            <h2 class="sub-dash-card__title">Vous encadrez</h2>
 
             <?php if ($mayCreate) : ?>
                 <p class="sub-help">
@@ -324,7 +376,7 @@ final class MemberDashboard
 
             <p class="sub-organiser__links">
                 <?php if ($mayCreate) : ?>
-                    <a class="sub-button sub-button--small" href="<?php echo esc_url(Pages::url(Pages::NEW_OUTING)); ?>">
+                    <a class="sub-button sub-button--small sub-button--ghost" href="<?php echo esc_url(Pages::url(Pages::NEW_OUTING)); ?>">
                         Organiser une sortie
                     </a>
                 <?php endif; ?>
@@ -359,8 +411,8 @@ final class MemberDashboard
             return;
         }
         ?>
-        <section class="sub-block">
-            <h2 class="sub-block__title">Vous êtes au bureau</h2>
+        <section class="sub-dash-card">
+            <h2 class="sub-dash-card__title">Vous êtes au bureau</h2>
 
             <p class="sub-help">
                 Dossiers d’adhésion, annuaire, événements, exports : la gestion du club
@@ -369,7 +421,7 @@ final class MemberDashboard
             </p>
 
             <p class="sub-block__links">
-                <a class="sub-button sub-button--small"
+                <a class="sub-button sub-button--small sub-button--ghost"
                    href="<?php echo esc_url(admin_url('admin.php?page=' . ClubMenu::SLUG)); ?>">
                     Administration du club
                 </a>
@@ -437,21 +489,27 @@ final class MemberDashboard
             : sprintf('<a href="%s">%s</a>', esc_url($url), esc_html($label));
     }
 
+    /**
+     * Les rubriques de l'espace, en tête et en tuiles : c'est la navigation de
+     * l'espace membre. Reléguées en liens au pied du tableau de bord, elles
+     * passaient pour une note de bas de page.
+     */
     private static function renderShortcuts(): void
     {
         $links = [
-            Pages::AGENDA        => 'Agenda du club',
-            Pages::MEMBERSHIP    => 'Mon adhésion',
-            Pages::REGISTRATIONS => 'Mes inscriptions',
-            Pages::MY_DOCUMENTS  => 'Mes documents',
-            Pages::PROFILE       => 'Mon profil',
+            Pages::AGENDA        => ['Agenda du club', 'agenda'],
+            Pages::MEMBERSHIP    => ['Mon adhésion', 'adhesion'],
+            Pages::REGISTRATIONS => ['Mes inscriptions', 'inscriptions'],
+            Pages::MY_DOCUMENTS  => ['Mes documents', 'documents'],
+            Pages::PROFILE       => ['Mon profil', 'profil'],
         ];
         ?>
-        <nav class="sub-shortcuts" aria-label="Raccourcis">
-            <?php foreach ($links as $slug => $label) : ?>
+        <nav class="sub-shortcuts" aria-label="Rubriques de l’espace membre">
+            <?php foreach ($links as $slug => [$label, $icon]) : ?>
                 <?php $url = Pages::url($slug); ?>
                 <?php if ($url !== '') : ?>
-                    <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
+                    <a class="sub-shortcuts__item sub-shortcuts__item--<?php echo esc_attr($icon); ?>"
+                       href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
                 <?php endif; ?>
             <?php endforeach; ?>
         </nav>

@@ -133,7 +133,7 @@ function subalcatel_render_account_block( array $attributes ): string {
 	$initales = subalcatel_initials( $user->first_name, $user->last_name, $user->display_name );
 
 	return sprintf(
-		'<div %1$s><a class="sub-compte__lien" href="%2$s"><span class="sub-avatar" aria-hidden="true">%3$s</span><span class="sub-compte__nom">%4$s</span></a><a class="sub-btn sub-btn--fantome sub-btn--sm sub-btn--deconnexion" href="%5$s"><span class="sub-btn__libelle">%6$s</span></a></div>',
+		'<div %1$s><a class="sub-compte__lien" href="%2$s" title="%4$s — mon espace"><span class="sub-avatar" aria-hidden="true">%3$s</span><span class="sub-compte__nom">%4$s</span></a><a class="sub-btn sub-btn--fantome sub-btn--sm sub-btn--deconnexion" href="%5$s" title="%6$s"><span class="sub-btn__libelle">%6$s</span></a></div>',
 		$wrapper,
 		esc_url( $attributes['urlEspace'] ),
 		esc_html( $initales ),

@@ -2001,3 +2001,104 @@ html.sub-fondu-apparence *::before,
 html.sub-fondu-apparence *::after {
 	transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, fill 300ms ease, box-shadow 300ms ease !important;
 }
+
+/* ------------------------------------------------------------------
+   24. Accueil animé (démonstration)
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+
+	/* 2. Apparition du bandeau : surtitre, titre, texte, infos, boutons
+	   arrivent l'un après l'autre (fondu + 12 px), une seule fois. */
+	@keyframes sub-apparition {
+		from {
+			opacity: 0;
+			transform: translateY(12px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes sub-apparition-logo {
+		from {
+			opacity: 0;
+			transform: scale(0.96);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > * {
+		animation: sub-apparition 500ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+	}
+
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(2) { animation-delay: 70ms; }
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(3) { animation-delay: 140ms; }
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(4) { animation-delay: 210ms; }
+	.sub-hero--clair .wp-block-column:not(:has(.sub-hero__logo)) > :nth-child(5) { animation-delay: 280ms; }
+
+	.sub-hero__logo {
+		animation: sub-apparition-logo 700ms cubic-bezier(0.22, 0.61, 0.36, 1) 100ms both;
+	}
+
+	/* 1. Bulles du logo : deux petites bulles montent de la colonne de bulles
+	   du dessin, en boucle lente et décalée. */
+	@keyframes sub-bulle {
+		0% {
+			opacity: 0;
+			transform: translate(0, 0) scale(0.6);
+		}
+		15% {
+			opacity: 0.9;
+		}
+		50% {
+			transform: translate(4px, -40px) scale(1);
+		}
+		85% {
+			opacity: 0.6;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-2px, -80px) scale(1.05);
+		}
+	}
+
+	/* La figure épouse l'image : les bulles se placent en % du dessin. */
+	.sub-hero__logo {
+		position: relative;
+		width: fit-content;
+		max-width: 100%;
+		margin-inline: auto;
+	}
+
+	.sub-hero__logo img {
+		width: 480px;
+	}
+
+	.sub-hero__logo::before,
+	.sub-hero__logo::after {
+		content: "";
+		position: absolute;
+		z-index: 1;
+		left: 30%;
+		top: 24%;
+		width: 11px;
+		height: 11px;
+		border-radius: 50%;
+		background: radial-gradient(circle at 35% 35%, #ffffff 0 25%, rgba(158, 214, 238, 0.75) 26% 60%, rgba(100, 187, 220, 0.9) 61% 100%);
+		box-shadow: 0 0 0 1px rgba(20, 47, 82, 0.35);
+		pointer-events: none;
+		animation: sub-bulle 7s ease-in-out infinite;
+	}
+
+	.sub-hero__logo::after {
+		left: 27%;
+		width: 7px;
+		height: 7px;
+		animation-delay: 3.5s;
+		animation-duration: 8s;
+	}
+}

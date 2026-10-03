@@ -100,7 +100,7 @@ subalcatel/
 
 Chaque visiteur choisit l'apparence : **Système** (par défaut, suit le réglage de l'appareil), **Clair** ou **Sombre**. Le choix est gardé dans le navigateur (`localStorage`, clé `sub-apparence`) ; rien n'est stocké côté serveur.
 
-- Sélecteur : bloc `subalcatel/apparence` — bouton rond dans l'en-tête (à partir de 600 px), trois boutons libellés dans le pied de page.
+- Sélecteur : bloc `subalcatel/apparence` — trois boutons libellés dans le pied de page, et la carte « Affichage » de l'espace membre. (La variante `compact`, bouton rond, existe toujours mais n'est plus posée dans l'en-tête.)
 - `inc/apparence.php` imprime en tête de page le script qui pose `data-theme="dark|light"` sur `<html>` avant l'affichage (pas de flash clair).
 - Feuilles : `assets/css/sombre-site.css` est **générée** depuis `site.css` ; `assets/css/sombre.css` est écrite à la main (page, titres, liens, classes de couleur de l'éditeur, retouches). L'extension a sa propre feuille générée, `plugins/subalcatel-club/assets/css/membership-sombre.css`.
 - **Après toute modification de `site.css` ou de `membership.css`, régénérer :**

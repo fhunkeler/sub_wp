@@ -242,3 +242,18 @@
 :root[data-theme="dark"] .sub-apparence-bascule:hover {
 	border-color: #94b3db;
 }
+
+:root[data-theme="dark"] .wp-block-buttons > .wp-block-button + .wp-block-button:not(.is-style-outline) > .wp-block-button__link:not(.has-background) {
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .wp-block-categories-list a {
+	border: 1px solid #343e4b;
+	background: #152233;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .wp-block-categories-list a:hover,
+:root[data-theme="dark"] .wp-block-categories-list .current-cat > a {
+	background: #121422;
+}

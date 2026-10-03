@@ -20,8 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 function subalcatel_asset_version( string $relative ): string {
 	$path = SUBALCATEL_DIR . '/' . ltrim( $relative, '/' );
 
-	if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) && file_exists( $path ) ) {
-		return (string) filemtime( $path );
+	// Version du thème ET date du fichier : un correctif de feuille de style
+	// change l'adresse tout de suite, sans attendre la publication suivante —
+	// sinon les navigateurs resservent leur copie en cache.
+	if ( file_exists( $path ) ) {
+		return SUBALCATEL_VERSION . '-' . filemtime( $path );
 	}
 
 	return SUBALCATEL_VERSION;

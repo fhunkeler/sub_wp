@@ -249,8 +249,9 @@ final class SiteMap
                 'title'      => 'Nous rejoindre',
                 'visibility' => Visibility::PUBLIC_ACCESS,
                 'menu'       => self::MENU_MAIN,
-                'content'    => self::heading('Pourquoi nous rejoindre')
-                    . self::paragraph(
+                // Pas de sous-titre « Pourquoi nous rejoindre » : il répétait le
+                // titre de la page, juste au-dessus.
+                'content'    => self::paragraph(
                         'Le club accueille les débutants comme les plongeurs confirmés. '
                         . 'L’adhésion donne accès aux créneaux piscine, aux sorties en mer, '
                         . 'aux formations et au prêt de matériel.'

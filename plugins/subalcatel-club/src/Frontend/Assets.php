@@ -50,6 +50,32 @@ final class Assets
     public static function register(): void
     {
         add_action('wp_enqueue_scripts', [self::class, 'enqueue']);
+        add_filter('style_loader_src', [self::class, 'versionFromFile'], 10, 2);
+    }
+
+    /**
+     * Version des feuilles du club tirée de la date du fichier.
+     *
+     * Une dizaine d'écrans enqueuent membership.css avec la version de
+     * l'extension ; tant qu'elle ne change pas, les navigateurs gardent leur
+     * copie, même après une modification de la feuille — un correctif CSS
+     * restait invisible jusqu'à la publication suivante. La date du fichier
+     * change à chaque modification : l'adresse aussi.
+     */
+    public static function versionFromFile(string $src, string $handle): string
+    {
+        if (!in_array($handle, ['subalcatel-membership', 'subalcatel-membership-sombre'], true)) {
+            return $src;
+        }
+
+        $file = \Subalcatel\Club\PLUGIN_DIR . 'assets/css/'
+            . ($handle === 'subalcatel-membership' ? 'membership.css' : 'membership-sombre.css');
+
+        if (!is_readable($file)) {
+            return $src;
+        }
+
+        return add_query_arg('ver', \Subalcatel\Club\VERSION . '-' . filemtime($file), $src);
     }
 
     public static function enqueue(): void

@@ -150,9 +150,7 @@ html {
 .sub-header .wp-block-navigation a {
 	color: var(--sub-abysse);
 	text-decoration: none;
-	/* 10 px et non 13 : depuis l'ajout de la bascule d'apparence, c'est ce
-	   qui permet à l'en-tête de tenir sur une ligne dans ses 1 200 px. */
-	padding: 9px 10px;
+	padding: 9px 13px;
 	border-radius: var(--sub-r-pastille);
 }
 
@@ -1808,17 +1806,6 @@ label {
 	}
 }
 
-/* Au-delà de 1 248 px, une seule ligne : logo, navigation, outils. Les
-   gouttières passent de 24 à 16 px pour y loger la bascule d'apparence. */
-@media (min-width: 1248px) {
-	.sub-header > .wp-block-group {
-		column-gap: 16px;
-	}
-
-	.sub-header__outils {
-		gap: 8px;
-	}
-}
 
 /* Connecté, à toutes les tailles : avatar et icône de déconnexion, sans le
    prénom ni le mot « Déconnexion » (lus par les lecteurs d'écran). Avec

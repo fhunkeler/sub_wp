@@ -1475,11 +1475,19 @@
 
 .sub-pill--alerte { background: #fdeceb; color: #8a2b17; }
 
+/* Flex plutôt qu'une grille `auto-fit` : celle-ci crée des pistes vides
+   dont les gouttières, selon le navigateur, ne se replient pas — la rangée
+   s'arrêtait alors une dizaine de pixels avant le bord des cartes dessous.
+   Ici les tuiles s'étirent toujours jusqu'au bord. */
 .sub-shortcuts {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	display: flex;
+	flex-wrap: wrap;
 	gap: 12px;
 	margin-bottom: 28px;
+}
+
+.sub-shortcuts__item {
+	flex: 1 1 150px;
 }
 
 .sub-shortcuts__item {
@@ -1536,6 +1544,28 @@
 	display: grid;
 	gap: 20px;
 	align-content: start;
+}
+
+/* Le contenu d'une colonne ne doit jamais l'élargir : le sélecteur
+   d'apparence (283 px + marges de la carte) débordait des 320 px de la
+   colonne de droite, et toutes ses cartes avec lui, d'une dizaine de pixels
+   au-delà du bord des tuiles du dessus. */
+.sub-dash-main,
+.sub-dash-side,
+.sub-dash-card {
+	min-width: 0;
+}
+
+.sub-dash-card .sub-apparence {
+	display: flex;
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.sub-dash-card .sub-apparence__choix {
+	flex: 1 1 0;
+	justify-content: center;
+	padding: 0 6px;
 }
 
 .sub-dash-card {

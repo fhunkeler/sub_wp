@@ -41,7 +41,23 @@
 		} );
 	}
 
+	var minuteurFondu;
+
+	// Fondu des couleurs le temps du changement (site.css, section 23) ;
+	// rien si le système demande moins d'animation.
+	function fondu() {
+		if ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) {
+			return;
+		}
+		racine.classList.add( 'sub-fondu-apparence' );
+		window.clearTimeout( minuteurFondu );
+		minuteurFondu = window.setTimeout( function () {
+			racine.classList.remove( 'sub-fondu-apparence' );
+		}, 350 );
+	}
+
 	function choisir( choix ) {
+		fondu();
 		try {
 			if ( choix === 'systeme' ) {
 				window.localStorage.removeItem( CLE );

@@ -50,6 +50,17 @@ function subalcatel_apparence_assets(): void {
 	);
 
 	wp_enqueue_script(
+		'subalcatel-agrements',
+		SUBALCATEL_URI . '/assets/js/agrements.js',
+		array(),
+		subalcatel_asset_version( 'assets/js/agrements.js' ),
+		array(
+			'in_footer' => true,
+			'strategy'  => 'defer',
+		)
+	);
+
+	wp_enqueue_script(
 		'subalcatel-apparence',
 		SUBALCATEL_URI . '/assets/js/apparence.js',
 		array(),

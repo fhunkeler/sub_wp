@@ -2092,3 +2092,32 @@ html.sub-fondu-apparence *::after {
 		display: none;
 	}
 }
+
+/* Entrées à sous-menu (« Le club ⌄ ») : le survol colorait le lien seul, et
+   la flèche restait hors de la pastille, décentrée. C'est désormais
+   l'entrée entière — libellé et flèche — qui prend la pastille. */
+@media (min-width: 600px) {
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child {
+		/* 5 px + les 7,5 px du bouton : la flèche est à 13 px du bord droit,
+		   comme le libellé du bord gauche. */
+		padding-right: 5px;
+		border-radius: var(--sub-r-pastille);
+		transition: background-color 150ms ease;
+	}
+
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child > .wp-block-navigation-item__content,
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child > .wp-block-navigation-item__content:hover {
+		background: transparent;
+	}
+
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child:hover,
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child:focus-within {
+		background: rgba(20, 47, 82, 0.07);
+	}
+
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child.current-menu-ancestor,
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child.current_page_ancestor,
+	.sub-header .wp-block-navigation .wp-block-navigation-item.has-child.current-menu-item {
+		background: var(--sub-lavande-pale);
+	}
+}

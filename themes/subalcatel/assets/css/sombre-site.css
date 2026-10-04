@@ -257,3 +257,15 @@
 :root[data-theme="dark"] .wp-block-categories-list .current-cat > a {
 	background: #121422;
 }
+
+@media (min-width: 600px) {
+	:root[data-theme="dark"] .sub-header .wp-block-navigation .wp-block-navigation-item.has-child:hover,
+	:root[data-theme="dark"] .sub-header .wp-block-navigation .wp-block-navigation-item.has-child:focus-within {
+		background: rgba(255, 255, 255, 0.07);
+	}
+	:root[data-theme="dark"] .sub-header .wp-block-navigation .wp-block-navigation-item.has-child.current-menu-ancestor,
+	:root[data-theme="dark"] .sub-header .wp-block-navigation .wp-block-navigation-item.has-child.current_page_ancestor,
+	:root[data-theme="dark"] .sub-header .wp-block-navigation .wp-block-navigation-item.has-child.current-menu-item {
+		background: #121422;
+	}
+}

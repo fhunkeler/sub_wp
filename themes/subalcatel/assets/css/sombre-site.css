@@ -269,8 +269,3 @@
 		background: #121422;
 	}
 }
-
-:root[data-theme="dark"] .is-style-sub-carte:has(a):hover h3,
-:root[data-theme="dark"] .is-style-sub-carte:has(a:focus-visible) h3 {
-	color: #a0cdeb;
-}

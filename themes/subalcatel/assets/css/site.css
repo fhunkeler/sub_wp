@@ -1965,16 +1965,26 @@ label {
 	transition: transform 400ms ease;
 }
 
+/* Au survol, la carte ne se soulève plus : son ombre devient un reflet bleu
+   marine (le choix « 2 + 4 + 5 » de la maquette des effets). Cette ombre ne
+   bouge rien, elle reste donc même quand les animations sont réduites. */
+.is-style-sub-carte:has(a):hover,
+.sub-une:hover {
+	box-shadow: 0 0 0 1px rgba(46, 143, 192, 0.35), 0 18px 34px -14px rgba(29, 84, 128, 0.55);
+}
+
+/* La photo ne zoome plus : légèrement agrandie au repos, elle remonte de
+   quelques pixels au survol, comme un plongeur qui remonte. */
 @media (prefers-reduced-motion: no-preference) {
-	.is-style-sub-carte:has(a):hover,
-	.sub-une:hover {
-		transform: translateY(-3px);
-		box-shadow: var(--sub-ombre-2);
+	.is-style-sub-carte:has(a) :where(.wp-block-post-featured-image, .wp-block-image) img,
+	.sub-une .wp-block-post-featured-image img {
+		transform: scale(1.08) translateY(2.5%);
+		transition: transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
 	}
 
 	.is-style-sub-carte:has(a):hover :where(.wp-block-post-featured-image, .wp-block-image) img,
 	.sub-une:hover .wp-block-post-featured-image img {
-		transform: scale(1.03);
+		transform: scale(1.08) translateY(-2.5%);
 	}
 }
 
@@ -2129,8 +2139,7 @@ html.sub-fondu-apparence *::after {
       l'ordre de lecture ;
    2. la photo zoomée débordait de son cadre vers le titre (le cadre ne
       rognait pas, seule la carte le faisait) ;
-   3. rien ne disait où était le lien : le titre prend la couleur des liens
-      au survol. */
+   3. rien ne disait où était le lien : un liseré se trace sous le titre. */
 .is-style-sub-carte:has(a) {
 	position: relative;
 	cursor: pointer;
@@ -2149,13 +2158,34 @@ html.sub-fondu-apparence *::after {
 	overflow: hidden;
 }
 
-.is-style-sub-carte:has(a) h3 {
-	transition: color 200ms ease;
+/* Un liseré lagon se trace sous le titre au survol : il dit où est le lien.
+   Sur le titre lui-même quand il n'est que du texte (activités), sur son
+   lien quand il en a un (articles), pour suivre les retours à la ligne. */
+.is-style-sub-carte:has(a) h3:not(:has(a)) {
+	width: fit-content;
 }
 
-.is-style-sub-carte:has(a):hover h3,
-.is-style-sub-carte:has(a:focus-visible) h3 {
-	color: var(--sub-lien);
+.is-style-sub-carte:has(a) h3:not(:has(a)),
+.is-style-sub-carte:has(a) h3 > a {
+	padding-bottom: 3px;
+	background: linear-gradient(var(--sub-lagon), var(--sub-lagon)) no-repeat 0 100% / 0% 2px;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+	transition: background-size 350ms ease;
+}
+
+.is-style-sub-carte:has(a):hover h3:not(:has(a)),
+.is-style-sub-carte:has(a):hover h3 > a,
+.is-style-sub-carte:has(a:focus-visible) h3:not(:has(a)),
+.is-style-sub-carte:has(a:focus-visible) h3 > a {
+	background-size: 100% 2px;
+}
+
+/* La flèche de « En savoir plus » avance dès que la carte est survolée. */
+@media (prefers-reduced-motion: no-preference) {
+	.is-style-sub-carte:has(a):hover .sub-fleche {
+		transform: translateX(5px);
+	}
 }
 
 /* Le cadre de focus suit la carte entière, puisque c'est elle la cible. */
@@ -2187,4 +2217,32 @@ html.sub-fondu-apparence *::after {
 .sub-header .wp-block-navigation.items-justified-right .wp-block-navigation__container > .has-child:last-child > .wp-block-navigation__submenu-container {
 	left: auto;
 	right: 0;
+}
+
+/* Atouts du club : au survol, la pastille se remplit de la couleur de son
+   icône, l'icône passe en blanc et la pastille pivote avec un petit rebond.
+   La carte, elle, ne bouge pas : elle n'a pas de lien. */
+.sub-atout::before {
+	transition: transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 200ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.sub-atout:hover::before {
+		transform: rotate(-15deg) scale(1.1);
+	}
+}
+
+.sub-atout--club:hover::before {
+	background-color: var(--sub-lavande);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Ccircle cx='17' cy='9' r='2.5'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Cpath d='M15 14.5c3 0 6 1.8 6 5.5'/%3E%3C/svg%3E");
+}
+
+.sub-atout--tous:hover::before {
+	background-color: var(--sub-corail-fonce);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0'/%3E%3Cpath d='M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0'/%3E%3Cpath d='M12 3v5'/%3E%3C/svg%3E");
+}
+
+.sub-atout--formation:hover::before {
+	background-color: var(--sub-profond);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l9 4.5-9 4.5-9-4.5z'/%3E%3Cpath d='M7 10v5c0 1.7 2.2 3 5 3s5-1.3 5-3v-5'/%3E%3C/svg%3E");
 }

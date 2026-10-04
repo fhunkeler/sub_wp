@@ -2121,3 +2121,70 @@ html.sub-fondu-apparence *::after {
 		background: var(--sub-lavande-pale);
 	}
 }
+
+/* Cartes cliquables, suite. Trois défauts du premier jet :
+   1. la carte entière se soulevait, mais seul « En savoir plus » était
+      cliquable : on visait la photo, rien ne se passait. Le lien s'étend
+      désormais à toute la carte (pseudo-élément), sans changer le HTML ni
+      l'ordre de lecture ;
+   2. la photo zoomée débordait de son cadre vers le titre (le cadre ne
+      rognait pas, seule la carte le faisait) ;
+   3. rien ne disait où était le lien : le titre prend la couleur des liens
+      au survol. */
+.is-style-sub-carte:has(a) {
+	position: relative;
+	cursor: pointer;
+}
+
+.is-style-sub-carte:has(a) :where(p, h3) a::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	border-radius: inherit;
+}
+
+.is-style-sub-carte:has(a) > .wp-block-image,
+.is-style-sub-carte:has(a) > .wp-block-post-featured-image {
+	overflow: hidden;
+}
+
+.is-style-sub-carte:has(a) h3 {
+	transition: color 200ms ease;
+}
+
+.is-style-sub-carte:has(a):hover h3,
+.is-style-sub-carte:has(a:focus-visible) h3 {
+	color: var(--sub-lien);
+}
+
+/* Le cadre de focus suit la carte entière, puisque c'est elle la cible. */
+.is-style-sub-carte:has(a:focus-visible) {
+	outline: 2px solid var(--sub-lagon);
+	outline-offset: 3px;
+}
+
+.is-style-sub-carte:has(a) a:focus-visible {
+	outline: none;
+}
+
+/* Les autres liens d'une carte (catégorie d'un article…) restent cliquables
+   au-dessus du lien étendu. */
+.is-style-sub-carte:has(a) a:not(:where(p, h3) a) {
+	position: relative;
+	z-index: 2;
+}
+
+/* Sous-menus : le bloc Navigation, justifié à droite, les ouvre tous vers la
+   gauche. Quand le menu passe sur sa propre ligne (tablette), « Le club »
+   touche le bord gauche et son sous-menu sortait de l'écran. Ils s'ouvrent
+   donc vers la droite, sauf le dernier (« Mon espace »), collé au bord droit. */
+.sub-header .wp-block-navigation.items-justified-right .wp-block-navigation__container > .has-child > .wp-block-navigation__submenu-container {
+	left: 0;
+	right: auto;
+}
+
+.sub-header .wp-block-navigation.items-justified-right .wp-block-navigation__container > .has-child:last-child > .wp-block-navigation__submenu-container {
+	left: auto;
+	right: 0;
+}

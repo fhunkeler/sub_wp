@@ -496,3 +496,93 @@ function subalcatel_excerpt_only_if_written( string $html, array $block, $instan
 	return $post_id && has_excerpt( $post_id ) ? $html : '';
 }
 add_filter( 'render_block_core/post-excerpt', 'subalcatel_excerpt_only_if_written', 10, 3 );
+
+/**
+ * Chemin normalisé d'une adresse (« /le-club/equipe/ »), ou '' si étrangère.
+ *
+ * @param string $url Adresse absolue ou relative.
+ * @return string
+ */
+function subalcatel_nav_path( string $url ): string {
+	$parts = wp_parse_url( $url );
+	if ( ! $parts ) {
+		return '';
+	}
+	if ( ! empty( $parts['host'] ) && wp_parse_url( home_url(), PHP_URL_HOST ) !== $parts['host'] ) {
+		return '';
+	}
+	return trailingslashit( '/' . ltrim( $parts['path'] ?? '', '/' ) );
+}
+
+/**
+ * Chemin de la page affichée.
+ *
+ * @return string
+ */
+function subalcatel_current_path(): string {
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '/';
+	return subalcatel_nav_path( esc_url_raw( $uri ) );
+}
+
+/**
+ * Page en cours dans la navigation.
+ *
+ * Les entrées des menus sont des liens personnalisés (« kind: custom ») : le
+ * cœur ne les rattache à aucune page et ne marque jamais la page en cours.
+ * On compare donc l'adresse du lien au chemin demandé :
+ *   - lien identique → `current-menu-item` + `aria-current="page"` ;
+ *   - sous-menu dont l'adresse préfixe le chemin (« /le-club/ » pour
+ *     « /le-club/equipe/ ») → `current-menu-ancestor`.
+ * L'accueil (« / ») ne vaut que pour lui-même.
+ *
+ * @param string $html  Rendu du bloc.
+ * @param array  $block Bloc analysé.
+ * @return string
+ */
+function subalcatel_nav_current( string $html, array $block ): string {
+	$url = (string) ( $block['attrs']['url'] ?? '' );
+	if ( '' === $url || '' === $html ) {
+		return $html;
+	}
+
+	$lien    = subalcatel_nav_path( $url );
+	$courant = subalcatel_current_path();
+	if ( '' === $lien ) {
+		return $html;
+	}
+
+	$exact   = $lien === $courant;
+	$ancetre = ! $exact && '/' !== $lien && str_starts_with( $courant, $lien );
+
+	if ( 'core/navigation-submenu' === $block['blockName'] ) {
+		if ( ! $exact && ! $ancetre ) {
+			return $html;
+		}
+		// Si un sous-lien pointe déjà sur la page, c'est lui qui porte aria-current.
+		if ( $exact && str_contains( $html, 'aria-current="page"' ) ) {
+			$exact = false;
+		}
+		$p = new WP_HTML_Tag_Processor( $html );
+		if ( $p->next_tag( 'li' ) ) {
+			$p->add_class( $exact ? 'current-menu-item' : 'current-menu-ancestor' );
+		}
+		if ( $exact && $p->next_tag( 'a' ) ) {
+			$p->set_attribute( 'aria-current', 'page' );
+		}
+		return $p->get_updated_html();
+	}
+
+	if ( ! $exact ) {
+		return $html;
+	}
+	$p = new WP_HTML_Tag_Processor( $html );
+	if ( $p->next_tag( 'li' ) ) {
+		$p->add_class( 'current-menu-item' );
+	}
+	if ( $p->next_tag( 'a' ) ) {
+		$p->set_attribute( 'aria-current', 'page' );
+	}
+	return $p->get_updated_html();
+}
+add_filter( 'render_block_core/navigation-link', 'subalcatel_nav_current', 10, 2 );
+add_filter( 'render_block_core/navigation-submenu', 'subalcatel_nav_current', 10, 2 );

@@ -23,6 +23,7 @@ use Subalcatel\Club\Admin\MailingListsScreen;
 use Subalcatel\Club\Communication\Subscriptions;
 use Subalcatel\Club\Content\ClubDocuments;
 use Subalcatel\Club\Content\DocumentDelivery;
+use Subalcatel\Club\Content\SearchIndexing;
 use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Documents\DocumentTypes;
@@ -176,6 +177,7 @@ final class Plugin
         IcalFeed::register();
         DocumentDelivery::register();
         Visibility::register();
+        SearchIndexing::register();
         Subscriptions::register();
         PersonalData::register();
         AccountDeletion::register();

@@ -12,12 +12,19 @@
 
 use Subalcatel\Club\Content\SearchIndexing;
 use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Setup\SiteBuilder;
 
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {
     $failures += $ok ? 0 : 1;
     printf("%s  %-58s %s\n", $ok ? ' OK ' : 'FAIL', $label, $note !== '' ? "→ {$note}" : '');
 };
+
+// Les suites tournent par ordre alphabétique sur une base neuve : celle-ci
+// passe avant smoke-site, qui installe l'arborescence. Sans pages, chaque
+// contrôle d'absence serait vrai pour une mauvaise raison.
+SiteBuilder::run();
+Pages::forget();
 
 $hidden = [Pages::LOGIN, Pages::SIGNUP, 'cookies', 'plan-du-site'];
 $shown  = [Pages::HOME, Pages::CONTACT, Pages::PRICING, 'mentions-legales'];
@@ -48,7 +55,7 @@ $provider = wp_sitemaps_get_server()->registry->get_provider('posts');
 $urls     = array_column($provider->get_url_list(1, 'page'), 'loc');
 
 foreach ($hidden as $key) {
-    $check("absente du sitemap : {$key}", !in_array(Pages::url($key), $urls, true));
+    $check("absente du sitemap : {$key}", Pages::id($key) > 0 && !in_array(Pages::url($key), $urls, true));
 }
 
 foreach ($shown as $key) {

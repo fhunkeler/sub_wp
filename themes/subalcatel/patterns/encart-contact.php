@@ -34,22 +34,6 @@
 <!-- wp:paragraph {"fontSize":"micro","textColor":"ardoise"} -->
 <p class="has-ardoise-color has-text-color has-micro-font-size">Adresses de fonction, jamais l'adresse personnelle d'un membre du bureau : elles survivent aux changements d'équipe.</p>
 <!-- /wp:paragraph --></div>
-<!-- /wp:column -->
-
-<!-- wp:column -->
-<div class="wp-block-column"><!-- wp:heading {"level":3} -->
-<h3 class="wp-block-heading">Venir plonger</h3>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph {"fontSize":"petit"} -->
-<p class="has-petit-font-size">Vous souhaitez essayer avant de vous engager ? Le club organise des baptêmes en piscine plusieurs fois par saison.</p>
-<!-- /wp:paragraph -->
-
-<!-- wp:buttons -->
-<div class="wp-block-buttons"><!-- wp:button {"width":100} -->
-<div class="wp-block-button has-custom-width wp-block-button__width-100"><a class="wp-block-button__link wp-element-button" href="/nous-rejoindre/bapteme/">Demander un baptême</a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons --></div>
 <!-- /wp:column --></div>
 <!-- /wp:columns --></div>
 <!-- /wp:group -->

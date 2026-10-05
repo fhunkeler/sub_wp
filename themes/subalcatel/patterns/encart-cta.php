@@ -31,10 +31,6 @@
 <div class="wp-block-column is-vertically-aligned-center" style="flex-basis:38%"><!-- wp:buttons {"layout":{"type":"flex","justifyContent":"right","orientation":"horizontal"},"style":{"spacing":{"blockGap":"12px"}}} -->
 <div class="wp-block-buttons"><!-- wp:button -->
 <div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="/nous-rejoindre/adherer/">Adhérer maintenant</a></div>
-<!-- /wp:button -->
-
-<!-- wp:button {"backgroundColor":"blanc","textColor":"abysse"} -->
-<div class="wp-block-button"><a class="wp-block-button__link has-abysse-color has-blanc-background-color has-text-color has-background wp-element-button" href="/nous-rejoindre/bapteme/">Faire un baptême</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons --></div>
 <!-- /wp:column --></div>

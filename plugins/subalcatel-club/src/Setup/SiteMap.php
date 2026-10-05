@@ -114,34 +114,6 @@ final class SiteMap
                     . self::heading('L’encadrement', 3)
                     . self::note('À compléter : encadrants, niveau, spécialités.'),
             ],
-            [
-                'key'        => 'le-club/installations',
-                'title'      => 'Nos installations',
-                'parent'     => 'le-club',
-                'visibility' => Visibility::PUBLIC_ACCESS,
-                'menu'       => self::MENU_MAIN,
-                'content'    => self::heading('La piscine')
-                    . self::note('À compléter : adresse, créneaux horaires, plan d’accès.')
-                    . self::heading('Le compresseur et le local matériel', 3)
-                    . self::note('À compléter : localisation, conditions et horaires d’accès.')
-                    . self::heading('Le bateau', 3)
-                    . self::note('À compléter : nom, capacité, port d’attache.'),
-            ],
-            [
-                'key'        => 'le-club/partenaires',
-                'title'      => 'Partenaires et liens',
-                'parent'     => 'le-club',
-                'visibility' => Visibility::PUBLIC_ACCESS,
-                'menu'       => self::MENU_MAIN,
-                'content'    => self::paragraph('Les structures avec lesquelles le club travaille.')
-                    . self::bullets([
-                        'FFESSM — Fédération française d’études et de sports sous-marins',
-                        'CODEP — Comité départemental',
-                        'Longitude 181 — charte du plongeur responsable',
-                        'APECS — Association pour l’étude et la conservation des sélaciens',
-                    ])
-                    . self::note('À compléter : partenaires locaux, logos, liens.'),
-            ],
 
             // --- Activités ---------------------------------------------------
             [
@@ -174,17 +146,6 @@ final class SiteMap
                 'content'    => self::note(
                     'À compléter : sites fréquentés, organisation d’une sortie type, '
                     . 'consignes de sécurité, galerie photo.'
-                ),
-            ],
-            [
-                'key'        => 'activites/bateau',
-                'title'      => 'Le bateau',
-                'parent'     => 'activites',
-                'visibility' => Visibility::PUBLIC_ACCESS,
-                'menu'       => self::MENU_MAIN,
-                'content'    => self::note(
-                    'À compléter : nom et présentation du bateau, capacité, règles '
-                    . 'd’embarquement, permis et RRF exigés.'
                 ),
             ],
             [

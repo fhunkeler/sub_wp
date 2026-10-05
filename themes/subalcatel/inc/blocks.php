@@ -391,8 +391,6 @@ function subalcatel_placeholder_tint( int $post_id ): int {
  *
  * Sans image mise en avant, on retombe sur l'aplat de la charte, houles et
  * filigrane compris : exactement ce que reçoit une carte d'article sans photo.
- * Le club n'a pas de cliché de son bateau ; c'est un état durable, pas un trou
- * à combler plus tard.
  *
  * @param string $path Chemin de la page, sans barre initiale — « activites/piscine ».
  * @return string Markup de bloc, à placer en tête de carte.

@@ -236,7 +236,7 @@ final class SiteMap
                 'menu'       => self::MENU_MAIN,
                 'content'    => self::heading('Les rendez-vous du club')
                     . self::paragraph(
-                        'Assemblées générales, portes ouvertes et baptêmes sont ouverts à tous. '
+                        'Assemblées générales et portes ouvertes sont ouvertes à tous. '
                         . 'Les sorties et les formations sont réservées aux adhérents : '
                         . 'connectez-vous pour les voir et vous y inscrire.'
                     )
@@ -301,18 +301,6 @@ final class SiteMap
                         'Une autorisation parentale pour les mineurs.',
                     ])
                     . self::shortcode('[subalcatel_adhesion]'),
-            ],
-            [
-                'key'        => 'nous-rejoindre/bapteme',
-                'title'      => 'Baptêmes et séances d’essai',
-                'parent'     => Pages::JOIN,
-                'visibility' => Visibility::PUBLIC_ACCESS,
-                'menu'       => self::MENU_MAIN,
-                'content'    => self::paragraph(
-                    'Vous voulez essayer avant de vous engager ? Le club organise des '
-                    . 'baptêmes encadrés.'
-                )
-                    . self::note('À compléter : conditions, âge minimum, période, tarif, comment réserver.'),
             ],
 
             // --- Contact et comptes ------------------------------------------

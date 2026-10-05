@@ -32,7 +32,7 @@ $subalcatel_logo = esc_url( get_theme_file_uri( 'assets/img/logo-accueil.png' ) 
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"textColor":"ardoise","fontSize":"moyen","style":{"typography":{"lineHeight":"1.55"}}} -->
-<p class="has-ardoise-color has-text-color has-moyen-font-size" style="line-height:1.55">Un club géré par ses adhérents, à Lannion. Débutant ou confirmé, du baptême au niveau 4 : on vous forme et on vous emmène.</p>
+<p class="has-ardoise-color has-text-color has-moyen-font-size" style="line-height:1.55">Un club géré par ses adhérents, à Lannion. Débutant ou confirmé, du niveau 1 au niveau 4 : on vous forme et on vous emmène.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:group {"style":{"spacing":{"blockGap":"10px"}},"textColor":"abysse","fontSize":"corps","layout":{"type":"flex","orientation":"vertical"}} -->
@@ -48,10 +48,6 @@ $subalcatel_logo = esc_url( get_theme_file_uri( 'assets/img/logo-accueil.png' ) 
 <!-- wp:buttons {"style":{"spacing":{"margin":{"top":"var:preset|spacing|20"},"blockGap":"12px"}}} -->
 <div class="wp-block-buttons" style="margin-top:var(--wp--preset--spacing--20)"><!-- wp:button -->
 <div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="/nous-rejoindre/">Rejoindre le club</a></div>
-<!-- /wp:button -->
-
-<!-- wp:button {"backgroundColor":"blanc","textColor":"abysse","className":"is-style-outline","style":{"border":{"width":"2px","color":"#142F52"}}} -->
-<div class="wp-block-button is-style-outline"><a class="wp-block-button__link has-abysse-color has-blanc-background-color has-text-color has-background has-border-color wp-element-button" style="border-color:#142F52;border-width:2px" href="/nous-rejoindre/bapteme/">Essayer : le baptême découverte</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons --></div>
 <!-- /wp:column -->

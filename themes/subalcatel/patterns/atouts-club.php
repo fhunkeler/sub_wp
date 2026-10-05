@@ -40,7 +40,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"textColor":"ardoise"} -->
-<p class="has-ardoise-color has-text-color">Du baptême découverte aux plongeurs confirmés, et la nage avec palmes pour qui préfère rester en surface.</p>
+<p class="has-ardoise-color has-text-color">Des débutants aux plongeurs confirmés, et la nage avec palmes pour qui préfère rester en surface.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column -->
 

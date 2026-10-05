@@ -636,38 +636,6 @@ html {
 	padding: var(--wp--preset--spacing--30);
 }
 
-/* Cinq cartes de front sur 1200 px, ce sont cinq colonnes de 220 px : le titre
-   « Nage avec palmes » y passe à la ligne, et les quatre cartes qui tenaient
-   très bien à quatre y perdent un quart de leur largeur. On garde donc la
-   largeur d'une carte sur trois, et la cinquième passe à la ligne — 3 + 2,
-   centrées, plutôt que 5 à l'étroit.
-
-   `flex-grow: 0` vaut pour tous les rangs incomplets, ici comme à la largeur
-   d'une tablette où les cartes vont déjà par deux : sans lui, celles qui
-   ferment la grille s'étirent pour remplir leur ligne et ne ressemblent plus à
-   leurs voisines du dessus. */
-@media (min-width: 600px) {
-	.sub-cartes--cinq.wp-block-columns {
-		justify-content: center;
-	}
-
-	.sub-cartes--cinq.wp-block-columns > .wp-block-column {
-		flex-grow: 0;
-	}
-}
-
-@media (min-width: 982px) {
-	/* `!important` : au-delà de 782px, WordPress interdit lui-même le retour à
-	   la ligne des colonnes, avec la même arme. */
-	.sub-cartes--cinq.wp-block-columns {
-		flex-wrap: wrap !important;
-	}
-
-	.sub-cartes--cinq.wp-block-columns > .wp-block-column {
-		flex-basis: calc((100% - 2 * var(--wp--style--block-gap, 24px)) / 3);
-	}
-}
-
 /* À la une — voir le motif `subalcatel/une-actualite`.
 
    L'encart n'utilise pas `is-style-sub-carte` : ce style pose une marge

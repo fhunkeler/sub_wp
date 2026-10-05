@@ -17,6 +17,10 @@ use Subalcatel\Club\Frontend\Pages;
  * la même page avant l'installation. Un site où le bureau a créé « /mon-profil/ »
  * à la main doit se voir *réorganisé*, pas doublé.
  *
+ * `noindex` écarte une page publique des moteurs de recherche : elle reste
+ * ouverte à tous, mais n'a rien à faire dans un résultat Google — un
+ * formulaire de connexion, un plan du site. Voir [SearchIndexing].
+ *
  * **Le contenu est un point de départ, pas une livraison.** Là où il faut une
  * information que seul le club détient — horaires de piscine, adresse du local,
  * composition du bureau — le texte le dit explicitement plutôt que d'inventer
@@ -280,6 +284,7 @@ final class SiteMap
             ],
             [
                 'key'        => Pages::LOGIN,
+                'noindex'    => true,
                 'title'      => 'Connexion',
                 'visibility' => Visibility::PUBLIC_ACCESS,
                 'template'   => 'page-connexion',
@@ -287,6 +292,7 @@ final class SiteMap
             ],
             [
                 'key'        => Pages::SIGNUP,
+                'noindex'    => true,
                 'template'   => 'page-espace-membre',
                 'title'      => 'Créer mon compte',
                 'visibility' => Visibility::PUBLIC_ACCESS,
@@ -464,6 +470,7 @@ final class SiteMap
             ],
             [
                 'key'        => 'cookies',
+                'noindex'    => true,
                 'title'      => 'Gestion des cookies',
                 'visibility' => Visibility::PUBLIC_ACCESS,
                 'menu'       => self::MENU_LEGAL,
@@ -476,6 +483,7 @@ final class SiteMap
             ],
             [
                 'key'        => 'plan-du-site',
+                'noindex'    => true,
                 'title'      => 'Plan du site',
                 'visibility' => Visibility::PUBLIC_ACCESS,
                 'menu'       => self::MENU_LEGAL,

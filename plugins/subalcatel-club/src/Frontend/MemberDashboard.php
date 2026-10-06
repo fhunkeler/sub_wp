@@ -206,10 +206,24 @@ final class MemberDashboard
                 'url'    => Pages::url(Pages::SUBSCRIBE),
             ];
         } else {
-            $until = (string) get_user_meta($userId, 'sub_membership_valid_until', true);
-            $days  = self::daysUntil($until);
+            $until   = (string) get_user_meta($userId, 'sub_membership_valid_until', true);
+            $days    = self::daysUntil($until);
+            $renewal = (new ApplicationService())->renewalCampaign($userId);
 
-            if ($days !== null && $days <= 45) {
+            // La campagne suivante ouvre bien avant l'échéance de la saison en
+            // cours : attendre les 45 derniers jours laissait l'adhérent sans
+            // aucun lien vers le formulaire pendant des semaines.
+            if ($renewal !== null) {
+                $actions[] = [
+                    'level'  => 'soon',
+                    'title'  => sprintf('%s : les adhésions sont ouvertes', (string) $renewal['title']),
+                    'detail' => $until !== ''
+                        ? sprintf('Votre adhésion actuelle reste valable jusqu’au %s.', self::frDate($until))
+                        : 'Votre adhésion actuelle reste valable jusqu’à son échéance.',
+                    'action' => 'Renouveler',
+                    'url'    => Pages::url(Pages::SUBSCRIBE),
+                ];
+            } elseif ($days !== null && $days <= 45) {
                 $actions[] = [
                     'level'  => 'soon',
                     'title'  => 'Votre adhésion arrive à échéance',

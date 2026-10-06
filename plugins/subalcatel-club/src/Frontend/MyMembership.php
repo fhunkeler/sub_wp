@@ -75,6 +75,7 @@ final class MyMembership
 
         echo '<div class="sub-membership-view">';
         echo self::feedback(); // déjà échappé
+        self::renderRenewal($current, $service);
         self::renderCurrent($current, $service);
 
         $history = self::pastMemberships($applications);
@@ -86,6 +87,51 @@ final class MyMembership
         echo '</div>';
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * L'invitation à renouveler, quand la campagne suivante est ouverte.
+     *
+     * Sans elle, un adhérent dont l'adhésion court encore ne voyait que son
+     * dossier actif et aucun chemin vers le formulaire. Elle passe avant le
+     * dossier en cours : c'est la seule chose qu'il ait à faire. Un dossier
+     * annulé porte déjà son propre lien.
+     *
+     * @param array<string, mixed> $current
+     */
+    private static function renderRenewal(array $current, ApplicationService $service): void
+    {
+        if ((string) $current['status'] === ApplicationService::STATUS_CANCELLED
+            || !Pages::exists(Pages::SUBSCRIBE)) {
+            return;
+        }
+
+        $campaign = $service->renewalCampaign(get_current_user_id());
+
+        if ($campaign === null) {
+            return;
+        }
+
+        $stillValid = (string) $current['status'] === ApplicationService::STATUS_ACTIVE
+            && (string) $current['valid_until'] >= current_time('Y-m-d');
+        ?>
+        <div class="sub-notice sub-notice--info">
+            <strong><?php echo esc_html(sprintf('%s : les adhésions sont ouvertes', (string) $campaign['title'])); ?></strong>
+            <p>
+                <?php if ($stillValid) : ?>
+                    Votre adhésion actuelle reste valable jusqu’au
+                    <?php echo esc_html(MemberDashboard::frDate((string) $current['valid_until'])); ?>.
+                <?php endif; ?>
+                La nouvelle adhésion court du
+                <?php echo esc_html(MemberDashboard::frDate((string) $campaign['valid_from'])); ?>
+                au
+                <?php echo esc_html(MemberDashboard::frDate((string) $campaign['valid_until'])); ?>.
+            </p>
+            <p>
+                <a class="sub-button" href="<?php echo esc_url(Pages::url(Pages::SUBSCRIBE)); ?>">Renouveler mon adhésion</a>
+            </p>
+        </div>
+        <?php
     }
 
     /**

@@ -577,6 +577,35 @@ final class ApplicationService
     }
 
     /**
+     * La campagne ouverte, si cette personne n'y a pas encore de dossier.
+     *
+     * C'est la question que posent « Mon adhésion » et le tableau de bord pour
+     * proposer le renouvellement. Les campagnes se chevauchent : l'adhésion de
+     * la saison passée court encore quand la suivante ouvre, et un adhérent à
+     * jour n'avait aucun chemin vers le formulaire — « Mon adhésion » ne
+     * montrait que son dossier actif (retour d'un adhérent, 06/10/2026).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function renewalCampaign(int $userId): ?array
+    {
+        $campaign = $this->campaigns->openCampaign();
+
+        if ($campaign === null || $this->currentFor($userId, (int) $campaign['id']) !== null) {
+            return null;
+        }
+
+        // Déjà couvert jusqu'au bout de la nouvelle campagne : rien à renouveler.
+        $until = (string) get_user_meta($userId, 'sub_membership_valid_until', true);
+
+        if ($until !== '' && $until >= (string) $campaign['valid_until']) {
+            return null;
+        }
+
+        return $campaign;
+    }
+
+    /**
      * Un dossier s'annule-t-il encore, et par qui ?
      *
      * L'activation est la borne commune : passé elle, le dossier a produit une

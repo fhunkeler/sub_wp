@@ -93,6 +93,56 @@ $check('Une adhésion active passée reste listée',
     str_contains(do_shortcode('[subalcatel_mon_adhesion]'), 'Adhésions précédentes'),
     'sans quoi le filtre aurait vidé l’historique');
 
+// --- La campagne suivante se propose dès son ouverture -----------------------
+// L'adhésion de la saison passée court encore quand la suivante ouvre :
+// « Mon adhésion » ne montrait que le dossier actif, sans aucun lien vers le
+// formulaire (retour d'un adhérent, 06/10/2026).
+echo "\n--- Renouvellement ---\n";
+
+$wpdb->update(
+    "{$wpdb->prefix}sub_applications",
+    ['status' => ApplicationService::STATUS_ACTIVE, 'valid_until' => '2099-12-31'],
+    ['id' => $courant]
+);
+
+// Ouverte aujourd'hui : c'est elle que `openCampaign()` retient, devant toute
+// campagne ouverte plus tôt sur la démo.
+$wpdb->insert("{$wpdb->prefix}sub_campaigns", [
+    'title'       => 'Campagne suivante de test',
+    'slug'        => 'campagne-suivante-de-test-' . wp_generate_password(6, false),
+    'opens_on'    => current_time('Y-m-d'),
+    'closes_on'   => '2099-12-31',
+    'valid_from'  => current_time('Y-m-d'),
+    'valid_until' => '2099-12-31',
+    'status'      => 'open',
+]);
+$suivante = (int) $wpdb->insert_id;
+
+$html = do_shortcode('[subalcatel_mon_adhesion]');
+$check('Une adhésion active n’empêche pas de voir la nouvelle campagne',
+    str_contains($html, 'Campagne suivante de test') && str_contains($html, 'Renouveler mon adhésion'),
+    'aucun chemin vers le formulaire');
+$check('L’échéance de l’adhésion en cours est rappelée',
+    str_contains($html, 'Votre adhésion actuelle reste valable'));
+
+update_user_meta($member, 'sub_membership_valid_until', '2099-12-31');
+$check('Rien à renouveler pour qui est déjà couvert jusqu’au bout',
+    $service->renewalCampaign($member) === null);
+delete_user_meta($member, 'sub_membership_valid_until');
+
+$wpdb->insert("{$wpdb->prefix}sub_applications", [
+    'reference'   => 'TEST-' . wp_generate_password(8, false),
+    'user_id'     => $member,
+    'campaign_id' => $suivante,
+    'plan_id'     => 0,
+    'status'      => ApplicationService::STATUS_SUBMITTED,
+]);
+$check('Plus d’invitation une fois le dossier déposé',
+    $service->renewalCampaign($member) === null);
+
+$wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'closed'], ['id' => $suivante]);
+sub_test_drop_campaign($suivante);
+
 // --- Nettoyage ----------------------------------------------------------------
 wp_set_current_user(0);
 require_once ABSPATH . 'wp-admin/includes/user.php';

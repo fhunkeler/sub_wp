@@ -105,8 +105,15 @@ $wpdb->update(
     ['id' => $courant]
 );
 
-// Ouverte aujourd'hui : c'est elle que `openCampaign()` retient, devant toute
-// campagne ouverte plus tôt sur la démo.
+// Seule ouverte le temps du test : `openCampaign()` départage les campagnes
+// par date d'ouverture, et la CI en laisse d'autres ouvertes le même jour.
+$autresOuvertes = $wpdb->get_col(
+    "SELECT id FROM {$wpdb->prefix}sub_campaigns WHERE status = 'open'"
+);
+foreach ($autresOuvertes as $autre) {
+    $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'draft'], ['id' => (int) $autre]);
+}
+
 $wpdb->insert("{$wpdb->prefix}sub_campaigns", [
     'title'       => 'Campagne suivante de test',
     'slug'        => 'campagne-suivante-de-test-' . wp_generate_password(6, false),
@@ -142,6 +149,10 @@ $check('Plus d’invitation une fois le dossier déposé',
 
 $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'closed'], ['id' => $suivante]);
 sub_test_drop_campaign($suivante);
+
+foreach ($autresOuvertes as $autre) {
+    $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'open'], ['id' => (int) $autre]);
+}
 
 // --- Nettoyage ----------------------------------------------------------------
 wp_set_current_user(0);

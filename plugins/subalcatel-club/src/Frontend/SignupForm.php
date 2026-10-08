@@ -308,6 +308,25 @@ final class SignupForm
         }
     }
 
+    /**
+     * Lien vers la création de compte, pour qui n'en a pas encore.
+     *
+     * Sans lui, la page « Créer mon compte » existe mais rien n'y mène : elle
+     * n'est dans aucun menu, et un visiteur ne devine pas son adresse. Vide si
+     * la page n'est pas installée — pas de lien mort.
+     */
+    public static function invitation(): string
+    {
+        if (!Pages::exists(Pages::SIGNUP)) {
+            return '';
+        }
+
+        return sprintf(
+            'Pas encore de compte ? <a href="%s">Créer mon compte</a> — le bureau le validera.',
+            esc_url(Pages::url(Pages::SIGNUP))
+        );
+    }
+
     private static function posted(string $field): string
     {
         return isset($_POST[$field]) ? sanitize_text_field(wp_unslash((string) $_POST[$field])) : '';

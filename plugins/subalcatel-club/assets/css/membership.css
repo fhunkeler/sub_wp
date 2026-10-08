@@ -1920,10 +1920,15 @@
 	cursor: pointer;
 }
 
-.sub-login__lost {
+.sub-login__lost,
+.sub-login__signup {
 	margin: 16px 0 0;
 	text-align: center;
 	font-size: 0.9rem;
+}
+
+.sub-login__signup {
+	margin-top: 8px;
 }
 
 /* --- Grille tarifaire publique --- */

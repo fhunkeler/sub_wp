@@ -85,6 +85,12 @@ final class LoginForm
             esc_url(wp_lostpassword_url($redirect))
         );
 
+        $invitation = SignupForm::invitation();
+
+        if ($invitation !== '') {
+            printf('<p class="sub-login__signup">%s</p>', $invitation); // déjà échappé
+        }
+
         echo '</div>';
 
         return (string) ob_get_clean();

@@ -60,8 +60,9 @@ final class MembershipForm
             return self::notice(
                 'Connectez-vous pour adhérer',
                 sprintf(
-                    'L’adhésion se fait depuis votre compte. <a href="%s">Se connecter</a>.',
-                    esc_url(wp_login_url(get_permalink()))
+                    'L’adhésion se fait depuis votre compte. <a href="%s">Se connecter</a>. %s',
+                    esc_url(LoginForm::url((string) get_permalink())),
+                    SignupForm::invitation()
                 )
             );
         }

@@ -9,6 +9,7 @@ use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Events\RegistrationFields;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -835,7 +836,7 @@ final class EventsScreen
         AdminUi::redirect(
             self::SLUG_ROSTER,
             'Événement créé. ' . self::announceOutcome($result),
-            $result['sent'] < $result['recipients'],
+            $result['sent'] + $result['queued'] < $result['recipients'],
             ['event_id' => $id]
         );
     }
@@ -859,7 +860,7 @@ final class EventsScreen
         AdminUi::redirect(
             self::SLUG_ROSTER,
             self::announceOutcome($result),
-            $result['sent'] < $result['recipients'],
+            $result['sent'] + $result['queued'] < $result['recipients'],
             ['event_id' => $eventId]
         );
     }
@@ -870,14 +871,15 @@ final class EventsScreen
      * Un organisateur qui croit avoir prévenu le club alors que la moitié des
      * messages est restée en route ne s'en apercevrait qu'au bord de l'eau.
      *
-     * @param array{recipients: int, sent: int} $result
+     * @param array{recipients: int, sent: int, queued: int} $result
      */
     private static function announceOutcome(array $result): string
     {
-        $failed = $result['recipients'] - $result['sent'];
+        $failed = $result['recipients'] - $result['sent'] - $result['queued'];
 
         return $failed === 0
-            ? sprintf('Annonce envoyée à %d membre(s).', $result['sent'])
+            ? trim(($result['sent'] > 0 ? sprintf('Annonce envoyée à %d membre(s).', $result['sent']) : '')
+                . MailQueue::outcomeNote($result['queued'], 'sortie'))
             : sprintf(
                 'Annonce partielle : %d message(s) parti(s) sur %d. Vérifiez la '
                 . 'configuration du courriel sortant, puis le journal des envois.',
@@ -924,12 +926,13 @@ final class EventsScreen
                 );
             }
 
-            $failed = $result['recipients'] - $result['sent'];
+            $failed = $result['recipients'] - $result['sent'] - $result['queued'];
 
             AdminUi::redirect(
                 self::SLUG_ROSTER,
                 $failed === 0
-                    ? sprintf('Message envoyé à %d participant(s).', $result['sent'])
+                    ? trim(($result['sent'] > 0 ? sprintf('Message envoyé à %d participant(s).', $result['sent']) : '')
+                        . MailQueue::outcomeNote($result['queued'], 'sortie'))
                     : sprintf(
                         'Envoi partiel : %d message(s) parti(s) sur %d. Vérifiez la configuration '
                         . 'du courriel sortant, puis le journal des envois.',
@@ -959,12 +962,18 @@ final class EventsScreen
             AdminUi::redirect(self::SLUG_ROSTER, $e->getMessage(), true, ['event_id' => $eventId]);
         }
 
-        $failed = $result['recipients'] - $result['sent'];
+        $failed = $result['recipients'] - $result['sent'] - $result['queued'];
 
         AdminUi::redirect(
             self::SLUG_ROSTER,
             match (true) {
                 $result['recipients'] === 0 => 'Sortie annulée. Personne n’était inscrit.',
+                $failed === 0 && $result['queued'] > 0 => sprintf(
+                    'Sortie annulée. %d inscrit(s) prévenu(s) tout de suite.%s Si la sortie a lieu avant, '
+                    . 'prévenez les autres par téléphone.',
+                    $result['sent'],
+                    MailQueue::outcomeNote($result['queued'], 'sortie')
+                ),
                 $failed === 0 => sprintf('Sortie annulée, %d inscrit(s) prévenu(s).', $result['sent']),
                 default => sprintf(
                     'Sortie annulée, mais seuls %d message(s) sur %d sont partis. Vérifiez la '

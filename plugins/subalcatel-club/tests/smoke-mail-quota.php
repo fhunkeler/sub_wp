@@ -14,7 +14,8 @@
  *    le premier message ;
  *  - un rappel automatique en excès est reporté, et repart le lendemain ;
  *  - l'annonce d'ouverture de campagne, déclenchée sans que personne ne puisse
- *    réessayer, est mise en attente puis reprise par l'entretien quotidien ;
+ *    réessayer, est mise en file d'attente puis reprise (voir aussi
+ *    smoke-mail-queue.php) ;
  *  - un message individuel part toujours.
  *
  * Les envois sont interceptés — rien ne sort réellement.
@@ -25,6 +26,7 @@ require_once __DIR__ . '/helpers.php';
 use Subalcatel\Club\Admin\CampaignsScreen;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Notifications\QuotaExceeded;
 use Subalcatel\Club\Notifications\SendQuota;
@@ -68,6 +70,7 @@ $makeUser = static function (string $firstName): int {
 $savedSettings = get_option(SendQuota::OPTION_SETTINGS, null);
 $savedCounter  = get_option(SendQuota::OPTION_COUNTER, null);
 $savedPending  = get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null);
+$savedQueue    = get_option(MailQueue::OPTION, null);
 $startedAt     = current_time('mysql');
 
 $setSent = static function (int $count): void {
@@ -188,30 +191,44 @@ DailyDigest::run('2026-06-03');
 $check('… une seule fois', $mailsTo($emails[1]) === $before + 1);
 
 // =============================================================================
-// 5. Ouverture de campagne : mise en attente, puis reprise
+// 5. Ouverture de campagne : mise en file, puis reprise
 // =============================================================================
 echo "\n--- Annonce d'ouverture de campagne ---\n";
 
 $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'open'], ['id' => $campaignId]);
 delete_option(CampaignsScreen::OPTION_PENDING_NOTICES);
+delete_option(MailQueue::OPTION);
 
 $setSent(250);
 $check('pas de place : l\'annonce est mise en attente',
     CampaignsScreen::notifyCampaignOpened($campaignId) === 'postponed');
-$check('… et inscrite pour l\'entretien quotidien',
-    in_array($campaignId, (array) get_option(CampaignsScreen::OPTION_PENDING_NOTICES, []), true));
+$check('… dans la file d\'attente des envois',
+    MailQueue::hasJobFor(EmailTemplates::CAMPAIGN_OPENED, 'campaign', $campaignId));
+$check('… et plus dans l\'ancienne liste',
+    get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
+$check('rouvrir la campagne ne la met pas deux fois en file',
+    CampaignsScreen::notifyCampaignOpened($campaignId) === 'skipped' && count(MailQueue::jobs()) === 1);
 
 $before = $mailsTo($emails[1]);
 $setSent(0);
-$check('l\'entretien quotidien la reprend', CampaignsScreen::retryPendingNotices() === 1);
+$check('la file la reprend', MailQueue::process(true) >= 1);
 $check('… le membre actif la reçoit', $mailsTo($emails[1]) === $before + 1);
-$check('… et elle sort de la file', get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
-$check('une seconde reprise ne renvoie rien', CampaignsScreen::retryPendingNotices() === 0);
+$check('… et elle sort de la file', MailQueue::jobs() === []);
+
+// Une annonce reportée par la version d'avant la file n'est pas perdue.
+delete_option(MailQueue::OPTION);
+$wpdb->query($wpdb->prepare(
+    "DELETE FROM {$wpdb->prefix}sub_notification_log WHERE entity_type = 'campaign' AND entity_id = %d",
+    $campaignId
+));
+update_option(CampaignsScreen::OPTION_PENDING_NOTICES, [$campaignId], false);
+$check('ancienne liste : l\'entretien quotidien la reprend', CampaignsScreen::retryPendingNotices() === 1);
+$check('… et la vide', get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
 
 // Une campagne refermée entre-temps n'est plus annoncée.
 update_option(CampaignsScreen::OPTION_PENDING_NOTICES, [$campaignId], false);
 $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'closed'], ['id' => $campaignId]);
-$check('campagne refermée : retirée de la file sans envoi',
+$check('campagne refermée : retirée de la liste sans envoi',
     CampaignsScreen::retryPendingNotices() === 0
     && get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
 
@@ -242,6 +259,7 @@ foreach ([
     SendQuota::OPTION_SETTINGS              => $savedSettings,
     SendQuota::OPTION_COUNTER               => $savedCounter,
     CampaignsScreen::OPTION_PENDING_NOTICES => $savedPending,
+    MailQueue::OPTION                       => $savedQueue,
 ] as $option => $value) {
     $value === null ? delete_option($option) : update_option($option, $value, false);
 }

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\RegistrationFields;
+use Subalcatel\Club\Notifications\MailQueue;
 
 /**
  * Mes sorties organisées : shortcode [subalcatel_mes_sorties_organisees].
@@ -463,12 +464,13 @@ final class OutingRoster
             self::back($eventId, $e->getMessage(), true);
         }
 
-        $failed = $result['recipients'] - $result['sent'];
+        $failed = $result['recipients'] - $result['sent'] - $result['queued'];
 
         self::back(
             $eventId,
             $failed === 0
-                ? sprintf('Annonce envoyée à %d membre(s).', $result['sent'])
+                ? trim(($result['sent'] > 0 ? sprintf('Annonce envoyée à %d membre(s).', $result['sent']) : '')
+                    . MailQueue::outcomeNote($result['queued'], 'sortie'))
                 : sprintf(
                     'Envoi partiel : %d annonce(s) partie(s) sur %d. Prévenez le bureau.',
                     $result['sent'],
@@ -501,7 +503,7 @@ final class OutingRoster
                 self::back($eventId, 'Aucun destinataire : personne n’est inscrit à cette sortie.', true);
             }
 
-            $failed = $result['recipients'] - $result['sent'];
+            $failed = $result['recipients'] - $result['sent'] - $result['queued'];
 
             // Destinataires et envois réussis sont distingués : un organisateur
             // qui croit avoir prévenu son groupe alors que rien n'est parti ne
@@ -509,7 +511,8 @@ final class OutingRoster
             self::back(
                 $eventId,
                 $failed === 0
-                    ? sprintf('Message envoyé à %d participant(s).', $result['sent'])
+                    ? trim(($result['sent'] > 0 ? sprintf('Message envoyé à %d participant(s).', $result['sent']) : '')
+                        . MailQueue::outcomeNote($result['queued'], 'sortie'))
                     : sprintf(
                         'Envoi partiel : %d message(s) parti(s) sur %d. Prévenez le bureau, '
                         . 'et joignez les absents autrement.',

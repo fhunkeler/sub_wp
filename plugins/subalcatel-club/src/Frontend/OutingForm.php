@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Frontend;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
 /**
@@ -309,15 +310,17 @@ final class OutingForm
             try {
                 $result = $service->announce($eventId, get_current_user_id());
 
-                $message .= $result['sent'] === $result['recipients']
-                    ? sprintf(' Annonce envoyée à %d membre(s).', $result['sent'])
+                $failed   = $result['recipients'] - $result['sent'] - $result['queued'];
+                $message .= $failed === 0
+                    ? ($result['sent'] > 0 ? sprintf(' Annonce envoyée à %d membre(s).', $result['sent']) : '')
+                        . MailQueue::outcomeNote($result['queued'], 'sortie')
                     : sprintf(
                         ' Annonce partielle : %d message(s) parti(s) sur %d — prévenez le bureau.',
                         $result['sent'],
                         $result['recipients']
                     );
 
-                $isError = $result['sent'] < $result['recipients'];
+                $isError = $failed > 0;
             } catch (\RuntimeException $e) {
                 $message .= ' En revanche, l’annonce n’est pas partie : ' . $e->getMessage();
                 $isError  = true;

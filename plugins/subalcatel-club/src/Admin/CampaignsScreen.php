@@ -8,8 +8,8 @@ use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\MembershipGrace;
 use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\Mailer;
-use Subalcatel\Club\Notifications\QuotaExceeded;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -388,8 +388,8 @@ final class CampaignsScreen
         }
 
         $postponed = self::notifyCampaignOpened($id) === 'postponed'
-            ? ' L’annonce aux adhérents dépasserait le plafond d’envoi du jour : '
-                . 'elle partira automatiquement au prochain entretien quotidien.'
+            ? ' L’annonce aux adhérents dépasse le plafond d’envoi du jour : '
+                . 'ce qui n’a pas pu partir est en file d’attente, et partira automatiquement les jours suivants.'
             : '';
 
         // Ouvrir une campagne dont aucune page de paiement n'est renseignée
@@ -439,7 +439,7 @@ final class CampaignsScreen
             $campaignId
         ));
 
-        if ($alreadySent > 0) {
+        if ($alreadySent > 0 || MailQueue::hasJobFor(EmailTemplates::CAMPAIGN_OPENED, 'campaign', $campaignId)) {
             self::forgetPendingNotice($campaignId);
 
             return 'skipped';
@@ -454,33 +454,35 @@ final class CampaignsScreen
             return 'skipped';
         }
 
-        try {
-            Mailer::toUsers(EmailTemplates::CAMPAIGN_OPENED, array_map('intval', $userIds), [
-                'campagne' => (string) $campaign['title'],
-                'debut'    => DocumentService::frDate((string) $campaign['valid_from']),
-                'fin'      => DocumentService::frDate((string) $campaign['valid_until']),
-            ], [
-                'entity_type' => 'campaign',
-                'entity_id'   => $campaignId,
-                'sender_id'   => get_current_user_id(),
-            ]);
-        } catch (QuotaExceeded) {
-            // L'ouverture ne peut pas attendre le mail : les inscriptions sont
-            // possibles dès maintenant. Seule l'annonce est remise à plus tard.
-            $pending = self::pendingNotices();
-            $pending[] = $campaignId;
-            update_option(self::OPTION_PENDING_NOTICES, array_values(array_unique($pending)), false);
-
-            return 'postponed';
-        }
+        // L'ouverture ne peut pas attendre le mail : les inscriptions sont
+        // possibles dès maintenant. Ce que le plafond du jour ne laisse pas
+        // passer part de la file d'attente, sur autant de jours qu'il faut —
+        // l'annonce n'a pas à arriver à tous le même jour. Avant la file, une
+        // annonce plus grosse que le plafond quotidien ne partait jamais.
+        $outcome = Mailer::toUsersOrQueue(EmailTemplates::CAMPAIGN_OPENED, array_map('intval', $userIds), [
+            'campagne' => (string) $campaign['title'],
+            'debut'    => DocumentService::frDate((string) $campaign['valid_from']),
+            'fin'      => DocumentService::frDate((string) $campaign['valid_until']),
+        ], [
+            'entity_type' => 'campaign',
+            'entity_id'   => $campaignId,
+            'sender_id'   => get_current_user_id(),
+        ], [], [
+            'atomic' => false,
+            'label'  => sprintf('Ouverture de « %s »', (string) $campaign['title']),
+        ]);
 
         self::forgetPendingNotice($campaignId);
 
-        return 'sent';
+        return $outcome['queued'] > 0 ? 'postponed' : 'sent';
     }
 
     /**
      * Reprend les annonces d'ouverture reportées faute de quota.
+     *
+     * Depuis la file d'attente des envois ({@see MailQueue}), plus rien n'est
+     * inscrit ici : la liste ne sert qu'à reprendre, une fois, les annonces
+     * reportées par une version antérieure — elles rejoignent alors la file.
      *
      * Seules les campagnes explicitement mises en attente sont reprises : une
      * campagne ouverte avant l'existence de cette annonce n'en a aucune trace

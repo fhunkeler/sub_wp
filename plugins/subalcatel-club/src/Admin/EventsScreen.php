@@ -31,6 +31,7 @@ final class EventsScreen
         add_action('admin_post_sub_event_unregister', [self::class, 'handleUnregister']);
         add_action('admin_post_sub_event_message', [self::class, 'handleMessage']);
         add_action('admin_post_sub_event_announce', [self::class, 'handleAnnounce']);
+        add_action('admin_post_sub_event_call_off', [self::class, 'handleCallOff']);
     }
 
     /**
@@ -162,14 +163,20 @@ final class EventsScreen
                 <?php endif; ?>
 
                 <?php foreach ($events as $e) : ?>
-                    <?php $past = $e['starts_at'] < current_time('mysql'); ?>
-                    <tr<?php echo $past ? ' style="opacity:.6;"' : ''; ?>>
+                    <?php
+                    $past      = $e['starts_at'] < current_time('mysql');
+                    $cancelled = $e['status'] === 'cancelled';
+                    ?>
+                    <tr<?php echo $past || $cancelled ? ' style="opacity:.6;"' : ''; ?>>
                         <td data-label="Événement">
                             <strong><?php echo esc_html((string) $e['title']); ?></strong>
                             <?php if (!empty($e['location'])) : ?>
                                 <br><span style="color:#50575e;"><?php echo esc_html((string) $e['location']); ?></span>
                             <?php endif; ?>
-                            <?php if (!empty($e['announced_at'])) : ?>
+                            <?php if ($cancelled) : ?>
+                                <br><span class="sub-tag">annulé<?php echo empty($e['cancelled_at']) ? '' : ' le '
+                                    . esc_html(self::frDateTime((string) $e['cancelled_at'])); ?></span>
+                            <?php elseif (!empty($e['announced_at'])) : ?>
                                 <br><span class="sub-tag">annoncée le
                                     <?php echo esc_html(self::frDateTime((string) $e['announced_at'])); ?></span>
                             <?php elseif (!$past) : ?>
@@ -443,7 +450,9 @@ final class EventsScreen
                 <?php ExportsScreen::buttons('event-roster', ['event_id' => $eventId]); ?>
             </p>
 
-            <?php if ($canManage) : ?>
+            <?php if ($event['status'] === 'cancelled') : ?>
+                <?php self::renderCalledOff($service, $event, $eventId); ?>
+            <?php elseif ($canManage) : ?>
                 <?php self::renderAnnounceForm($service, $event, $eventId); ?>
             <?php endif; ?>
 
@@ -506,7 +515,9 @@ final class EventsScreen
                 </thead>
                 <tbody>
                 <?php if ($participants === []) : ?>
-                    <tr><td colspan="9">Aucun inscrit pour l’instant.</td></tr>
+                    <tr><td colspan="9"><?php echo $event['status'] === 'cancelled'
+                        ? 'Sortie annulée : plus aucune inscription en cours.'
+                        : 'Aucun inscrit pour l’instant.'; ?></td></tr>
                 <?php endif; ?>
 
                 <?php foreach ($participants as $i => $person) : ?>
@@ -584,6 +595,96 @@ final class EventsScreen
                 La colonne « Documents » indique si le certificat médical et la licence sont
                 valides. Le contenu des documents n’est jamais accessible depuis cet écran.
             </p>
+
+            <?php if ($canManage && $event['status'] !== 'cancelled') : ?>
+                <?php self::renderCallOffForm($event, $eventId, count($participants)); ?>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * Annuler la sortie — en bas de l'écran, replié : c'est le geste le plus
+     * lourd de la page, et le seul qu'on ne peut pas défaire.
+     *
+     * @param array<string, mixed> $event
+     */
+    private static function renderCallOffForm(array $event, int $eventId, int $registered): void
+    {
+        if ((string) $event['starts_at'] < current_time('mysql')) {
+            return; // Une sortie commencée ne s'annule plus.
+        }
+        ?>
+        <details class="sub-card" style="margin-top:32px;">
+            <summary><strong>Annuler la sortie</strong></summary>
+
+            <p class="description">
+                La sortie disparaît de l’agenda et des calendriers, les inscriptions sont
+                levées, et chaque inscrit reçoit un courriel avec le motif — liste d’attente
+                comprise, et même s’il a refusé les annonces sur son profil.
+                <?php if ($registered === 0) : ?>
+                    Personne n’est inscrit : aucun message ne partira.
+                <?php else : ?>
+                    <strong><?php echo (int) $registered; ?> personne<?php echo $registered > 1 ? 's' : ''; ?></strong>
+                    <?php echo $registered > 1 ? 'seront prévenues' : 'sera prévenue'; ?>.
+                <?php endif; ?>
+                L’annulation ne se défait pas : pour reprogrammer, créez une nouvelle sortie.
+            </p>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sub-form">
+                <input type="hidden" name="action" value="sub_event_call_off">
+                <input type="hidden" name="event_id" value="<?php echo esc_attr((string) $eventId); ?>">
+                <?php wp_nonce_field('sub_event_call_off_' . $eventId); ?>
+
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row">Motif</th>
+                        <td>
+                            <textarea name="reason" rows="3" class="large-text" required
+                                      placeholder="Météo défavorable : houle annoncée à 2,5 m."></textarea>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <button class="button button-link-delete"
+                            onclick="return confirm('Annuler la sortie et prévenir les inscrits ?');">
+                        Annuler la sortie et prévenir les inscrits
+                    </button>
+                </p>
+            </form>
+        </details>
+        <?php
+    }
+
+    /**
+     * Ce qu'il reste d'une sortie annulée : quand, pourquoi, et qui l'a su.
+     *
+     * @param array<string, mixed> $event
+     */
+    private static function renderCalledOff(EventService $service, array $event, int $eventId): void
+    {
+        $notified = $service->calledOffParticipants($eventId);
+        ?>
+        <div class="notice notice-warning inline" style="margin:0 0 20px;">
+            <p>
+                <strong>Sortie annulée<?php echo empty($event['cancelled_at']) ? '' : ' le '
+                    . esc_html(self::frDateTime((string) $event['cancelled_at'])); ?>.</strong>
+                <?php if (!empty($event['cancel_reason'])) : ?>
+                    Motif : <?php echo esc_html((string) $event['cancel_reason']); ?>
+                <?php endif; ?>
+            </p>
+            <?php if ($notified === []) : ?>
+                <p>Personne n’était inscrit au moment de l’annulation.</p>
+            <?php else : ?>
+                <p>
+                    Inscrits prévenus par courriel (le détail des envois est dans le journal) :
+                    <?php echo esc_html(implode(', ', array_map(
+                        static fn (array $p): string => (string) ($p['display_name'] ?: $p['user_email']),
+                        $notified
+                    ))); ?>.
+                </p>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -841,6 +942,40 @@ final class EventsScreen
         } catch (\RuntimeException $e) {
             AdminUi::redirect(self::SLUG_ROSTER, $e->getMessage(), true, ['event_id' => $eventId]);
         }
+    }
+
+    public static function handleCallOff(): void
+    {
+        $eventId = absint($_POST['event_id'] ?? 0);
+        check_admin_referer('sub_event_call_off_' . $eventId);
+
+        try {
+            $result = (new EventService())->callOff(
+                $eventId,
+                sanitize_textarea_field(wp_unslash((string) ($_POST['reason'] ?? ''))),
+                get_current_user_id()
+            );
+        } catch (\RuntimeException $e) {
+            AdminUi::redirect(self::SLUG_ROSTER, $e->getMessage(), true, ['event_id' => $eventId]);
+        }
+
+        $failed = $result['recipients'] - $result['sent'];
+
+        AdminUi::redirect(
+            self::SLUG_ROSTER,
+            match (true) {
+                $result['recipients'] === 0 => 'Sortie annulée. Personne n’était inscrit.',
+                $failed === 0 => sprintf('Sortie annulée, %d inscrit(s) prévenu(s).', $result['sent']),
+                default => sprintf(
+                    'Sortie annulée, mais seuls %d message(s) sur %d sont partis. Vérifiez la '
+                    . 'configuration du courriel sortant, puis le journal des envois.',
+                    $result['sent'],
+                    $result['recipients']
+                ),
+            },
+            $failed > 0,
+            ['event_id' => $eventId]
+        );
     }
 
     public static function handleUnregister(): void

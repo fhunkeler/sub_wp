@@ -13,6 +13,7 @@ use Subalcatel\Club\Policy\Decision;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -744,6 +745,129 @@ final class EventService
         // plongée qui croit avoir prévenu son groupe alors que rien n'est parti
         // découvrirait le problème au bord de l'eau.
         return ['recipients' => count($recipients), 'sent' => $sent];
+    }
+
+    /**
+     * Annule la sortie elle-même, et le dit à tous ses inscrits.
+     *
+     * Distinct de `cancel()`, qui retire *un* membre d'une sortie maintenue.
+     * L'événement n'est pas supprimé : il garde sa date, son motif et la liste
+     * de qui a été prévenu, pour répondre au « je n'ai rien reçu » du lendemain.
+     *
+     * Les inscriptions passent à « annulée » à la même seconde que la sortie :
+     * c'est ce qui les distingue, ensuite, des désinscriptions d'avant. Et
+     * toutes les requêtes qui comptent des inscrits — agenda, iCal,
+     * participations de l'année — n'ont rien à apprendre : elles ignorent déjà
+     * les inscriptions annulées.
+     *
+     * Le quota d'envoi est vérifié avant toute écriture : une annulation que
+     * personne n'apprendrait est pire qu'une annulation refusée, qu'on peut
+     * retenter.
+     *
+     * @return array{recipients: int, sent: int}
+     */
+    public function callOff(int $eventId, string $reason, int $actorId): array
+    {
+        global $wpdb;
+
+        $event = $this->find($eventId);
+
+        if ($event === null) {
+            throw new RuntimeException('Événement introuvable.');
+        }
+
+        // Même règle que pour écrire aux inscrits ou annoncer la sortie.
+        if (!user_can($actorId, 'sub_communicate_event_participants')
+            && (int) $event['organizer_id'] !== $actorId) {
+            throw new RuntimeException('Vous n’avez pas le droit d’annuler cet événement.');
+        }
+
+        if ((string) $event['status'] === 'cancelled') {
+            throw new RuntimeException('Cet événement est déjà annulé.');
+        }
+
+        if ((string) $event['starts_at'] < current_time('mysql')) {
+            throw new RuntimeException('Cet événement a déjà commencé : il ne s’annule plus.');
+        }
+
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            throw new RuntimeException('Indiquez le motif : c’est la première question que poseront les inscrits.');
+        }
+
+        $recipients = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT user_id FROM {$this->prefix}event_registrations
+             WHERE event_id = %d AND status IN ('confirmed','waiting') AND user_id IS NOT NULL",
+            $eventId
+        )) ?: []);
+
+        SendQuota::ensureBulk(Mailer::messageCount(EmailTemplates::EVENT_CALLED_OFF, $recipients));
+
+        $now = current_time('mysql');
+
+        $wpdb->update(
+            "{$this->prefix}events",
+            ['status' => 'cancelled', 'cancelled_at' => $now, 'cancel_reason' => $reason],
+            ['id' => $eventId]
+        );
+
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$this->prefix}event_registrations
+             SET status = 'cancelled', cancelled_at = %s
+             WHERE event_id = %d AND status IN ('confirmed','waiting')",
+            $now,
+            $eventId
+        ));
+
+        $sender = get_userdata($actorId);
+
+        $sent = Mailer::toUsers(
+            EmailTemplates::EVENT_CALLED_OFF,
+            $recipients,
+            self::eventVariables($event) + [
+                'motif'      => $reason,
+                'expediteur' => $sender?->display_name ?? '',
+            ],
+            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId]
+        );
+
+        Audit::log('event.called_off', 'event', $eventId, [
+            'reason'     => $reason,
+            'recipients' => count($recipients),
+            'sent'       => $sent,
+        ], $actorId);
+
+        return ['recipients' => count($recipients), 'sent' => $sent];
+    }
+
+    /**
+     * Qui était inscrit au moment où la sortie a été annulée.
+     *
+     * Ceux qui s'étaient désinscrits avant n'y figurent pas : ils n'ont pas
+     * reçu le message, et n'avaient pas à le recevoir.
+     *
+     * @return list<array{display_name: string, user_email: string}>
+     */
+    public function calledOffParticipants(int $eventId): array
+    {
+        global $wpdb;
+
+        $event = $this->find($eventId);
+
+        if ($event === null || empty($event['cancelled_at'])) {
+            return [];
+        }
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT u.display_name, u.user_email
+             FROM {$this->prefix}event_registrations r
+             INNER JOIN {$wpdb->users} u ON u.ID = r.user_id
+             WHERE r.event_id = %d AND r.status = 'cancelled' AND r.cancelled_at = %s
+             ORDER BY u.display_name ASC",
+            $eventId,
+            (string) $event['cancelled_at']
+        ), ARRAY_A) ?: [];
     }
 
     // ---------------------------------------------------------------- Annonce

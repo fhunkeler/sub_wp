@@ -50,6 +50,7 @@ final class EmailTemplates
     public const EVENT_WAITING    = 'event.waiting';
     public const EVENT_PROMOTED   = 'event.promoted';
     public const EVENT_CANCELLED  = 'event.cancelled';
+    public const EVENT_CALLED_OFF = 'event.called_off';
     public const EVENT_MESSAGE      = 'event.message';
     public const EVENT_TO_ORGANIZER = 'event.to_organizer';
     public const EVENT_ANNOUNCEMENT = 'event.announcement';
@@ -379,6 +380,29 @@ final class EmailTemplates
                 'variables'   => ['evenement' => 'Titre'],
             ],
             [
+                // Pas la désinscription d'un membre (`event.cancelled`) : la
+                // sortie elle-même n'a pas lieu. Transactionnel, parce qu'un
+                // inscrit qui a refusé les annonces doit quand même l'apprendre.
+                'code'        => self::EVENT_CALLED_OFF,
+                'copy_guardian' => 1,
+                'label'       => 'Sortie annulée',
+                'description' => 'Envoyé à tous les inscrits, liste d’attente comprise, '
+                    . 'quand l’organisateur annule l’événement.',
+                'subject'     => '[{club}] Annulé — {evenement}, {date}',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "« {evenement} », prévu le {date}, est annulé.\n\n"
+                    . "Motif : {motif}\n\n"
+                    . "Votre inscription est levée : vous n’avez rien à faire.\n\n"
+                    . "— {expediteur}, pour {club}",
+                'variables'   => [
+                    'evenement'  => 'Titre',
+                    'date'       => 'Date et heure',
+                    'lieu'       => 'Lieu',
+                    'motif'      => 'Motif donné par l’organisateur',
+                    'expediteur' => 'Nom de qui annule',
+                ],
+            ],
+            [
                 'code'        => self::EVENT_MESSAGE,
                 'label'       => 'Message aux inscrits',
                 'description' => 'Message écrit par l’organisateur et envoyé aux participants.',
@@ -455,7 +479,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 8;
+    private const VERSION        = 9;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void

@@ -102,16 +102,24 @@ final class MembershipForm
         // Saisie mise de côté par une soumission refusée, s'il y en a une.
         $retry = self::takeRetry($userId);
 
+        // À défaut, les choix de la saison précédente : un renouvellement ne
+        // repart pas d'une page blanche. Une saisie refusée passe avant — c'est
+        // la plus récente, et l'adhérent vient de la corriger.
+        $renewal = $retry === null
+            ? (new ApplicationService())->renewalDefaults($userId, $campaignId)
+            : null;
+
         $identity = $retry['identity'] ?? ApplicantIdentity::values($userId);
         $errors   = $retry['errors'] ?? [];
         $notices  = $retry['notices'] ?? [];
-        $answers  = $retry['options'] ?? [];
-        $payment  = (string) ($retry['payment_method'] ?? '');
-        $planSlug = (string) ($retry['plan'] ?? $plans[0]->slug);
+        $answers  = $retry['options'] ?? $renewal['answers'] ?? [];
+        $payment  = (string) ($retry['payment_method'] ?? $renewal['payment_method'] ?? '');
+        $planSlug = (string) ($retry['plan'] ?? (($renewal['plan'] ?? '') ?: $plans[0]->slug));
         $plan     = $repo->planBySlug($campaignId, $planSlug) ?? $plans[0];
 
         ob_start();
         echo self::feedback($errors, $notices); // déjà échappé
+        echo $renewal !== null ? self::renewalNotice($renewal) : ''; // déjà échappé
         ?>
         <form class="sub-membership"
               method="post"
@@ -465,6 +473,43 @@ final class MembershipForm
         }
 
         return $html;
+    }
+
+    /**
+     * Ce qui a été repris, et ce qui reste à dire.
+     *
+     * Sans ce message, un formulaire déjà rempli ressemble à une erreur — ou
+     * passe pour relu alors qu'il ne l'est pas. La liste des questions à
+     * renseigner évite qu'une remise de licence de l'an passé soit oubliée…
+     * ou réclamée à tort.
+     *
+     * @param array{campaign_title: string, plan: string, to_answer: list<string>} $renewal
+     */
+    private static function renewalNotice(array $renewal): string
+    {
+        $since = $renewal['campaign_title'] !== ''
+            ? sprintf('de votre adhésion %s', $renewal['campaign_title'])
+            : 'de votre adhésion précédente';
+
+        $html = sprintf(
+            '<div class="sub-notice sub-notice--info" role="status"><strong>Vos choix %s sont repris</strong>'
+            . '<p>Formule, options et mode de règlement sont préremplis. Vérifiez-les : les tarifs '
+            . 'sont ceux de la nouvelle saison, et rien n’est enregistré avant « Soumettre mon dossier ».</p>',
+            esc_html($since)
+        );
+
+        if ($renewal['to_answer'] !== []) {
+            $items = '';
+
+            foreach ($renewal['to_answer'] as $label) {
+                $items .= '<li>' . esc_html($label) . '</li>';
+            }
+
+            $html .= '<p>Propres à chaque saison, ces questions sont à renseigner à nouveau :</p><ul>'
+                . $items . '</ul>';
+        }
+
+        return $html . '</div>';
     }
 
     private static function notice(string $title, string $html): string

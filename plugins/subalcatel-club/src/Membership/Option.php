@@ -51,6 +51,7 @@ final class Option
         public readonly array $plans = [],
         public readonly string $help = '',
         public readonly int $ordering = 0,
+        public readonly bool $carryOver = true,
     ) {
     }
 
@@ -251,6 +252,7 @@ final class Option
             plans: $decode($row['plans'] ?? null),
             help: (string) ($row['help'] ?? ''),
             ordering: (int) ($row['ordering'] ?? 0),
+            carryOver: (bool) ($row['carry_over'] ?? true),
         );
     }
 }

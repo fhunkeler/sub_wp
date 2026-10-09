@@ -17,7 +17,7 @@ use Subalcatel\Club\Support\Audit;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 17;
+    private const VERSION        = 18;
 
     /**
      * Fin de la saison 2025-2026, et celle qui la remplace.
@@ -143,6 +143,7 @@ final class Schema
             exclude_values longtext,
             grants longtext,
             plans longtext,
+            carry_over tinyint(1) NOT NULL default 1,
             ordering int(11) NOT NULL default 0,
             PRIMARY KEY  (id),
             UNIQUE KEY campaign_name (campaign_id,name),
@@ -444,6 +445,10 @@ final class Schema
             self::extendTransitionSeason();
         }
 
+        if ($previous < 18) {
+            self::markSeasonalOptions();
+        }
+
         update_option(self::VERSION_OPTION, self::VERSION, false);
     }
 
@@ -570,6 +575,27 @@ final class Schema
                 'members'   => $members,
             ]);
         }
+    }
+
+    /**
+     * Les questions dont la réponse ne vaut que pour une saison.
+     *
+     * Le renouvellement reprend les réponses du dossier précédent. Deux
+     * questions de la configuration reprise du Joomla n'ont de sens que l'année
+     * où elles sont posées : le niveau préparé (celui de l'an passé est, le
+     * plus souvent, obtenu depuis) et la licence déjà prise ailleurs « pour la
+     * saison en cours ». Les reprendre, ce serait réappliquer une remise de
+     * licence sans que personne ne l'ait redemandée. Le bureau règle ensuite
+     * chaque question depuis l'éditeur de campagne.
+     */
+    private static function markSeasonalOptions(): void
+    {
+        global $wpdb;
+
+        $wpdb->query(
+            "UPDATE {$wpdb->prefix}sub_options SET carry_over = 0
+             WHERE name = 'niveau_prepare' OR name LIKE 'moins\\_value\\_licence%'"
+        );
     }
 
     /**

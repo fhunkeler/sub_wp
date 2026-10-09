@@ -333,6 +333,22 @@ final class CampaignEditor
                     </td>
                 </tr>
                 <tr>
+                    <th scope="row">Au renouvellement</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="carry_over" value="1"
+                                   <?php checked($option?->carryOver ?? true); ?>>
+                            Reprendre la réponse donnée la saison précédente
+                        </label>
+                        <p class="description">
+                            Le formulaire d’un adhérent qui renouvelle arrive prérempli de ses
+                            choix de l’an passé. Décochez pour une question qui ne vaut que pour
+                            une saison — niveau préparé, licence déjà prise ailleurs : l’adhérent
+                            devra y répondre à nouveau.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row">Réponses possibles</th>
                     <td>
                         <table class="sub-repeat" data-repeat>
@@ -961,6 +977,7 @@ final class CampaignEditor
             'exclude_values'   => wp_json_encode(self::conditionValues($_POST['exclude_values'] ?? [])),
             'grants'           => wp_json_encode(self::csv($_POST['grants'] ?? '')),
             'plans'            => wp_json_encode(array_map('sanitize_key', (array) ($_POST['plans'] ?? []))),
+            'carry_over'       => isset($_POST['carry_over']) ? 1 : 0,
             'ordering'         => absint($_POST['ordering'] ?? 999),
         ];
 

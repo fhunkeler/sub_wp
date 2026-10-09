@@ -606,6 +606,97 @@ final class ApplicationService
     }
 
     /**
+     * Ce que le formulaire reprend du dossier de la saison précédente.
+     *
+     * Un adhérent qui renouvelle reprenait tout à zéro : formule, assurance,
+     * prêts de matériel, mode de règlement — les mêmes réponses que l'an passé,
+     * dans neuf cas sur dix. La reprise part de sa dernière **adhésion** (un
+     * dossier réglé ou activé, jamais une saisie annulée) sur une autre
+     * campagne, et ne garde que ce qui a encore un sens dans celle-ci :
+     *
+     *  - la formule, si la nouvelle campagne en publie une de même identifiant
+     *    (la duplication annuelle les conserve) ;
+     *  - les réponses aux questions que la nouvelle campagne pose encore, que
+     *    le bureau n'a pas marquées « propres à la saison », et dont la valeur
+     *    figure toujours parmi les réponses possibles ;
+     *  - le mode de règlement, s'il est toujours proposé.
+     *
+     * Rien n'est soumis : ce ne sont que des valeurs par défaut, que
+     * l'adhérent relit et que le serveur revérifie au dépôt comme toute saisie.
+     *
+     * @return array{application: array<string, mixed>, campaign_title: string, plan: string,
+     *               answers: array<string, string|list<string>>, payment_method: string,
+     *               to_answer: list<string>}|null
+     */
+    public function renewalDefaults(int $userId, int $campaignId): ?array
+    {
+        global $wpdb;
+
+        $previous = $wpdb->get_row($wpdb->prepare(
+            "SELECT a.*, p.slug AS plan_slug, c.title AS campaign_title
+             FROM {$this->prefix}applications a
+             LEFT JOIN {$this->prefix}plans p ON p.id = a.plan_id
+             LEFT JOIN {$this->prefix}campaigns c ON c.id = a.campaign_id
+             WHERE a.user_id = %d AND a.campaign_id <> %d AND a.status IN (%s, %s)
+             ORDER BY a.valid_until DESC, a.id DESC LIMIT 1",
+            $userId,
+            $campaignId,
+            self::STATUS_PAYMENT_CONFIRMED,
+            self::STATUS_ACTIVE
+        ), ARRAY_A);
+
+        if (!$previous) {
+            return null;
+        }
+
+        $plan = $this->campaigns->planBySlug($campaignId, (string) $previous['plan_slug']);
+
+        $kept     = [];
+        $toAnswer = [];
+        $before   = $this->answers((int) $previous['id']);
+
+        foreach ($this->campaigns->options($campaignId) as $option) {
+            if ($option->isAutomatic()) {
+                continue;
+            }
+
+            if (!$option->carryOver) {
+                // Seulement ce qui concerne sa formule : lui demander de revoir
+                // une question qu'il ne verra pas serait du bruit.
+                if ($plan === null || $option->appliesToPlan($plan->slug)) {
+                    $toAnswer[] = $option->label;
+                }
+                continue;
+            }
+
+            if (!array_key_exists($option->name, $before)) {
+                continue;
+            }
+
+            $offered = array_map(static fn (array $c): string => (string) $c['value'], $option->choices);
+            $value   = $before[$option->name];
+            $value   = is_array($value)
+                ? array_values(array_intersect(array_map('strval', $value), $offered))
+                : (in_array((string) $value, $offered, true) ? (string) $value : null);
+
+            if ($value !== null && $value !== []) {
+                $kept[$option->name] = $value;
+            }
+        }
+
+        $method = (string) $previous['payment_method'];
+
+        return [
+            'application'    => $previous,
+            'campaign_title' => (string) $previous['campaign_title'],
+            'plan'           => $plan?->slug ?? '',
+            'answers'        => $kept,
+            'payment_method' => PaymentMethods::isOffered($method) ? $method : '',
+            'to_answer'      => array_values(array_unique($toAnswer)),
+        ];
+    }
+
+    /**
      * Un dossier s'annule-t-il encore, et par qui ?
      *
      * L'activation est la borne commune : passé elle, le dossier a produit une

@@ -102,6 +102,7 @@ final class DemoSeeder
                 'exclude_values'   => wp_json_encode($data['exclude_values'] ?? []),
                 'grants'           => wp_json_encode($data['grants'] ?? []),
                 'plans'            => wp_json_encode($data['plans'] ?? []),
+                'carry_over'       => $data['carry_over'] ?? 1,
                 'ordering'         => $data['ordering'],
             ]);
         };
@@ -164,6 +165,7 @@ final class DemoSeeder
         // qui détient déjà une licence prise ailleurs.
         $option([
             'name'       => 'moins_value_licence',
+            'carry_over' => 0,
             'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
             'help'       => 'Cochez seulement si vous en détenez déjà une : sa part est alors déduite.',
             'input_type' => Option::INPUT_CHECK,
@@ -182,6 +184,7 @@ final class DemoSeeder
         // case apparaît, et rien ne trahit qu'il en existe deux.
         $option([
             'name'       => 'moins_value_licence_nokia',
+            'carry_over' => 0,
             'label'      => 'Avez-vous déjà une licence FFESSM valide pour la saison en cours ?',
             'help'       => 'Cochez seulement si vous en détenez déjà une. La remise Nokia couvre '
                 . 'déjà une partie de la licence : la déduction porte sur ce qui reste à votre charge.',
@@ -194,6 +197,7 @@ final class DemoSeeder
 
         $option([
             'name'     => 'niveau_prepare',
+            'carry_over' => 0,
             'label'    => 'Niveau préparé cette saison',
             'ordering' => 50,
             'plans'    => ['plongee'],

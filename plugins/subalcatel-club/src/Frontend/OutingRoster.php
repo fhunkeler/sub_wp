@@ -138,7 +138,9 @@ final class OutingRoster
                                 <?php
                                 $confirmed = (int) $row['confirmed'];
 
-                                echo esc_html(sprintf(
+                                // Une sortie annulée n'a plus d'inscrits : « 0 inscrit »
+                                // laisserait croire qu'elle attend encore du monde.
+                                echo $row['status'] === 'cancelled' ? 'Annulée' : esc_html(sprintf(
                                     '%d inscrit%s%s%s',
                                     $confirmed,
                                     $confirmed > 1 ? 's' : '',
@@ -567,7 +569,7 @@ final class OutingRoster
         // Les fragments interpolés ci-dessus sont choisis ici, jamais reçus :
         // les valeurs variables, elles, restent préparées.
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT e.id, e.title, e.location, e.starts_at, e.capacity,
+            "SELECT e.id, e.title, e.location, e.starts_at, e.capacity, e.status,
                     (SELECT COUNT(*) FROM {$p}event_registrations r
                       WHERE r.event_id = e.id AND r.status = 'confirmed') AS confirmed,
                     (SELECT COUNT(*) FROM {$p}event_registrations r

@@ -17,7 +17,7 @@ use Subalcatel\Club\Support\Audit;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 16;
+    private const VERSION        = 17;
 
     /**
      * Fin de la saison 2025-2026, et celle qui la remplace.
@@ -257,6 +257,8 @@ final class Schema
         // `ends_at` dès la v1 : les sorties sur plusieurs jours et la
         // réservation du bateau en dépendent. Une colonne aujourd'hui, toutes
         // les requêtes d'agenda à reprendre plus tard (cf. §9 bis).
+        // `cancelled_at` et `cancel_reason` (v17) : une sortie annulée reste en
+        // base, avec la date et le motif donnés aux inscrits.
         dbDelta("CREATE TABLE {$p}events (
             id bigint(20) unsigned NOT NULL auto_increment,
             type_id bigint(20) unsigned NOT NULL,
@@ -276,6 +278,8 @@ final class Schema
             organizer_id bigint(20) unsigned default NULL,
             dive_leader_id bigint(20) unsigned default NULL,
             status varchar(20) NOT NULL default 'published',
+            cancelled_at datetime default NULL,
+            cancel_reason text,
             created_at datetime NOT NULL default CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             UNIQUE KEY slug (slug),

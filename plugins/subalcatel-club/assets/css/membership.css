@@ -1735,6 +1735,18 @@
 
 /* Annuler son dossier : l'action existe, mais elle ne se dispute pas la place
    avec le récapitulatif. D'où le bouton à sa largeur, poussé en fin de bloc. */
+.sub-membership-view__certificates {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+}
+
+.sub-membership-view__certificates .sub-button {
+	width: auto;
+	min-height: 40px;
+	font-size: 15px;
+}
+
 .sub-membership-view__cancel {
 	display: flex;
 	flex-wrap: wrap;

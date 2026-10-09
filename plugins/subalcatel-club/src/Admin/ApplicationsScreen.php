@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Membership\PaymentMethods;
 
 /**
@@ -202,6 +203,18 @@ final class ApplicationsScreen
             );
 
             self::renderCancel((int) $row['id']);
+        }
+
+        // Le bureau délivre les mêmes pièces que l'adhérent : c'est à lui
+        // qu'on les réclame encore, par courriel ou à la permanence.
+        if (current_user_can('sub_manage_memberships')) {
+            foreach (MembershipCertificate::available($row) as $kind) {
+                printf(
+                    '<a class="button" href="%s">%s</a>',
+                    esc_url(MembershipCertificate::url((int) $row['id'], $kind)),
+                    esc_html($kind === MembershipCertificate::ATTESTATION ? 'Attestation' : 'Reçu')
+                );
+            }
         }
 
         echo '</div>';

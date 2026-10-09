@@ -150,7 +150,7 @@ final class Audit
         return array_values(array_filter(array_map('strval', $types)));
     }
 
-    private static function clientIp(): ?string
+    public static function clientIp(): ?string
     {
         $raw = $_SERVER['REMOTE_ADDR'] ?? '';
 

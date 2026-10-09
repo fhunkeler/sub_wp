@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\MembershipGrace;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Notifications\QuotaExceeded;
@@ -33,6 +34,7 @@ final class CampaignsScreen
         add_action('admin_post_sub_campaign_duplicate', [self::class, 'handleDuplicate']);
         add_action('admin_post_sub_campaign_status', [self::class, 'handleStatus']);
         add_action('admin_post_sub_campaign_delete', [self::class, 'handleDelete']);
+        add_action('admin_post_sub_membership_grace_save', [self::class, 'handleGraceSave']);
     }
 
     public static function renderTab(): void
@@ -188,7 +190,76 @@ final class CampaignsScreen
 
                 <p class="submit"><button class="button button-primary">Créer la campagne</button></p>
             </form>
+
+            <?php self::renderGrace(); ?>
         <?php
+    }
+
+    /**
+     * Le sursis laissé après l'échéance, le temps qu'un renouvellement soit
+     * traité. Voir {@see MembershipGrace} pour ce qu'il couvre, et surtout ce
+     * qu'il ne couvre pas.
+     */
+    private static function renderGrace(): void
+    {
+        $grace = MembershipGrace::settings();
+        ?>
+            <h2 style="margin-top:32px;">Période de grâce</h2>
+            <p class="description">
+                Après l’échéance de son adhésion, un membre peut encore s’inscrire aux sorties et
+                emprunter le matériel souscrit pendant ce délai. L’adhésion n’est pas prolongée pour
+                autant : la date de fin reste celle de la campagne dans les exports, les listes et
+                les statistiques, et ouvrir une sortie reste réservé aux adhésions à jour. Le
+                certificat médical et la licence restent exigés à jour.
+            </p>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sub-form">
+                <input type="hidden" name="action" value="sub_membership_grace_save">
+                <?php wp_nonce_field('sub_membership_grace_save'); ?>
+
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="grace_days">Durée</label></th>
+                        <td>
+                            <input name="grace_days" id="grace_days" type="number" min="0"
+                                   max="<?php echo esc_attr((string) MembershipGrace::MAX_DAYS); ?>"
+                                   value="<?php echo esc_attr((string) $grace['days']); ?>" class="small-text"> jours
+                            <p class="description">0 pour désactiver : l’adhésion expire alors le jour même.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Condition</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="grace_requires_renewal" value="1"
+                                       <?php checked($grace['requires_renewal']); ?>>
+                                Seulement si le membre a déposé son renouvellement sur la campagne ouverte
+                            </label>
+                            <p class="description">
+                                Recommandé : la grâce sert à couvrir le temps de traitement du bureau, pas à
+                                différer la décision de renouveler. Sans dossier, le membre est invité à le déposer.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit"><button class="button">Enregistrer la période de grâce</button></p>
+            </form>
+        <?php
+    }
+
+    public static function handleGraceSave(): void
+    {
+        check_admin_referer('sub_membership_grace_save');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        MembershipGrace::save(
+            absint($_POST['grace_days'] ?? 0),
+            isset($_POST['grace_requires_renewal'])
+        );
+
+        Audit::log('membership.grace_saved', 'membership', null, MembershipGrace::settings());
+
+        self::back('Période de grâce enregistrée.');
     }
 
     /**

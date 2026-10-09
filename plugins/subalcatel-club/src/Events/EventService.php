@@ -300,7 +300,7 @@ final class EventService
         }
 
         if ((int) $event['requires_membership'] === 1) {
-            $decision = $this->policy->hasActiveMembership($userId);
+            $decision = $this->policy->hasMembershipForActivities($userId);
             if (!$decision->allowed) {
                 return $decision;
             }

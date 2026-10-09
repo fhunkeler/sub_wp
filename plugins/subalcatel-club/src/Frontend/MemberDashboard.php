@@ -11,6 +11,7 @@ use Subalcatel\Club\Identity\DerivedCapabilities;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
+use Subalcatel\Club\Membership\MembershipGrace;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
 /**
@@ -196,8 +197,24 @@ final class MemberDashboard
 
         // 1. L'adhésion, parce qu'elle conditionne tout le reste.
         $membership = $policy->hasActiveMembership($userId);
+        $grace      = $membership->allowed ? null : MembershipGrace::until($userId);
 
-        if (!$membership->allowed) {
+        if ($grace !== null) {
+            // Rien à faire de son côté : le renouvellement est déposé, c'est
+            // au bureau. Le dire évite qu'il en dépose un second par inquiétude.
+            $actions[] = [
+                'level'  => 'soon',
+                'title'  => 'Renouvellement en cours de traitement',
+                'detail' => sprintf(
+                    '%s Votre nouveau dossier est entre les mains du bureau : vous pouvez continuer '
+                    . 'à vous inscrire aux sorties jusqu’au %s.',
+                    $membership->reason,
+                    self::frDate($grace)
+                ),
+                'action' => 'Voir mon adhésion',
+                'url'    => Pages::url(Pages::MEMBERSHIP),
+            ];
+        } elseif (!$membership->allowed) {
             $actions[] = [
                 'level'  => 'urgent',
                 'title'  => 'Votre adhésion n’est pas à jour',

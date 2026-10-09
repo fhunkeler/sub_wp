@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Policy;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\DiveLevels;
+use Subalcatel\Club\Membership\MembershipGrace;
 
 /**
  * Point de décision unique du plugin.
@@ -70,6 +71,44 @@ final class EligibilityPolicy
         }
 
         return Decision::allow();
+    }
+
+    /**
+     * L'adhésion permet-elle de participer — s'inscrire, emprunter ?
+     *
+     * La même question que {@see self::hasActiveMembership()}, période de
+     * grâce comprise. Elle ne sert qu'aux gestes de participation : une
+     * adhésion échue reste échue pour tout le reste (exports, listes,
+     * organisation d'une sortie). Voir {@see MembershipGrace}.
+     */
+    public function hasMembershipForActivities(int $userId, ?string $onDate = null): Decision
+    {
+        $membership = $this->hasActiveMembership($userId, $onDate);
+
+        if ($membership->allowed || $membership->code !== Decision::MEMBERSHIP_EXPIRED) {
+            return $membership;
+        }
+
+        if (MembershipGrace::until($userId, $onDate) !== null) {
+            return Decision::allow();
+        }
+
+        // Le sursis existe, il ne manque que le dossier : le dire, c'est
+        // transformer un refus en une démarche.
+        $reachable = MembershipGrace::reachableUntil($userId, $onDate);
+
+        if ($reachable !== null) {
+            return Decision::deny(
+                $membership->reason . sprintf(
+                    ' Déposez votre renouvellement : vous pourrez continuer à vous inscrire jusqu’au %s, '
+                    . 'le temps que le bureau le traite.',
+                    self::formatDate($reachable)
+                ),
+                Decision::MEMBERSHIP_EXPIRED
+            );
+        }
+
+        return $membership;
     }
 
     /**
@@ -320,7 +359,7 @@ final class EligibilityPolicy
      */
     public function hasLendingRight(int $userId, string $equipmentType): Decision
     {
-        $membership = $this->hasActiveMembership($userId);
+        $membership = $this->hasMembershipForActivities($userId);
         if (!$membership->allowed) {
             return $membership;
         }
@@ -348,7 +387,7 @@ final class EligibilityPolicy
     {
         foreach ([
             $this->hasApprovedAccount($userId),
-            $this->hasActiveMembership($userId),
+            $this->hasMembershipForActivities($userId),
             $this->hasValidDocuments($userId),
             $this->meetsDiveLevel($userId, $acceptedLevels),
         ] as $decision) {

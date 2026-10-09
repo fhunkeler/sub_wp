@@ -44,6 +44,18 @@ final class Schema
         'notification_log'    => ['recipient_id'],
     ];
 
+    /** Version du schéma que ce code attend. */
+    public static function expectedVersion(): int
+    {
+        return self::VERSION;
+    }
+
+    /** Version du schéma réellement en base. */
+    public static function installedVersion(): int
+    {
+        return (int) get_option(self::VERSION_OPTION, 0);
+    }
+
     public static function migrateIfNeeded(): void
     {
         if ((int) get_option(self::VERSION_OPTION, 0) < self::VERSION) {

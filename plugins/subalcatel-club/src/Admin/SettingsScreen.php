@@ -109,6 +109,13 @@ final class SettingsScreen
                 'cap'    => 'sub_manage_event_types',
                 'render' => [self::class, 'renderAudit'],
             ],
+            SiteStatusScreen::TAB        => [
+                'label'  => 'État du site',
+                // Emplacement des certificats, configuration du serveur : la
+                // même réserve que « Sécurité ».
+                'cap'    => 'manage_options',
+                'render' => [SiteStatusScreen::class, 'renderTab'],
+            ],
             UpdatesScreen::TAB           => [
                 'label'  => 'Mises à jour',
                 // Même raison que « Sécurité » : poser un jeton dans

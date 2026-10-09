@@ -172,6 +172,57 @@ final class Mailer
     }
 
     /**
+     * Envoi groupé qui, faute de quota aujourd'hui, se met en file d'attente
+     * plutôt que d'être refusé.
+     *
+     * Ce qui tient part tout de suite ; le reste attend {@see MailQueue}. Un
+     * envoi d'un bloc (`atomic`, le cas par défaut) part en entier ou attend en
+     * entier ; un envoi fractionnable envoie ce que le jour permet.
+     *
+     * @param list<int> $userIds
+     * @param array<string, string> $variables
+     * @param array<string, mixed> $context
+     * @param list<string> $headers
+     * @param array{atomic?: bool, expires_at?: ?string, label?: string} $queue
+     * @return array{sent: int, queued: int}
+     */
+    public static function toUsersOrQueue(
+        string $templateCode,
+        array $userIds,
+        array $variables = [],
+        array $context = [],
+        array $headers = [],
+        array $queue = [],
+    ): array {
+        $userIds = array_values(array_map('intval', $userIds));
+        $atomic  = (bool) ($queue['atomic'] ?? true);
+
+        if (SendQuota::allowsBulk(self::messageCount($templateCode, $userIds))) {
+            return ['sent' => self::toUsers($templateCode, $userIds, $variables, $context, $headers), 'queued' => 0];
+        }
+
+        $now = [];
+
+        if (!$atomic) {
+            $remaining = (int) SendQuota::bulkRemaining();
+
+            foreach ($userIds as $userId) {
+                if (self::messageCount($templateCode, array_merge($now, [$userId])) > $remaining) {
+                    break;
+                }
+                $now[] = $userId;
+            }
+        }
+
+        $later = array_values(array_diff($userIds, $now));
+        $sent  = $now === [] ? 0 : self::toUsers($templateCode, $now, $variables, $context, $headers);
+
+        MailQueue::enqueue($templateCode, $later, $variables, $context, $headers, $queue + ['atomic' => $atomic]);
+
+        return ['sent' => $sent, 'queued' => count($later)];
+    }
+
+    /**
      * Messages qu'un envoi groupé fera réellement partir : un par membre, plus
      * la copie au représentant légal des mineurs quand le modèle la prévoit.
      *

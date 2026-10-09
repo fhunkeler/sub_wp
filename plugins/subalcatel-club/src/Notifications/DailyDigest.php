@@ -41,7 +41,7 @@ final class DailyDigest
     }
 
     /**
-     * @return array{expired: int, purged: int, doc_reminders: int, purge_warnings: int, membership_reminders: int, came_of_age: int, campaign_notices: int, deferred: int}
+     * @return array{expired: int, purged: int, doc_reminders: int, purge_warnings: int, membership_reminders: int, came_of_age: int, campaign_notices: int, deferred: int, queued_sent: int}
      */
     public static function run(?string $onDate = null): array
     {
@@ -58,7 +58,13 @@ final class DailyDigest
             // avant eux si elle tient, mais ne doit pas les priver du quota.
             'campaign_notices'     => CampaignsScreen::retryPendingNotices(),
             'deferred'             => SendQuota::deferredCount(),
+            // La file d'attente des envois groupés passe en dernier : elle
+            // prend ce que les rappels du jour ont laissé du quota. Les
+            // passages horaires qui suivent reprennent le reste.
+            'queued_sent'          => MailQueue::process(true),
         ];
+
+        update_option(MailQueue::OPTION_DAILY_RAN, current_time('Y-m-d'), false);
 
         Audit::log('notifications.daily', 'system', null, $result);
 

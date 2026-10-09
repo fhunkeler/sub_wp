@@ -13,7 +13,6 @@ use Subalcatel\Club\Policy\Decision;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
-use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -724,7 +723,7 @@ final class EventService
             $recipients[] = (int) $person['user_id'];
         }
 
-        $sent = Mailer::toUsers(
+        $outcome = Mailer::toUsersOrQueue(
             EmailTemplates::EVENT_MESSAGE,
             $recipients,
             self::eventVariables($event) + [
@@ -732,19 +731,22 @@ final class EventService
                 'message'    => $message,
                 'expediteur' => $sender?->display_name ?? '',
             ],
-            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId]
+            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId],
+            [],
+            self::queueOptions($event, 'Message aux inscrits')
         );
 
         Audit::log('event.message_sent', 'event', $eventId, [
             'subject'    => $subject,
             'recipients' => count($recipients),
-            'sent'       => $sent,
+            'sent'       => $outcome['sent'],
+            'queued'     => $outcome['queued'],
         ], $actorId);
 
         // On distingue les destinataires des envois réussis : un directeur de
         // plongée qui croit avoir prévenu son groupe alors que rien n'est parti
         // découvrirait le problème au bord de l'eau.
-        return ['recipients' => count($recipients), 'sent' => $sent];
+        return ['recipients' => count($recipients)] + $outcome;
     }
 
     /**
@@ -802,8 +804,8 @@ final class EventService
             $eventId
         )) ?: []);
 
-        SendQuota::ensureBulk(Mailer::messageCount(EmailTemplates::EVENT_CALLED_OFF, $recipients));
-
+        // Pas de refus faute de quota : l'annulation ne peut pas attendre le
+        // courriel. Ce qui ne tient pas aujourd'hui part de la file d'attente.
         $now = current_time('mysql');
 
         $wpdb->update(
@@ -822,23 +824,26 @@ final class EventService
 
         $sender = get_userdata($actorId);
 
-        $sent = Mailer::toUsers(
+        $outcome = Mailer::toUsersOrQueue(
             EmailTemplates::EVENT_CALLED_OFF,
             $recipients,
             self::eventVariables($event) + [
                 'motif'      => $reason,
                 'expediteur' => $sender?->display_name ?? '',
             ],
-            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId]
+            ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId],
+            [],
+            self::queueOptions($event, 'Annulation de la sortie')
         );
 
         Audit::log('event.called_off', 'event', $eventId, [
             'reason'     => $reason,
             'recipients' => count($recipients),
-            'sent'       => $sent,
+            'sent'       => $outcome['sent'],
+            'queued'     => $outcome['queued'],
         ], $actorId);
 
-        return ['recipients' => count($recipients), 'sent' => $sent];
+        return ['recipients' => count($recipients)] + $outcome;
     }
 
     /**
@@ -1047,7 +1052,7 @@ final class EventService
             $headers[] = sprintf('Reply-To: %s <%s>', $organizer->display_name, $organizer->user_email);
         }
 
-        $sent = Mailer::toUsers(
+        $outcome = Mailer::toUsersOrQueue(
             EmailTemplates::EVENT_ANNOUNCEMENT,
             $recipients,
             self::eventVariables($event) + [
@@ -1061,16 +1066,18 @@ final class EventService
                 'lien'         => self::agendaUrl($eventId),
             ],
             ['entity_type' => 'event', 'entity_id' => $eventId, 'sender_id' => $actorId],
-            $headers
+            $headers,
+            self::queueOptions($event, 'Annonce de la sortie')
         );
 
         Audit::log('event.announced', 'event', $eventId, [
             'audience'   => $audience,
             'recipients' => count($recipients),
-            'sent'       => $sent,
+            'sent'       => $outcome['sent'],
+            'queued'     => $outcome['queued'],
         ], $actorId);
 
-        return ['recipients' => count($recipients), 'sent' => $sent];
+        return ['recipients' => count($recipients)] + $outcome;
     }
 
     /**
@@ -1115,6 +1122,22 @@ final class EventService
         return $agenda === ''
             ? home_url('/')
             : $agenda . '#sub-event-' . $eventId;
+    }
+
+    /**
+     * Comment un envoi lié à cette sortie attend, s'il doit attendre : d'un
+     * bloc, et jusqu'à son heure de début au plus tard.
+     *
+     * @param array<string, mixed> $event
+     * @return array{atomic: bool, expires_at: string, label: string}
+     */
+    private static function queueOptions(array $event, string $what): array
+    {
+        return [
+            'atomic'     => true,
+            'expires_at' => (string) $event['starts_at'],
+            'label'      => sprintf('%s « %s »', $what, (string) $event['title']),
+        ];
     }
 
     /**

@@ -128,7 +128,7 @@ $mails  = [];
 $result = $service->callOff($eventId, 'Houle annoncée à 2,5 m.', $dp);
 $event  = $service->find($eventId);
 
-$check('Deux destinataires, deux envois', $result === ['recipients' => 2, 'sent' => 2],
+$check('Deux destinataires, deux envois', $result === ['recipients' => 2, 'sent' => 2, 'queued' => 0],
     wp_json_encode($result));
 $check('La confirmée est prévenue', count($mailsTo($lea)) === 1);
 $check('La liste d’attente aussi', count($mailsTo($yann)) === 1);
@@ -178,7 +178,7 @@ $result = $service->callOff($autre, 'Bateau en panne.', $curieux);
 
 $check('Le droit du bureau suffit, même sans être organisateur',
     $service->find($autre)['status'] === 'cancelled');
-$check('Sans inscrit, aucun message ne part', $result === ['recipients' => 0, 'sent' => 0] && $mails === []);
+$check('Sans inscrit, aucun message ne part', $result === ['recipients' => 0, 'sent' => 0, 'queued' => 0] && $mails === []);
 
 // --- Nettoyage ---------------------------------------------------------------
 

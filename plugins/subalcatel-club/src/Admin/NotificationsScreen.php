@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Support\Audit;
@@ -28,6 +29,7 @@ final class NotificationsScreen
         add_action('admin_post_sub_template_preview', [self::class, 'handlePreview']);
         add_action('admin_post_sub_daily_run', [self::class, 'handleRunDaily']);
         add_action('admin_post_sub_mail_quota_save', [self::class, 'handleQuotaSave']);
+        add_action('admin_post_sub_mail_queue_cancel', [self::class, 'handleQueueCancel']);
     }
 
     public static function renderTemplates(): void
@@ -235,9 +237,11 @@ final class NotificationsScreen
                 <?php endif; ?>
             </p>
             <p class="description">
-                Une annonce de sortie, un message aux inscrits ou l’ouverture d’une campagne qui
-                dépasserait le plafond est refusé en entier, jamais envoyé à moitié. Les rappels
-                automatiques en excès sont reportés au lendemain. Les messages individuels
+                Une annonce de sortie, un message aux inscrits ou une annulation qui dépasserait le
+                plafond est mis en file d’attente <strong>en entier</strong>, jamais envoyé à moitié :
+                il part d’un bloc dès que le quota le permet, et il est abandonné si la sortie commence
+                avant. L’annonce d’ouverture d’une campagne, elle, part par tranches sur plusieurs jours.
+                Les rappels automatiques en excès sont reportés au lendemain. Les messages individuels
                 (mot de passe, confirmation de dossier) partent toujours : la réserve leur est gardée.
             </p>
 
@@ -268,8 +272,74 @@ final class NotificationsScreen
                 </table>
                 <p class="submit"><button class="button">Enregistrer le plafond</button></p>
             </form>
+
+            <?php self::renderQueue(); ?>
         </div>
         <?php
+    }
+
+    /**
+     * Ce qui attend dans la file, et le moyen de l'arrêter.
+     *
+     * Une annonce mise en file un vendredi soir part le samedi : l'organisateur
+     * qui a entre-temps prévenu tout le monde autrement doit pouvoir la retirer.
+     */
+    private static function renderQueue(): void
+    {
+        $jobs = MailQueue::jobs();
+        ?>
+        <h3>File d’attente</h3>
+        <?php if ($jobs === []) : ?>
+            <p class="description">Aucun envoi en attente.</p>
+        <?php else : ?>
+            <table class="wp-list-table widefat striped">
+                <thead>
+                    <tr>
+                        <th>Envoi</th>
+                        <th style="width:110px;">Reste à envoyer</th>
+                        <th style="width:150px;">Mis en file</th>
+                        <th style="width:150px;">Abandonné après</th>
+                        <th style="width:110px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($jobs as $id => $job) : ?>
+                    <tr>
+                        <td>
+                            <?php echo esc_html((string) $job['label']); ?>
+                            <br><small><?php echo esc_html($job['atomic'] ? 'D’un bloc' : 'Par tranches'); ?>
+                            <?php if ((int) $job['sent'] > 0) : ?>
+                                — <?php echo (int) $job['sent']; ?> déjà parti(s)
+                            <?php endif; ?></small>
+                        </td>
+                        <td><?php echo count((array) $job['users']); ?></td>
+                        <td><?php echo esc_html(mysql2date('j F Y à H\\hi', (string) $job['queued_at'])); ?></td>
+                        <td><?php echo esc_html($job['expires_at'] ? mysql2date('j F Y à H\\hi', (string) $job['expires_at']) : '—'); ?></td>
+                        <td>
+                            <?php AdminUi::actionButton(
+                                'sub_mail_queue_cancel',
+                                ['job' => (string) $id],
+                                'Annuler',
+                                'button button-link-delete',
+                                'Retirer cet envoi de la file ? Les messages restants ne partiront pas.'
+                            ); ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+        <?php
+    }
+
+    public static function handleQueueCancel(): void
+    {
+        check_admin_referer('sub_mail_queue_cancel');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $done = MailQueue::cancel(sanitize_text_field(wp_unslash((string) ($_POST['job'] ?? ''))));
+
+        self::back($done ? 'Envoi retiré de la file d’attente.' : 'Cet envoi n’est plus dans la file.', !$done, self::TAB_LOG);
     }
 
     public static function handleQuotaSave(): void

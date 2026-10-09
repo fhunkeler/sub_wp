@@ -60,6 +60,7 @@ use Subalcatel\Club\Support\TwoFactorGate;
 use Subalcatel\Club\Support\PasswordPolicy;
 use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Privacy\AccountDeletion;
@@ -93,6 +94,7 @@ final class Plugin
     public static function deactivate(): void
     {
         DailyDigest::unregister();
+        MailQueue::unregister();
 
         // Les rôles et les données sont conservés : désactiver n'est pas désinstaller.
         flush_rewrite_rules();
@@ -165,6 +167,7 @@ final class Plugin
         OutingRoster::register();
         DailyDigest::register();
         SendQuota::register();
+        MailQueue::register();
         ClubDocumentsList::register();
         CalendarShortcode::register();
         SiteMapShortcode::register();

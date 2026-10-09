@@ -18,6 +18,7 @@
 !/build-packages.py
 !/version.py
 !/README.md
+!/docs/
 
 !/plugins/
 /plugins/*

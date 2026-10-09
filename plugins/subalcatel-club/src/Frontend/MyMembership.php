@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Membership\PaymentMethods;
 
 /**
@@ -231,8 +232,55 @@ final class MyMembership
 
             <?php self::renderPayments((int) $application['id']); ?>
 
+            <?php self::renderCertificates($application); ?>
+
             <?php self::renderCancel((int) $application['id'], $service); ?>
         </section>
+        <?php
+    }
+
+    /**
+     * Reçu et attestation, dès que le dossier peut les produire.
+     *
+     * Un dossier qui attend son règlement n'en propose aucun, et le dit : sans
+     * cette phrase, l'adhérent qui vient chercher son reçu pour le CE ne sait
+     * pas s'il est au mauvais endroit ou s'il est trop tôt.
+     *
+     * @param array<string, mixed> $application
+     */
+    private static function renderCertificates(array $application): void
+    {
+        $kinds = MembershipCertificate::available($application);
+        $open  = in_array((string) $application['status'], [
+            ApplicationService::STATUS_SUBMITTED,
+            ApplicationService::STATUS_AWAITING_PAYMENT,
+            ApplicationService::STATUS_PAYMENT_CONFIRMED,
+        ], true);
+
+        if ($kinds === [] && !$open) {
+            return;
+        }
+        ?>
+        <h3 class="sub-membership-view__subtitle">Reçu et attestation</h3>
+        <?php if ($kinds === []) : ?>
+            <p class="sub-membership-view__meta">
+                Le reçu de cotisation sera disponible ici dès que la trésorerie aura enregistré votre règlement.
+            </p>
+        <?php else : ?>
+            <p class="sub-membership-view__certificates">
+                <?php foreach ($kinds as $kind) : ?>
+                    <a class="sub-button sub-button--ghost"
+                       href="<?php echo esc_url(MembershipCertificate::url((int) $application['id'], $kind)); ?>">
+                        <?php echo esc_html(MembershipCertificate::label($kind)); ?> (PDF)
+                    </a>
+                <?php endforeach; ?>
+            </p>
+            <?php if (!in_array(MembershipCertificate::ATTESTATION, $kinds, true)) : ?>
+                <p class="sub-membership-view__meta">
+                    L’attestation d’adhésion s’ajoutera une fois votre dossier validé par le secrétariat.
+                </p>
+            <?php endif; ?>
+        <?php endif; ?>
         <?php
     }
 
@@ -429,6 +477,11 @@ final class MyMembership
                             <strong><?php echo esc_html((string) ($application['campaign_title'] ?: '—')); ?></strong><br>
                             <?php echo esc_html((string) $application['plan_title']); ?>
                             — <?php echo esc_html(self::euro((float) $application['total_amount'])); ?>
+                            <?php foreach (MembershipCertificate::available($application) as $kind) : ?>
+                                <br><a href="<?php echo esc_url(MembershipCertificate::url((int) $application['id'], $kind)); ?>">
+                                    <?php echo esc_html(MembershipCertificate::label($kind)); ?> (PDF)
+                                </a>
+                            <?php endforeach; ?>
                         </span>
                         <span class="sub-pill">
                             <?php echo esc_html(MemberDashboard::frDate((string) $application['valid_until'])); ?>

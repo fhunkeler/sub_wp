@@ -11,6 +11,7 @@ use Subalcatel\Club\Frontend\Pages;
 use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\OfficePosition;
+use Subalcatel\Club\Membership\ClubIdentity;
 use Subalcatel\Club\Setup\SiteBuilder;
 use Subalcatel\Club\Setup\SiteMap;
 use Subalcatel\Club\Support\Audit;
@@ -52,6 +53,7 @@ final class SettingsScreen
         add_action('admin_post_sub_security_save', [self::class, 'handleSecuritySave']);
         add_action('admin_post_sub_office_positions_save', [self::class, 'handleOfficePositionsSave']);
         add_action('admin_post_sub_permanences_save', [self::class, 'handlePermanencesSave']);
+        add_action('admin_post_sub_club_identity_save', [self::class, 'handleClubIdentitySave']);
     }
 
     public static function render(): void
@@ -86,6 +88,11 @@ final class SettingsScreen
                 'label'  => 'Fonctions du bureau',
                 'cap'    => AccountFields::CAPABILITY,
                 'render' => [self::class, 'renderOfficePositions'],
+            ],
+            'identity'                   => [
+                'label'  => 'Reçus et attestations',
+                'cap'    => 'sub_manage_memberships',
+                'render' => [self::class, 'renderClubIdentity'],
             ],
             'permanences'                => [
                 'label'  => 'Permanences',
@@ -651,6 +658,80 @@ final class SettingsScreen
         Audit::log('office_position.saved', 'office_position', null, ['positions' => $saved]);
 
         AdminUi::redirect(self::SLUG, 'Fonctions du bureau enregistrées.', false, ['tab' => 'office']);
+    }
+
+    // ------------------------------------------------ Reçus et attestations
+
+    /**
+     * L'émetteur imprimé en tête des reçus et attestations d'adhésion.
+     *
+     * Le signataire n'y figure pas : c'est le titulaire de la fonction —
+     * président·e pour l'attestation, trésorier·ère pour le reçu —, tenu dans
+     * « Fonctions du bureau ». Le saisir deux fois, c'est l'oublier une fois
+     * au changement de bureau.
+     */
+    public static function renderClubIdentity(): void
+    {
+        $identity = ClubIdentity::all();
+        ?>
+        <p class="description">
+            Ces informations figurent en tête des reçus de cotisation et des attestations
+            d’adhésion que les membres téléchargent depuis « Mon adhésion ». Le signataire est
+            le titulaire de la fonction dans <a href="<?php echo esc_url(add_query_arg(['page' => self::SLUG, 'tab' => 'office'], admin_url('admin.php'))); ?>">Fonctions du bureau</a> :
+            président·e pour l’attestation, trésorier·ère pour le reçu.
+        </p>
+
+        <?php if (!ClubIdentity::isComplete()) : ?>
+            <div class="notice notice-warning inline">
+                <p>L’adresse du club n’est pas renseignée : les documents sont délivrés sans elle.</p>
+            </div>
+        <?php endif; ?>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="sub_club_identity_save">
+            <?php wp_nonce_field('sub_club_identity_save'); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row"><label for="sub_identity_name">Nom de l’association</label></th>
+                    <td>
+                        <input type="text" id="sub_identity_name" name="identity[name]" class="regular-text"
+                               value="<?php echo esc_attr($identity['name']); ?>">
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="sub_identity_address">Adresse</label></th>
+                    <td>
+                        <textarea id="sub_identity_address" name="identity[address]" rows="3" class="large-text"><?php echo esc_textarea($identity['address']); ?></textarea>
+                        <p class="description">Une ligne par ligne d’adresse, telle qu’elle doit s’imprimer.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="sub_identity_affiliation">N° d’affiliation FFESSM</label></th>
+                    <td>
+                        <input type="text" id="sub_identity_affiliation" name="identity[affiliation]" class="regular-text"
+                               value="<?php echo esc_attr($identity['affiliation']); ?>">
+                    </td>
+                </tr>
+            </table>
+
+            <p>
+                <button type="submit" class="button button-primary">Enregistrer</button>
+            </p>
+        </form>
+        <?php
+    }
+
+    public static function handleClubIdentitySave(): void
+    {
+        check_admin_referer('sub_club_identity_save');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        ClubIdentity::save(wp_unslash((array) ($_POST['identity'] ?? [])));
+
+        Audit::log('club_identity.saved', 'club_identity', null, ClubIdentity::all());
+
+        AdminUi::redirect(self::SLUG, 'Identité du club enregistrée.', false, ['tab' => 'identity']);
     }
 
     // ----------------------------------------------------------- Permanences

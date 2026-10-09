@@ -51,6 +51,7 @@ use Subalcatel\Club\Frontend\QuoteEndpoint;
 use Subalcatel\Club\Identity\DerivedCapabilities;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\PasswordChange;
+use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Setup\Updater;
 use Subalcatel\Club\Support\Hardening;
 use Subalcatel\Club\Support\LoginAudit;
@@ -160,6 +161,7 @@ final class Plugin
         DocumentsForm::register();
         MemberDashboard::register();
         MyMembership::register();
+        MembershipCertificate::register();
         MyRegistrations::register();
         OutingForm::register();
         OutingRoster::register();

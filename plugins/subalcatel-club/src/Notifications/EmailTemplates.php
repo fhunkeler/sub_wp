@@ -55,6 +55,8 @@ final class EmailTemplates
     public const EVENT_TO_ORGANIZER = 'event.to_organizer';
     public const EVENT_ANNOUNCEMENT = 'event.announcement';
 
+    public const SECURITY_NEW_DEVICE = 'security.new_device';
+
     /**
      * Variables communes à tous les modèles.
      *
@@ -467,6 +469,30 @@ final class EmailTemplates
                     'adresse_expediteur' => 'Courriel de l’inscrit',
                 ],
             ],
+            [
+                'code'        => self::SECURITY_NEW_DEVICE,
+                'label'       => 'Connexion depuis un nouvel appareil',
+                'description' => 'Envoyé au titulaire d’un compte du bureau (certificats, exports, gestion '
+                    . 'des comptes) quand son mot de passe sert depuis un appareil et une adresse jamais vus.',
+                'subject'     => '[{club}] Nouvelle connexion à votre compte',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "Votre mot de passe vient d’être utilisé pour vous connecter au site du club "
+                    . "depuis un appareil que nous n’avions pas encore vu :\n\n"
+                    . "  Date : {date}\n"
+                    . "  Appareil : {appareil}\n"
+                    . "  Adresse IP : {adresse_ip}\n\n"
+                    . "Si c’est vous, il n’y a rien à faire.\n\n"
+                    . "Sinon, changez votre mot de passe sans attendre depuis votre espace membre, "
+                    . "et prévenez le webmaster : votre compte donne accès à des données personnelles "
+                    . "des adhérents.\n\n"
+                    . "— {club}",
+                'variables'   => [
+                    'date'        => 'Date et heure de la connexion',
+                    'appareil'    => 'Navigateur et système, par exemple « Firefox · Windows »',
+                    'adresse_ip'  => 'Adresse IP d’origine',
+                    'identifiant' => 'Identifiant du compte',
+                ],
+            ],
         ];
     }
 
@@ -479,7 +505,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 9;
+    private const VERSION        = 10;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void

@@ -104,6 +104,13 @@ final class SettingsScreen
                 'cap'    => 'manage_options',
                 'render' => [self::class, 'renderSecurity'],
             ],
+            LoginJournalScreen::TAB      => [
+                'label'  => 'Connexions',
+                // Des adresses IP et l'activité des comptes du bureau : même
+                // réserve que « Sécurité ».
+                'cap'    => 'manage_options',
+                'render' => [LoginJournalScreen::class, 'renderTab'],
+            ],
             'audit'                      => [
                 'label'  => 'Journal',
                 'cap'    => 'sub_manage_event_types',

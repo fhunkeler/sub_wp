@@ -55,6 +55,7 @@ use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Setup\Updater;
 use Subalcatel\Club\Support\Hardening;
 use Subalcatel\Club\Support\LoginAudit;
+use Subalcatel\Club\Support\LoginJournal;
 use Subalcatel\Club\Support\LoginThrottle;
 use Subalcatel\Club\Support\LoginUrl;
 use Subalcatel\Club\Support\TwoFactorGate;
@@ -115,6 +116,7 @@ final class Plugin
         // club, et refuse un mot de passe proche de l'identité ou déjà fuité,
         // y compris sur les écrans natifs de réinitialisation et de profil.
         LoginAudit::register();
+        LoginJournal::register();
         PasswordPolicy::register();
 
         // Impose le second facteur aux comptes qui voient les données des

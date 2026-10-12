@@ -59,27 +59,6 @@ final class ProfileForm
             <input type="hidden" name="user_id" value="<?php echo esc_attr((string) $userId); ?>">
             <?php wp_nonce_field('sub_profile_save_' . $userId); ?>
 
-            <fieldset class="sub-field">
-                <legend>Compte</legend>
-                <div class="sub-grid">
-                    <p class="sub-input">
-                        <label for="sub_first_name">Prénom</label>
-                        <input type="text" id="sub_first_name" name="first_name"
-                               value="<?php echo esc_attr($user->first_name); ?>" required>
-                    </p>
-                    <p class="sub-input">
-                        <label for="sub_last_name">Nom</label>
-                        <input type="text" id="sub_last_name" name="last_name"
-                               value="<?php echo esc_attr($user->last_name); ?>" required>
-                    </p>
-                    <p class="sub-input">
-                        <label for="sub_email">Courriel</label>
-                        <input type="email" id="sub_email" name="user_email"
-                               value="<?php echo esc_attr($user->user_email); ?>" required>
-                    </p>
-                </div>
-            </fieldset>
-
             <?php
             $fields        = ProfileFields::forUser($userId);
             $canEditOthers = current_user_can('sub_manage_memberships');
@@ -96,8 +75,18 @@ final class ProfileForm
             }
             ?>
 
-            <?php // Masqués par défaut : sans JavaScript, tous les groupes restent lisibles. ?>
+            <?php
+            // « Compte » ouvre la série : nom et courriel trônaient seuls,
+            // encadrés, au-dessus de la barre d'onglets, et la barre passait
+            // pour un sous-menu de ce cadre plutôt que pour la navigation de
+            // toute la page.
+            // Masqués par défaut : sans JavaScript, tous les groupes restent lisibles.
+            ?>
             <div class="sub-tabs" role="tablist" aria-label="Sections du profil" hidden>
+                <button type="button" role="tab" class="sub-tabs__tab"
+                        id="sub-tab-account"
+                        aria-controls="sub-panel-account"
+                        aria-selected="false" tabindex="-1">Compte</button>
                 <?php foreach ($groups as $group => $data) : ?>
                     <button type="button" role="tab" class="sub-tabs__tab"
                             id="sub-tab-<?php echo esc_attr($group); ?>"
@@ -108,26 +97,60 @@ final class ProfileForm
                 <?php endforeach; ?>
             </div>
 
-            <?php foreach ($groups as $group => $data) : ?>
+            <div class="sub-profile__panels">
                 <fieldset class="sub-field sub-panel"
-                          id="sub-panel-<?php echo esc_attr($group); ?>"
+                          id="sub-panel-account"
                           role="tabpanel"
-                          aria-labelledby="sub-tab-<?php echo esc_attr($group); ?>">
-                    <legend><?php echo esc_html((string) $data['label']); ?></legend>
-                    <?php self::renderGroupFields($userId, (array) $data['fields'], $canEditOthers); ?>
+                          aria-labelledby="sub-tab-account">
+                    <legend>Compte</legend>
+                    <div class="sub-grid">
+                        <p class="sub-input">
+                            <label for="sub_first_name">Prénom</label>
+                            <input type="text" id="sub_first_name" name="first_name"
+                                   value="<?php echo esc_attr($user->first_name); ?>" required>
+                        </p>
+                        <p class="sub-input">
+                            <label for="sub_last_name">Nom</label>
+                            <input type="text" id="sub_last_name" name="last_name"
+                                   value="<?php echo esc_attr($user->last_name); ?>" required>
+                        </p>
+                        <p class="sub-input">
+                            <label for="sub_email">Courriel</label>
+                            <input type="email" id="sub_email" name="user_email"
+                                   value="<?php echo esc_attr($user->user_email); ?>" required>
+                        </p>
+                    </div>
                 </fieldset>
-            <?php endforeach; ?>
 
-            <p><button type="submit" class="sub-button">Enregistrer mon profil</button></p>
+                <?php foreach ($groups as $group => $data) : ?>
+                    <fieldset class="sub-field sub-panel"
+                              id="sub-panel-<?php echo esc_attr($group); ?>"
+                              role="tabpanel"
+                              aria-labelledby="sub-tab-<?php echo esc_attr($group); ?>">
+                        <legend><?php echo esc_html((string) $data['label']); ?></legend>
+                        <?php self::renderGroupFields($userId, (array) $data['fields'], $canEditOthers); ?>
+                    </fieldset>
+                <?php endforeach; ?>
+            </div>
+
+            <?php // Un seul envoi pour tous les onglets : le dire évite de croire qu'en changer perd la saisie. ?>
+            <div class="sub-profile__actions">
+                <button type="submit" class="sub-button">Enregistrer mon profil</button>
+                <small>Enregistre les modifications de tous les onglets.</small>
+            </div>
         </form>
         <?php
 
         // Hors du formulaire : un formulaire imbriqué n'est pas du HTML valide,
         // et le navigateur le redécoupe d'une façon qui a déjà coûté cher.
+        // Un intertitre les rassemble : posés l'un sous l'autre après le bouton
+        // d'enregistrement, ils passaient pour la suite du formulaire.
         if ($userId === get_current_user_id()) {
+            echo '<div class="sub-profile-extra"><h2 class="sub-profile-extra__title">Sécurité et confidentialité</h2>';
             echo \Subalcatel\Club\Identity\PasswordChange::renderPanel($userId);
             echo \Subalcatel\Club\Communication\Subscriptions::renderPanel($userId);
             echo \Subalcatel\Club\Privacy\AccountDeletion::renderPanel($userId);
+            echo '</div>';
         }
 
         return (string) ob_get_clean();

@@ -35,8 +35,17 @@
 			tabs[index].focus();
 		}
 
+		// Sur téléphone, la barre défile : l'onglet choisi ne doit pas rester
+		// à moitié coupé au bord.
+		if (tablist.scrollWidth > tablist.clientWidth) {
+			const tab = tabs[index];
+			tablist.scrollLeft = tab.offsetLeft - (tablist.clientWidth - tab.offsetWidth) / 2;
+		}
+
+		// Par identifiant, pas par position : un onglet ajouté ou masqué
+		// décalerait sinon le membre vers une autre rubrique.
 		try {
-			window.sessionStorage.setItem('subProfileTab', String(index));
+			window.sessionStorage.setItem('subProfileTab', tabs[index].id);
 		} catch (e) {
 			// Navigation privée : l'onglet ne sera pas mémorisé, sans conséquence.
 		}
@@ -86,9 +95,12 @@
 
 	let initial = 0;
 	try {
-		const stored = parseInt(window.sessionStorage.getItem('subProfileTab'), 10);
-		if (!isNaN(stored) && stored >= 0 && stored < tabs.length) {
-			initial = stored;
+		const stored = window.sessionStorage.getItem('subProfileTab');
+		const found = tabs.findIndex(function (tab) {
+			return tab.id === stored;
+		});
+		if (found >= 0) {
+			initial = found;
 		}
 	} catch (e) {
 		// Idem : on repart du premier onglet.

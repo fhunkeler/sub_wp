@@ -284,20 +284,38 @@
 }
 
 :root[data-theme="dark"] .sub-profile .sub-tabs {
-	border-bottom: 2px solid #394551;
+	background: #121e25;
 }
 
 :root[data-theme="dark"] .sub-profile .sub-tabs__tab {
-	color: #aebbca;
+	color: #a8ceeb;
 }
 
 :root[data-theme="dark"] .sub-profile .sub-tabs__tab:hover {
-	background: #121e25;
-	color: #a8ceeb;
+	background: rgba(255, 255, 255, 0.1);
+	color: #bdd3ef;
 }
 
 :root[data-theme="dark"] .sub-profile .sub-tabs__tab[aria-selected='true'] {
-	color: #a8ceeb;
+	background: #152233;
+	color: #bdd3ef;
+}
+
+:root[data-theme="dark"] .sub-profile .sub-tabs:not([hidden]) + .sub-profile__panels {
+	border: 1px solid #394551;
+	background: #152233;
+}
+
+:root[data-theme="dark"] .sub-profile__actions small {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-profile-extra {
+	border-top: 1px solid #394551;
+}
+
+:root[data-theme="dark"] .sub-profile-extra__title {
+	color: #bdd3ef;
 }
 
 :root[data-theme="dark"] .sub-documents {

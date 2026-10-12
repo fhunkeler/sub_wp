@@ -880,40 +880,50 @@
 	padding: 0 32px;
 }
 
-/* --- Profil : onglets --- */
+/* --- Profil : onglets ---
+   La première version soulignait l'onglet actif d'un filet orange sur fond
+   blanc, texte gris : on ne voyait ni qu'il s'agissait d'onglets, ni lequel
+   était ouvert. La barre est maintenant un bandeau teinté, l'onglet ouvert
+   s'en détache en blanc, et il fait corps avec le cadre du panneau qu'il
+   commande. */
 
 .sub-profile .sub-tabs {
+	position: relative;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px;
-	border-bottom: 2px solid var(--sub-brume);
-	margin-bottom: 20px;
+	padding: 6px;
+	background: var(--sub-ecume);
+	/* Pas de bordure ici : le filet du cadre, juste dessous, sépare déjà
+	   la barre du panneau. Une bordure basse retirée à part revient dans la
+	   feuille sombre générée, qui réécrit la propriété en entier. */
+	border-radius: 12px 12px 0 0;
 }
 
 .sub-profile .sub-tabs__tab {
 	appearance: none;
 	background: transparent;
 	border: 0;
-	border-bottom: 3px solid transparent;
-	padding: 12px 18px;
-	margin-bottom: -2px;
+	border-radius: 8px;
+	padding: 10px 16px;
 	font: inherit;
 	font-weight: 600;
 	font-size: 16px;
-	color: var(--sub-ardoise);
+	line-height: 1.2;
+	color: var(--sub-profond);
 	cursor: pointer;
 	min-height: 44px;
-	border-radius: 8px 8px 0 0;
 }
 
 .sub-profile .sub-tabs__tab:hover {
-	background: var(--sub-ecume);
-	color: var(--sub-profond);
+	background: rgba(29, 84, 128, 0.1);
+	color: var(--sub-abysse);
 }
 
 .sub-profile .sub-tabs__tab[aria-selected='true'] {
-	color: var(--sub-profond);
-	border-bottom-color: var(--sub-corail-fonce);
+	background: #fff;
+	color: var(--sub-abysse);
+	box-shadow: inset 0 -3px 0 var(--sub-corail-fonce), 0 1px 3px rgba(20, 47, 82, 0.18);
 }
 
 .sub-profile .sub-tabs__tab:focus-visible {
@@ -921,14 +931,23 @@
 	outline-offset: 2px;
 }
 
-/* Onglets actifs : la légende ferait doublon avec le libellé de l'onglet. */
-.sub-profile .sub-tabs:not([hidden]) ~ .sub-panel {
+/* Onglets actifs : un seul cadre, sous la barre, pour tous les panneaux. */
+.sub-profile .sub-tabs:not([hidden]) + .sub-profile__panels {
+	border: 1px solid var(--sub-brume);
+	border-radius: 0 0 12px 12px;
+	padding: 24px 24px 8px;
+	background: #fff;
+}
+
+.sub-profile .sub-tabs:not([hidden]) + .sub-profile__panels .sub-panel {
 	border: 0;
+	border-radius: 0;
 	padding: 0;
 	margin: 0;
 }
 
-.sub-profile .sub-tabs:not([hidden]) ~ .sub-panel legend {
+/* La légende ferait doublon avec le libellé de l'onglet. */
+.sub-profile .sub-tabs:not([hidden]) + .sub-profile__panels .sub-panel > legend {
 	position: absolute;
 	width: 1px;
 	height: 1px;
@@ -937,15 +956,62 @@
 	white-space: nowrap;
 }
 
+/* Un seul bouton pour tous les onglets : il reste sous le cadre, pas dedans,
+   pour ne pas laisser croire qu'il n'enregistre que l'onglet ouvert. */
+.sub-profile__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	margin: 20px 0 0;
+}
+
+.sub-profile__actions small {
+	color: var(--sub-ardoise);
+	font-size: 14px;
+}
+
 @media (max-width: 600px) {
 	.sub-profile .sub-tabs {
 		overflow-x: auto;
 		flex-wrap: nowrap;
+		scrollbar-width: thin;
 	}
 
 	.sub-profile .sub-tabs__tab {
+		flex: 0 0 auto;
 		white-space: nowrap;
 	}
+
+	.sub-profile .sub-tabs:not([hidden]) + .sub-profile__panels {
+		padding: 16px 16px 4px;
+	}
+}
+
+/* --- Profil : sécurité et confidentialité ---
+   Mot de passe, messages et suppression sont trois formulaires distincts,
+   hors du profil. Un intertitre et un filet les séparent du bouton
+   « Enregistrer mon profil », dont ils semblaient la suite. */
+
+.sub-profile-extra {
+	margin-top: 48px;
+	padding-top: 24px;
+	border-top: 1px solid var(--sub-brume, #c4d3e3);
+}
+
+.sub-profile-extra__title {
+	margin: 0 0 16px;
+	font-size: 1.3rem;
+	color: var(--sub-abysse, #142f52);
+}
+
+.sub-profile-extra .sub-panel-block,
+.sub-profile-extra .sub-danger-zone {
+	margin-top: 16px;
+}
+
+.sub-profile-extra .sub-panel-block:first-of-type {
+	margin-top: 0;
 }
 
 /* --- Mes documents --- */

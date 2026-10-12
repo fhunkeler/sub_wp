@@ -32,6 +32,7 @@ use Subalcatel\Club\Frontend\Assets;
 use Subalcatel\Club\Events\IcalFeed;
 use Subalcatel\Club\Frontend\CalendarShortcode;
 use Subalcatel\Club\Frontend\ClubDocumentsList;
+use Subalcatel\Club\Frontend\ClubFigures;
 use Subalcatel\Club\Frontend\MenuVisibility;
 use Subalcatel\Club\Frontend\LoginForm;
 use Subalcatel\Club\Frontend\PermanencesShortcode;
@@ -180,6 +181,7 @@ final class Plugin
         SignupForm::register();
         PricingTable::register();
         PermanencesShortcode::register();
+        ClubFigures::register();
         MenuVisibility::register();
         IcalFeed::register();
         DocumentDelivery::register();

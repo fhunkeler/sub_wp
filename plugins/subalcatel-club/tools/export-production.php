@@ -33,12 +33,17 @@
  *     pendant le développement, compte admin par défaut, etc.)
  *   - tout article (post_type=post) sans marque de reprise (ex. "Hello World")
  *   - la campagne "campagne-de-test" et toute campagne en brouillon
- *   - les pièces jointes orphelines (aucun article/page ne les référence)
+ *   - les pièces jointes orphelines (aucun article/page ne les référence) :
+ *     retirées de la base seulement, leurs fichiers restent sur disque
  *   - les lignes des tables sub_* rattachées aux comptes/campagnes supprimés
  *     (adhésions, paiements, inscriptions aux sorties, historique de niveau,
  *     groupes de diffusion, documents membres)
  *   - les options WordPress orphelines d'un dossier d'adhésion supprimé
  *     (réponses au formulaire, correspondance avec l'identifiant Joomla)
+ *
+ * Ce qui est réécrit : les adresses d'anciennes machines de développement
+ *   (127.0.0.1, IP privées) dans le texte des contenus, ramenées à l'URL
+ *   actuelle avant le search-replace (voir §10)
  *
  * Ce qui n'est jamais touché : le journal d'audit (sub_audit_log, c'est une
  * trace de sécurité, pas une donnée métier), les pages, la configuration du
@@ -365,6 +370,24 @@ foreach ($pageIds as $page) {
 
 // =============================================================================
 // 6. Pièces jointes orphelines — aucun post/page ne les référence
+//
+// Un média est gardé s'il est l'image à la une d'un contenu, s'il est rattaché
+// à un contenu (post_parent), ou s'il est cité dans le texte d'un contenu
+// restant. Les médias repris de Joomla sont presque tous dans le dernier cas :
+// une image insérée dans un article n'a ni parent ni rôle d'image à la une.
+// Les ignorer, c'est les supprimer alors qu'ils s'affichent.
+//
+// On les reconnaît de deux façons : par l'identifiant que porte le balisage de
+// l'éditeur (classe `wp-image-123`, attribut `"id":123` d'un bloc image), et
+// par le chemin du fichier, pour le HTML repris tel quel. Le chemin est cherché
+// sans extension ni suffixe `-scaled` : le texte cite une taille
+// intermédiaire (`photo-1024x537.jpg`), jamais le fichier principal.
+//
+// Les médias écartés sont retirés de la base seulement. `wp_delete_attachment()`
+// effacerait aussi leurs fichiers, or ce clone partage `wp-content/uploads/`
+// avec le site de développement : chaque export supprimait des photos du dev.
+// Le fichier d'un média écarté n'est de toute façon pas copié (voir
+// list-kept-media.php).
 // =============================================================================
 
 $referencedThumbs = array_map('intval', $wpdb->get_col(
@@ -373,22 +396,52 @@ $referencedThumbs = array_map('intval', $wpdb->get_col(
 $attachedTo = array_map('intval', $wpdb->get_col(
     "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_parent != 0"
 ));
-$keepMediaIds  = array_unique(array_merge($referencedThumbs, $attachedTo));
+
+// Après la suppression des articles de test (§5), en écriture : seul le texte
+// des contenus restants compte. En simulation, ils sont encore là — le compte
+// des médias gardés est alors un majorant.
+$contents = implode("\n", $wpdb->get_col(
+    "SELECT post_content FROM {$wpdb->posts} WHERE post_type NOT IN ('attachment', 'revision')"
+));
+
+$citedById = [];
+if (preg_match_all('#\bwp-image-(\d+)\b|"id":(\d+)#', $contents, $m)) {
+    foreach (array_merge($m[1], $m[2]) as $id) {
+        if ($id !== '') {
+            $citedById[] = (int) $id;
+        }
+    }
+}
+
+$citedByPath = [];
+foreach ($wpdb->get_results(
+    "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file'",
+    ARRAY_A
+) as $row) {
+    $stem = preg_replace('#(-scaled)?\.[a-z0-9]+$#i', '', $row['meta_value']);
+    if ($stem !== '' && strpos($contents, 'uploads/' . $stem) !== false) {
+        $citedByPath[] = (int) $row['post_id'];
+    }
+}
+
+$keepMediaIds  = array_unique(array_merge($referencedThumbs, $attachedTo, $citedById, $citedByPath));
 $allMediaIds   = array_map('intval', $wpdb->get_col(
     "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment'"
 ));
+$keepMediaIds  = array_values(array_intersect($allMediaIds, $keepMediaIds));
 $dropMediaIds  = array_values(array_diff($allMediaIds, $keepMediaIds));
 
 printf(
-    "\nMÉDIAS           %4d gardés (référencés)        %4d orphelins à supprimer\n",
+    "\nMÉDIAS           %4d gardés (référencés)        %4d orphelins à supprimer (base seulement, fichiers intacts)\n",
     count($keepMediaIds),
     count($dropMediaIds)
 );
 
-if (!$dryRun) {
-    foreach ($dropMediaIds as $mid) {
-        wp_delete_attachment($mid, true);
-    }
+if (!$dryRun && $dropMediaIds !== []) {
+    $mediaPh = implode(',', array_fill(0, count($dropMediaIds), '%d'));
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->postmeta} WHERE post_id IN ($mediaPh)", ...$dropMediaIds));
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->term_relationships} WHERE object_id IN ($mediaPh)", ...$dropMediaIds));
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->posts} WHERE ID IN ($mediaPh)", ...$dropMediaIds));
 }
 
 // =============================================================================
@@ -502,6 +555,59 @@ if ($dropUserIds !== []) {
         $wpdb->query($wpdb->prepare("DELETE FROM {$sp}member_documents WHERE id IN ($docPh)", ...$dropDocIds));
     }
 }
+
+// =============================================================================
+// 10. Adresses d'anciennes machines de développement, dans le texte
+//
+// L'étape suivante de l'export remplace l'URL du site de développement par
+// celle de la production — mais seulement l'URL qu'il porte AUJOURD'HUI. Le
+// site a changé d'adresse en cours de route (127.0.0.1, 192.168.0.40,
+// 10.22.4.143…), et un contenu enregistré sous une ancienne adresse la garde
+// dans ses liens d'images. Le 12/10/2026, 141 images de 36 articles pointaient
+// ainsi en production sur http://127.0.0.1 : le navigateur du visiteur les
+// cherchait sur sa propre machine.
+//
+// On ramène donc toute adresse locale ou privée à l'URL actuelle ; le
+// search-replace qui suit les emmène en production avec le reste. Seuls
+// post_content et post_excerpt sont touchés : du texte, jamais sérialisé. Les
+// guid gardent leur valeur d'origine, comme WordPress le demande.
+// =============================================================================
+
+$devHostPattern = '#https?://(?:127\.0\.0\.1|localhost|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(?::\d+)?(?=[/"\'\s]|$)#';
+$currentUrl     = untrailingslashit((string) get_option('siteurl'));
+
+$devHostRows = $wpdb->get_results(
+    "SELECT ID, post_content, post_excerpt FROM {$wpdb->posts}
+      WHERE post_content REGEXP 'https?://(127\\\\.0\\\\.0\\\\.1|localhost|10\\\\.|192\\\\.168\\\\.|172\\\\.)'
+         OR post_excerpt REGEXP 'https?://(127\\\\.0\\\\.0\\\\.1|localhost|10\\\\.|192\\\\.168\\\\.|172\\\\.)'",
+    ARRAY_A
+);
+
+$devHostFixed = 0;
+$devHostLinks = 0;
+foreach ($devHostRows as $row) {
+    $content = (string) preg_replace($devHostPattern, $currentUrl, $row['post_content'], -1, $inContent);
+    $excerpt = (string) preg_replace($devHostPattern, $currentUrl, $row['post_excerpt'], -1, $inExcerpt);
+    if ($content === $row['post_content'] && $excerpt === $row['post_excerpt']) {
+        continue;
+    }
+    $devHostFixed++;
+    $devHostLinks += $inContent + $inExcerpt;
+    if (!$dryRun) {
+        $wpdb->update(
+            $wpdb->posts,
+            ['post_content' => $content, 'post_excerpt' => $excerpt],
+            ['ID' => (int) $row['ID']]
+        );
+    }
+}
+
+printf(
+    "\nADRESSES DE DEV  %4d lien(s) dans %d contenu(s) ramenés à %s\n",
+    $devHostLinks,
+    $devHostFixed,
+    $currentUrl
+);
 
 printf("\n--- sub_audit_log n'est jamais modifié par ce script : trace de sécurité, pas une donnée métier. ---\n");
 

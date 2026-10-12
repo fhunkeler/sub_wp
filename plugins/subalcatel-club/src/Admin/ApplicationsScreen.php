@@ -78,52 +78,316 @@ final class ApplicationsScreen
         return $count;
     }
 
-    public static function renderApplications(): void
-    {
-        AdminUi::requireCap('sub_manage_memberships');
+    /** Valeur du filtre d'état qui regroupe les deux étapes en attente. */
+    public const PENDING = 'a_traiter';
 
+    /** Valeur du filtre de campagne qui les montre toutes. */
+    public const ALL_CAMPAIGNS = 'toutes';
+
+    /**
+     * Plafond d'affichage. Il ne coupe plus une saison en deux — une campagne
+     * compte moins de cent dossiers —, seulement la vue « toutes campagnes »,
+     * et l'écran le dit quand il s'applique.
+     */
+    private const LIMIT = 200;
+
+    /** @var array<string, string> */
+    private const STATES = [
+        ApplicationService::STATUS_AWAITING_PAYMENT  => 'En attente de paiement',
+        ApplicationService::STATUS_PAYMENT_CONFIRMED => 'À valider (secrétariat)',
+        ApplicationService::STATUS_ACTIVE            => 'Actives',
+        ApplicationService::STATUS_REFUSED           => 'Refusées',
+        ApplicationService::STATUS_CANCELLED         => 'Annulées',
+    ];
+
+    /**
+     * Les filtres demandés, lus depuis l'URL.
+     *
+     * Sans campagne choisie, la liste s'ouvre sur la campagne en cours : c'est
+     * elle que le bureau traite, et les saisons closes — quatre-vingts dossiers
+     * actifs chacune — noyaient les trois qui attendent quelqu'un.
+     *
+     * @return array{campaign: int, state: string, search: string}
+     */
+    public static function currentFilters(): array
+    {
+        $raw = sanitize_key((string) ($_GET['campagne'] ?? ''));
+
+        if ($raw === self::ALL_CAMPAIGNS) {
+            $campaign = 0;
+        } elseif ($raw !== '' && ctype_digit($raw)) {
+            $campaign = (int) $raw;
+        } else {
+            $current  = (new CampaignRepository())->campaignToShow();
+            $campaign = $current !== null ? (int) $current['campaign']['id'] : 0;
+        }
+
+        $state = sanitize_key((string) ($_GET['etat'] ?? ''));
+
+        if ($state !== self::PENDING && !isset(self::STATES[$state])) {
+            $state = '';
+        }
+
+        return [
+            'campaign' => $campaign,
+            'state'    => $state,
+            'search'   => sanitize_text_field(wp_unslash((string) ($_GET['s'] ?? ''))),
+        ];
+    }
+
+    /**
+     * Les campagnes proposées au filtre, la plus récente d'abord, avec ce
+     * qu'elles contiennent et ce qui y attend une décision.
+     *
+     * Un brouillon sans dossier n'y figure pas : il n'a rien à montrer.
+     *
+     * @return list<array{id: int, title: string, total: int, pending: int}>
+     */
+    public static function campaigns(): array
+    {
         global $wpdb;
         $p = $wpdb->prefix . 'sub_';
+
+        $rows = $wpdb->get_results(
+            "SELECT c.id, c.title, COUNT(a.id) AS total,
+                    COALESCE(SUM(a.status IN ('awaiting_payment','payment_confirmed')), 0) AS pending
+             FROM {$p}campaigns c
+             LEFT JOIN {$p}applications a ON a.campaign_id = c.id
+             GROUP BY c.id, c.title, c.status, c.valid_from, c.opens_on
+             HAVING total > 0 OR c.status <> 'draft'
+             ORDER BY c.valid_from DESC, c.opens_on DESC",
+            ARRAY_A
+        ) ?: [];
+
+        return array_map(static fn (array $row): array => [
+            'id'      => (int) $row['id'],
+            'title'   => (string) $row['title'],
+            'total'   => (int) $row['total'],
+            'pending' => (int) $row['pending'],
+        ], $rows);
+    }
+
+    /**
+     * Les dossiers qui répondent aux filtres.
+     *
+     * @param array{campaign: int, state: string, search: string} $filters
+     * @return list<array<string, mixed>>
+     */
+    public static function applications(array $filters): array
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $where  = ['1=1'];
+        $params = [];
+
+        if ($filters['campaign'] > 0) {
+            $where[]  = 'a.campaign_id = %d';
+            $params[] = $filters['campaign'];
+        }
+
+        if ($filters['state'] === self::PENDING) {
+            $where[]  = "a.status IN ('awaiting_payment','payment_confirmed')";
+        } elseif ($filters['state'] !== '') {
+            $where[]  = 'a.status = %s';
+            $params[] = $filters['state'];
+        }
+
+        if ($filters['search'] !== '') {
+            $like     = '%' . $wpdb->esc_like($filters['search']) . '%';
+            $where[]  = '(u.display_name LIKE %s OR u.user_email LIKE %s OR a.reference LIKE %s)';
+            array_push($params, $like, $like, $like);
+        }
 
         // Le montant encaissé est joint plutôt que compté ligne à ligne : une
         // correction peut creuser un écart avec le montant dû, et c'est un écart
         // qui doit se voir sur la liste, pas au dossier ouvert.
+        $sql = "SELECT a.*, u.display_name, u.user_email, pl.title AS plan_title,
+                       c.title AS campaign_title, COALESCE(pay.paid, 0) AS paid_amount
+                FROM {$p}applications a
+                LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
+                LEFT JOIN {$p}plans pl ON pl.id = a.plan_id
+                LEFT JOIN {$p}campaigns c ON c.id = a.campaign_id
+                LEFT JOIN (
+                    SELECT application_id, SUM(amount) AS paid
+                    FROM {$p}payments WHERE status = 'received'
+                    GROUP BY application_id
+                ) pay ON pay.application_id = a.id
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY FIELD(a.status,'awaiting_payment','payment_confirmed','active','refused'),
+                         a.created_at DESC
+                LIMIT " . self::LIMIT;
+
+        return $wpdb->get_results(
+            $params === [] ? $sql : $wpdb->prepare($sql, ...$params),
+            ARRAY_A
+        ) ?: [];
+    }
+
+    /**
+     * Nombre de dossiers par état, pour une campagne (0 = toutes).
+     *
+     * Compté en base, et non sur les lignes affichées : les tuiles ne doivent
+     * pas changer de valeur selon le filtre d'état qu'elles servent à poser.
+     *
+     * @return array<string, int>
+     */
+    public static function stateCounts(int $campaignId): array
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $sql = "SELECT status, COUNT(*) AS n FROM {$p}applications"
+            . ($campaignId > 0 ? ' WHERE campaign_id = %d' : '')
+            . ' GROUP BY status';
+
         $rows = $wpdb->get_results(
-            "SELECT a.*, u.display_name, u.user_email, pl.title AS plan_title,
-                    COALESCE(pay.paid, 0) AS paid_amount
-             FROM {$p}applications a
-             LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
-             LEFT JOIN {$p}plans pl ON pl.id = a.plan_id
-             LEFT JOIN (
-                 SELECT application_id, SUM(amount) AS paid
-                 FROM {$p}payments WHERE status = 'received'
-                 GROUP BY application_id
-             ) pay ON pay.application_id = a.id
-             ORDER BY FIELD(a.status,'awaiting_payment','payment_confirmed','active','refused'),
-                      a.created_at DESC
-             LIMIT 100",
+            $campaignId > 0 ? $wpdb->prepare($sql, $campaignId) : $sql,
             ARRAY_A
         ) ?: [];
 
         $counts = [];
         foreach ($rows as $row) {
-            $counts[$row['status']] = ($counts[$row['status']] ?? 0) + 1;
+            $counts[(string) $row['status']] = (int) $row['n'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Adresse de la liste pour d'autres filtres que ceux en cours.
+     *
+     * @param array{campaign: int, state: string, search: string} $filters
+     */
+    private static function listUrl(array $filters): string
+    {
+        return add_query_arg(array_filter([
+            'campagne' => $filters['campaign'] > 0 ? (string) $filters['campaign'] : self::ALL_CAMPAIGNS,
+            'etat'     => $filters['state'],
+            's'        => $filters['search'] === '' ? '' : rawurlencode($filters['search']),
+        ]), AdminUi::tabUrl(self::SLUG, self::TAB));
+    }
+
+    public static function renderApplications(): void
+    {
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $filters   = self::currentFilters();
+        $campaigns = self::campaigns();
+        $rows      = self::applications($filters);
+        $counts    = self::stateCounts($filters['campaign']);
+        $allView   = $filters['campaign'] === 0;
+
+        // Ce qui attend ailleurs que dans la campagne affichée. Pendant le
+        // recouvrement de deux saisons, un renouvellement en retard reste
+        // rattaché à l'ancienne campagne : il ne doit pas disparaître de la
+        // vue du trésorier parce que la nouvelle s'ouvre par défaut.
+        $pendingElsewhere = 0;
+        if (!$allView) {
+            foreach ($campaigns as $campaign) {
+                if ($campaign['id'] !== $filters['campaign']) {
+                    $pendingElsewhere += $campaign['pending'];
+                }
+            }
         }
 
         $service = new ApplicationService();
         ?>
+            <form method="get" class="sub-filters"
+                  style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 16px;">
+                <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
+                <input type="hidden" name="tab" value="<?php echo esc_attr(self::TAB); ?>">
+
+                <label class="screen-reader-text" for="sub-filter-campaign">Campagne</label>
+                <select name="campagne" id="sub-filter-campaign">
+                    <?php foreach ($campaigns as $campaign) : ?>
+                        <option value="<?php echo esc_attr((string) $campaign['id']); ?>"
+                            <?php selected($filters['campaign'], $campaign['id']); ?>>
+                            <?php
+                            echo esc_html(sprintf(
+                                '%s — %d dossier%s%s',
+                                $campaign['title'],
+                                $campaign['total'],
+                                $campaign['total'] > 1 ? 's' : '',
+                                $campaign['pending'] > 0 ? sprintf(', %d à traiter', $campaign['pending']) : ''
+                            ));
+                            ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <option value="<?php echo esc_attr(self::ALL_CAMPAIGNS); ?>" <?php selected($allView); ?>>
+                        Toutes les campagnes
+                    </option>
+                </select>
+
+                <label class="screen-reader-text" for="sub-filter-state">État</label>
+                <select name="etat" id="sub-filter-state">
+                    <option value="">Tous les états</option>
+                    <option value="<?php echo esc_attr(self::PENDING); ?>" <?php selected($filters['state'], self::PENDING); ?>>
+                        À traiter
+                    </option>
+                    <?php foreach (self::STATES as $status => $label) : ?>
+                        <option value="<?php echo esc_attr($status); ?>" <?php selected($filters['state'], $status); ?>>
+                            <?php echo esc_html($label); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <label class="screen-reader-text" for="sub-filter-search">Rechercher</label>
+                <input type="search" name="s" id="sub-filter-search"
+                       value="<?php echo esc_attr($filters['search']); ?>"
+                       placeholder="Nom, courriel ou référence">
+
+                <button class="button">Filtrer</button>
+                <?php if ($filters['state'] !== '' || $filters['search'] !== '' || isset($_GET['campagne'])) : ?>
+                    <a class="button-link" href="<?php echo esc_url(AdminUi::tabUrl(self::SLUG, self::TAB)); ?>">
+                        Réinitialiser
+                    </a>
+                <?php endif; ?>
+            </form>
+
+            <?php if ($pendingElsewhere > 0) : ?>
+                <div class="notice notice-warning inline" style="margin:0 0 16px;">
+                    <p>
+                        <?php
+                        echo esc_html(sprintf(
+                            '%d dossier%s à traiter sur une autre campagne.',
+                            $pendingElsewhere,
+                            $pendingElsewhere > 1 ? 's' : ''
+                        ));
+                        ?>
+                        <a href="<?php echo esc_url(self::listUrl(['campaign' => 0, 'state' => self::PENDING, 'search' => ''])); ?>">
+                            Les afficher
+                        </a>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php // Les tuiles posent le filtre d'état : un clic sur « En attente
+                  // de paiement » donne la liste des chèques à encaisser. ?>
             <ul class="subwrap-stats" style="display:flex;flex-wrap:wrap;gap:16px;list-style:none;margin:0 0 24px;padding:0;">
                 <?php foreach ([
                     ApplicationService::STATUS_AWAITING_PAYMENT  => 'En attente de paiement',
                     ApplicationService::STATUS_PAYMENT_CONFIRMED => 'À valider (secrétariat)',
                     ApplicationService::STATUS_ACTIVE            => 'Actives',
                 ] as $status => $label) : ?>
-                    <li style="background:#fff;border:1px solid #c3c4c7;border-radius:8px;padding:12px 18px;">
-                        <strong style="font-size:24px;display:block;"><?php echo (int) ($counts[$status] ?? 0); ?></strong>
-                        <span style="color:#50575e;"><?php echo esc_html($label); ?></span>
+                    <?php $isCurrent = $filters['state'] === $status; ?>
+                    <li>
+                        <a href="<?php echo esc_url(self::listUrl(array_merge($filters, ['state' => $isCurrent ? '' : $status]))); ?>"
+                           <?php echo $isCurrent ? 'aria-current="true"' : ''; ?>
+                           style="display:block;background:#fff;border:<?php echo $isCurrent ? '2px solid #1d5480' : '1px solid #c3c4c7'; ?>;border-radius:8px;padding:12px 18px;color:inherit;text-decoration:none;">
+                            <strong style="font-size:24px;display:block;"><?php echo (int) ($counts[$status] ?? 0); ?></strong>
+                            <span style="color:#50575e;"><?php echo esc_html($label); ?></span>
+                        </a>
                     </li>
                 <?php endforeach; ?>
             </ul>
+
+            <?php if (count($rows) >= self::LIMIT) : ?>
+                <p class="description">
+                    Seuls les <?php echo (int) self::LIMIT; ?> premiers dossiers sont affichés :
+                    choisissez une campagne ou un état pour voir les autres.
+                </p>
+            <?php endif; ?>
 
             <div class="sub-scroll"><table class="wp-list-table widefat striped sub-cards sub-table--wide">
                 <thead>
@@ -139,7 +403,11 @@ final class ApplicationsScreen
                 </thead>
                 <tbody>
                 <?php if ($rows === []) : ?>
-                    <tr><td colspan="7">Aucun dossier pour l’instant.</td></tr>
+                    <tr><td colspan="7">
+                        <?php echo $filters['state'] !== '' || $filters['search'] !== ''
+                            ? 'Aucun dossier ne répond à ces critères.'
+                            : 'Aucun dossier pour l’instant.'; ?>
+                    </td></tr>
                 <?php endif; ?>
 
                 <?php foreach ($rows as $row) : ?>
@@ -156,7 +424,12 @@ final class ApplicationsScreen
                                 <span style="color:#50575e;"><?php echo esc_html((string) $row['user_email']); ?></span>
                             <?php endif; ?>
                         </td>
-                        <td data-label="Formule"><?php echo esc_html((string) $row['plan_title']); ?></td>
+                        <td data-label="Formule">
+                            <?php echo esc_html((string) $row['plan_title']); ?>
+                            <?php if ($allView) : ?>
+                                <br><small style="color:#50575e;"><?php echo esc_html((string) $row['campaign_title']); ?></small>
+                            <?php endif; ?>
+                        </td>
                         <td data-label="Montant" style="font-variant-numeric:tabular-nums;">
                             <?php echo esc_html(AdminUi::euro((float) $row['total_amount'])); ?>
                             <?php self::renderPaymentGap($row); ?>
@@ -264,7 +537,7 @@ final class ApplicationsScreen
             wp_die(esc_html($e->getMessage()), 409);
         }
 
-        wp_safe_redirect(AdminUi::tabUrl(self::SLUG, self::TAB));
+        wp_safe_redirect(add_query_arg(self::refererFilters(), AdminUi::tabUrl(self::SLUG, self::TAB)));
         exit;
     }
 
@@ -433,6 +706,40 @@ final class ApplicationsScreen
 
     private static function redirect(string $message, bool $isError = false): never
     {
-        AdminUi::redirect(self::SLUG, $message, $isError, ['tab' => self::TAB]);
+        AdminUi::redirect(self::SLUG, $message, $isError, ['tab' => self::TAB] + self::refererFilters());
+    }
+
+    /**
+     * Les filtres de la liste d'où part le geste.
+     *
+     * Le trésorier qui encaisse les chèques en attente d'une campagne enchaîne
+     * dix dossiers : revenir après chacun sur la liste par défaut lui ferait
+     * reposer ses filtres dix fois.
+     *
+     * @return array<string, string>
+     */
+    private static function refererFilters(): array
+    {
+        $referer = wp_get_referer();
+
+        if ($referer === false) {
+            return [];
+        }
+
+        $args = [];
+        wp_parse_str((string) wp_parse_url($referer, PHP_URL_QUERY), $args);
+
+        $kept = [];
+        foreach (['campagne', 'etat'] as $key) {
+            if (isset($args[$key]) && is_string($args[$key]) && $args[$key] !== '') {
+                $kept[$key] = sanitize_key($args[$key]);
+            }
+        }
+
+        if (isset($args['s']) && is_string($args['s']) && $args['s'] !== '') {
+            $kept['s'] = rawurlencode(sanitize_text_field($args['s']));
+        }
+
+        return $kept;
     }
 }

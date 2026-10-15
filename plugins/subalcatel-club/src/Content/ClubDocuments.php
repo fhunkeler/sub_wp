@@ -42,6 +42,24 @@ final class ClubDocuments
     public const META_VERSIONS    = '_sub_doc_versions';
 
     /**
+     * Événement auquel le document se rattache — convocation et pouvoir d'une
+     * AG, programme d'un stage. Le document reste un document du club : mêmes
+     * droits, même historique, même place dans l'espace documentaire.
+     */
+    public const META_EVENT       = '_sub_doc_event';
+
+    /**
+     * Documents rattachés à un événement, regroupés par événement.
+     *
+     * Chargés d'un seul coup à la première demande : l'agenda affiche vingt
+     * sorties, et vingt requêtes pour trois documents se paieraient à chaque
+     * page.
+     *
+     * @var array<int, list<\WP_Post>>|null
+     */
+    private static ?array $byEvent = null;
+
+    /**
      * @return array<string, string>
      */
     public static function accessLevels(): array
@@ -223,5 +241,66 @@ final class ClubDocuments
     public static function capabilityChoices(): array
     {
         return Roles::CAPABILITIES;
+    }
+
+    /**
+     * Documents publiés rattachés à cet événement, du plus ancien au plus récent.
+     *
+     * Sans filtre de droits : à l'appelant de passer chaque document par
+     * {@see self::mayDownload()}.
+     *
+     * @return list<\WP_Post>
+     */
+    public static function forEvent(int $eventId): array
+    {
+        if (self::$byEvent === null) {
+            self::$byEvent = [];
+
+            $documents = get_posts([
+                'post_type'   => self::POST_TYPE,
+                'post_status' => 'publish',
+                'numberposts' => -1,
+                'orderby'     => 'date',
+                'order'       => 'ASC',
+                'meta_query'  => [[
+                    'key'     => self::META_EVENT,
+                    'value'   => 0,
+                    'compare' => '>',
+                    'type'    => 'UNSIGNED',
+                ]],
+            ]);
+
+            foreach ($documents as $document) {
+                self::$byEvent[(int) get_post_meta($document->ID, self::META_EVENT, true)][] = $document;
+            }
+        }
+
+        return self::$byEvent[$eventId] ?? [];
+    }
+
+    /**
+     * Rattache un document à un événement, ou l'en détache avec 0.
+     */
+    public static function linkToEvent(int $documentId, int $eventId): void
+    {
+        if ($eventId > 0) {
+            update_post_meta($documentId, self::META_EVENT, $eventId);
+        } else {
+            delete_post_meta($documentId, self::META_EVENT);
+        }
+
+        self::$byEvent = null;
+    }
+
+    /**
+     * L'événement disparaît, ses documents restent.
+     *
+     * Le procès-verbal d'une AG survit à la suppression de l'AG dans l'agenda :
+     * c'est une archive de l'association, pas une pièce de l'événement.
+     */
+    public static function detachEvent(int $eventId): void
+    {
+        delete_metadata('post', 0, self::META_EVENT, (string) $eventId, true);
+        self::$byEvent = null;
     }
 }

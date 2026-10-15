@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
+use Subalcatel\Club\Content\ClubDocuments;
+use Subalcatel\Club\Content\DocumentDelivery;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Events\RegistrationFields;
@@ -183,6 +185,13 @@ final class EventsScreen
                             <?php elseif (!$past) : ?>
                                 <br><span style="color:#50575e;">pas encore annoncée</span>
                             <?php endif; ?>
+                            <?php $documents = count(ClubDocuments::forEvent((int) $e['id'])); ?>
+                            <?php if ($documents > 0) : ?>
+                                <br><small><?php echo esc_html(sprintf(
+                                    _n('%d document', '%d documents', $documents),
+                                    $documents
+                                )); ?></small>
+                            <?php endif; ?>
                         </td>
                         <td data-label="Type"><?php echo esc_html((string) ($e['type_name'] ?? '—')); ?></td>
                         <td data-label="Date">
@@ -216,7 +225,8 @@ final class EventsScreen
                                         ['event_id' => (int) $e['id']],
                                         'Supprimer',
                                         'button button-link-delete',
-                                        'Supprimer cet événement et toutes ses inscriptions ?'
+                                        'Supprimer cet événement et toutes ses inscriptions ? '
+                                            . 'Ses documents restent dans les documents du club.'
                                     ); ?>
                                 <?php endif; ?>
                             </div>
@@ -451,6 +461,8 @@ final class EventsScreen
                 <?php ExportsScreen::buttons('event-roster', ['event_id' => $eventId]); ?>
             </p>
 
+            <?php self::renderDocuments($eventId); ?>
+
             <?php if ($event['status'] === 'cancelled') : ?>
                 <?php self::renderCalledOff($service, $event, $eventId); ?>
             <?php elseif ($canManage) : ?>
@@ -602,6 +614,72 @@ final class EventsScreen
             <?php endif; ?>
         </div>
         <?php
+    }
+
+    /**
+     * Documents de l'événement — convocation, ordre du jour, pouvoir d'une AG,
+     * programme d'un stage.
+     *
+     * Ce sont des documents du club comme les autres : on les dépose par
+     * l'écran habituel, qui garde les droits d'accès et l'historique des
+     * versions. Ici, on les retrouve et on en ajoute.
+     */
+    private static function renderDocuments(int $eventId): void
+    {
+        $canEdit   = current_user_can('sub_manage_content');
+        $documents = array_values(array_filter(
+            ClubDocuments::forEvent($eventId),
+            static fn (\WP_Post $document): bool => ClubDocuments::mayDownload($document->ID)
+        ));
+
+        if ($documents === [] && !$canEdit) {
+            return;
+        }
+        ?>
+        <div class="sub-card" style="margin-bottom:20px;">
+            <h2 style="margin-top:0;">Documents</h2>
+
+            <?php if ($documents === []) : ?>
+                <p class="description">
+                    Aucun document. Les membres qui voient l’événement retrouveront ici
+                    la convocation, l’ordre du jour ou le programme que vous y joindrez.
+                </p>
+            <?php else : ?>
+                <ul class="sub-event-docs">
+                    <?php foreach ($documents as $document) : ?>
+                        <li>
+                            <a href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>">
+                                <?php echo esc_html($document->post_title); ?>
+                            </a>
+                            <span class="description">
+                                — <?php echo esc_html(self::accessLabel($document->ID)); ?>
+                            </span>
+                            <?php if ($canEdit) : ?>
+                                · <a href="<?php echo esc_url((string) get_edit_post_link($document->ID)); ?>">Modifier</a>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <?php if ($canEdit) : ?>
+                <p style="margin-bottom:0;">
+                    <a class="button" href="<?php echo esc_url(admin_url(
+                        'post-new.php?post_type=' . ClubDocuments::POST_TYPE . '&sub_event=' . $eventId
+                    )); ?>">Ajouter un document</a>
+                </p>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    private static function accessLabel(int $documentId): string
+    {
+        return match ((string) get_post_meta($documentId, ClubDocuments::META_ACCESS, true)) {
+            ClubDocuments::ACCESS_PUBLIC     => 'public',
+            ClubDocuments::ACCESS_CAPABILITY => 'restreint',
+            default                          => 'adhérents',
+        };
     }
 
     /**
@@ -898,6 +976,7 @@ final class EventsScreen
 
         $wpdb->delete("{$wpdb->prefix}sub_event_registrations", ['event_id' => $eventId]);
         $wpdb->delete("{$wpdb->prefix}sub_events", ['id' => $eventId]);
+        ClubDocuments::detachEvent($eventId);
 
         Audit::log('event.deleted', 'event', $eventId);
         AdminUi::redirect(self::SLUG, 'Événement supprimé.');

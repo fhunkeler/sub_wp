@@ -106,17 +106,51 @@ final class EventsScreen
         <?php
     }
 
+    private const TAB_CURRENT      = 'en-cours';
+    private const TAB_HISTORY      = 'historique';
+    private const HISTORY_PER_PAGE = 50;
+
+    /**
+     * Une sortie est terminée quand sa fin est passée, pas son début : le
+     * dimanche d'un week-end commencé le samedi, le directeur de plongée
+     * pointe encore ses inscrits depuis l'onglet des sorties en cours.
+     */
+    private const FINISHED = 'COALESCE(e.ends_at, e.starts_at) < %s';
+
+    /**
+     * Deux onglets : ce qui se prépare, et ce qui a eu lieu.
+     *
+     * Une seule liste, triée de la plus récente à la plus ancienne et coupée à
+     * cent lignes, mélangeait les sorties à venir aux centaines de sorties
+     * reprises du Joomla — et faisait disparaître les plus anciennes, que plus
+     * aucun écran ne permettait d'ouvrir.
+     */
     public static function render(): void
     {
-        AdminUi::enqueue();
-        AdminUi::flash();
+        AdminUi::tabbedScreen(self::SLUG, 'Événements', [
+            self::TAB_CURRENT => [
+                'label'  => 'En cours et à venir',
+                'render' => static fn () => self::renderCurrent(),
+            ],
+            self::TAB_HISTORY => [
+                'label'  => 'Historique',
+                'render' => static fn () => self::renderHistory(),
+            ],
+        ]);
+    }
 
+    /**
+     * @param list<string|int> $args Valeurs des `%s` / `%d` de `$where`, après l'heure courante.
+     * @return list<array<string, mixed>>
+     */
+    private static function events(string $where, array $args, string $order, int $limit = 0, int $offset = 0): array
+    {
         global $wpdb;
         $p = $wpdb->prefix . 'sub_';
 
         // L'état d'annonce se lit dans le journal des envois : une colonne de
         // plus sur les événements dirait la même chose et pourrait mentir.
-        $events = $wpdb->get_results($wpdb->prepare(
+        return $wpdb->get_results($wpdb->prepare(
             "SELECT e.*, t.name AS type_name,
                     (SELECT COUNT(*) FROM {$p}event_registrations r
                       WHERE r.event_id = e.id AND r.status = 'confirmed') AS confirmed,
@@ -127,10 +161,22 @@ final class EventsScreen
                         AND n.template_code = %s AND n.status = 'sent') AS announced_at
              FROM {$p}events e
              LEFT JOIN {$p}event_types t ON t.id = e.type_id
-             ORDER BY e.starts_at DESC
-             LIMIT 100",
-            EmailTemplates::EVENT_ANNOUNCEMENT
+             WHERE {$where}
+             ORDER BY {$order}"
+             . ($limit > 0 ? sprintf(' LIMIT %d OFFSET %d', $limit, $offset) : ''),
+            EmailTemplates::EVENT_ANNOUNCEMENT,
+            current_time('mysql'),
+            ...$args
         ), ARRAY_A) ?: [];
+    }
+
+    /**
+     * Les sorties à venir et celles qui ne sont pas finies, la plus proche en
+     * tête — puis le formulaire de création.
+     */
+    private static function renderCurrent(): void
+    {
+        $events = self::events('NOT (' . self::FINISHED . ')', [], 'e.starts_at ASC');
 
         $types   = self::creatableTypes();
         $levels  = DiveLevels::ordered();
@@ -146,95 +192,9 @@ final class EventsScreen
                 'autonomous' => (int) $type['requires_autonomous'] === 1,
             ];
         }
+
+        self::renderTable($events, false, 'Aucun événement à venir. Créez-en un ci-dessous.');
         ?>
-        <div class="wrap sub-admin">
-            <h1>Événements</h1>
-
-            <table class="wp-list-table widefat striped sub-cards" style="margin-top:16px;">
-                <thead>
-                    <tr>
-                        <th>Événement</th>
-                        <th style="width:170px;">Type</th>
-                        <th style="width:180px;">Date</th>
-                        <th style="width:130px;">Inscrits</th>
-                        <th style="width:260px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if ($events === []) : ?>
-                    <tr><td colspan="5">Aucun événement. Créez-en un ci-dessous.</td></tr>
-                <?php endif; ?>
-
-                <?php foreach ($events as $e) : ?>
-                    <?php
-                    $past      = $e['starts_at'] < current_time('mysql');
-                    $cancelled = $e['status'] === 'cancelled';
-                    ?>
-                    <tr<?php echo $past || $cancelled ? ' style="opacity:.6;"' : ''; ?>>
-                        <td data-label="Événement">
-                            <strong><?php echo esc_html((string) $e['title']); ?></strong>
-                            <?php if (!empty($e['location'])) : ?>
-                                <br><span style="color:#50575e;"><?php echo esc_html((string) $e['location']); ?></span>
-                            <?php endif; ?>
-                            <?php if ($cancelled) : ?>
-                                <br><span class="sub-tag">annulé<?php echo empty($e['cancelled_at']) ? '' : ' le '
-                                    . esc_html(self::frDateTime((string) $e['cancelled_at'])); ?></span>
-                            <?php elseif (!empty($e['announced_at'])) : ?>
-                                <br><span class="sub-tag">annoncée le
-                                    <?php echo esc_html(self::frDateTime((string) $e['announced_at'])); ?></span>
-                            <?php elseif (!$past) : ?>
-                                <br><span style="color:#50575e;">pas encore annoncée</span>
-                            <?php endif; ?>
-                            <?php $documents = count(ClubDocuments::forEvent((int) $e['id'])); ?>
-                            <?php if ($documents > 0) : ?>
-                                <br><small><?php echo esc_html(sprintf(
-                                    _n('%d document', '%d documents', $documents),
-                                    $documents
-                                )); ?></small>
-                            <?php endif; ?>
-                        </td>
-                        <td data-label="Type"><?php echo esc_html((string) ($e['type_name'] ?? '—')); ?></td>
-                        <td data-label="Date">
-                            <?php echo esc_html(self::frDateTime((string) $e['starts_at'])); ?>
-                            <?php if (!empty($e['ends_at'])) : ?>
-                                <br><small>jusqu’au <?php echo esc_html(self::frDateTime((string) $e['ends_at'])); ?></small>
-                            <?php endif; ?>
-                        </td>
-                        <td data-label="Inscrits" style="font-variant-numeric:tabular-nums;">
-                            <?php
-                            $capacity = (int) $e['capacity'];
-                            printf(
-                                '%d%s',
-                                (int) $e['confirmed'],
-                                $capacity > 0 ? ' / ' . $capacity : ''
-                            );
-                            if ((int) $e['waiting'] > 0) {
-                                printf('<br><small>%d en attente</small>', (int) $e['waiting']);
-                            }
-                            ?>
-                        </td>
-                        <td data-label="Actions">
-                            <div class="sub-row-actions">
-                                <a class="button button-primary"
-                                   href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG_ROSTER . '&event_id=' . (int) $e['id'])); ?>">
-                                    Liste des inscrits
-                                </a>
-                                <?php if (current_user_can('sub_manage_event_types')) : ?>
-                                    <?php AdminUi::actionButton(
-                                        'sub_event_delete',
-                                        ['event_id' => (int) $e['id']],
-                                        'Supprimer',
-                                        'button button-link-delete',
-                                        'Supprimer cet événement et toutes ses inscriptions ? '
-                                            . 'Ses documents restent dans les documents du club.'
-                                    ); ?>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
 
             <?php if ($types === []) : ?>
                 <div class="notice notice-info" style="margin-top:24px;">
@@ -421,7 +381,199 @@ final class EventsScreen
 
                 <p class="submit"><button class="button button-primary">Créer l’événement</button></p>
             </form>
+        <?php
+    }
+
+    /**
+     * Les sorties terminées, de la plus récente à la plus ancienne, page par
+     * page et filtrables par année : la reprise du Joomla en compte à elle
+     * seule plus de huit cents.
+     */
+    private static function renderHistory(): void
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $years = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT YEAR(e.starts_at) FROM {$p}events e
+             WHERE " . self::FINISHED . " ORDER BY 1 DESC",
+            current_time('mysql')
+        )) ?: []);
+        $year = absint($_GET['annee'] ?? 0);
+        if (!in_array($year, $years, true)) {
+            $year = 0;
+        }
+
+        $where = self::FINISHED . ($year > 0 ? ' AND YEAR(e.starts_at) = %d' : '');
+        $args  = $year > 0 ? [$year] : [];
+
+        $total = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$p}events e WHERE {$where}",
+            current_time('mysql'),
+            ...$args
+        ));
+        $pages = max(1, (int) ceil($total / self::HISTORY_PER_PAGE));
+        $page  = min($pages, max(1, absint($_GET['paged'] ?? 1)));
+
+        $events = self::events(
+            $where,
+            $args,
+            'e.starts_at DESC',
+            self::HISTORY_PER_PAGE,
+            ($page - 1) * self::HISTORY_PER_PAGE
+        );
+
+        $base = add_query_arg(
+            $year > 0 ? ['annee' => $year] : [],
+            AdminUi::tabUrl(self::SLUG, self::TAB_HISTORY)
+        );
+        ?>
+        <div class="tablenav top">
+            <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>" class="alignleft actions">
+                <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
+                <input type="hidden" name="tab" value="<?php echo esc_attr(self::TAB_HISTORY); ?>">
+                <label class="screen-reader-text" for="sub-event-year">Année</label>
+                <select name="annee" id="sub-event-year">
+                    <option value="">Toutes les années</option>
+                    <?php foreach ($years as $y) : ?>
+                        <option value="<?php echo (int) $y; ?>" <?php selected($year, $y); ?>><?php echo (int) $y; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button class="button">Filtrer</button>
+            </form>
+            <?php self::renderPagination($base, $page, $pages, $total); ?>
+            <br class="clear">
         </div>
+        <?php
+        self::renderTable(
+            $events,
+            true,
+            $year > 0 ? 'Aucun événement terminé en ' . $year . '.' : 'Aucun événement terminé.'
+        );
+        ?>
+        <div class="tablenav bottom">
+            <?php self::renderPagination($base, $page, $pages, $total); ?>
+            <br class="clear">
+        </div>
+        <?php
+    }
+
+    private static function renderPagination(string $base, int $page, int $pages, int $total): void
+    {
+        ?>
+        <div class="tablenav-pages">
+            <span class="displaying-num"><?php echo esc_html(sprintf(
+                _n('%d événement', '%d événements', $total),
+                $total
+            )); ?></span>
+            <?php if ($pages > 1) : ?>
+                <span class="pagination-links"><?php echo wp_kses_post((string) paginate_links([
+                    'base'      => add_query_arg('paged', '%#%', $base),
+                    'format'    => '',
+                    'current'   => $page,
+                    'total'     => $pages,
+                    'prev_text' => '‹',
+                    'next_text' => '›',
+                ])); ?></span>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * @param list<array<string, mixed>> $events
+     */
+    private static function renderTable(array $events, bool $history, string $empty): void
+    {
+        // Supprimer depuis l'historique y ramène, à la même page.
+        $back = $history
+            ? ['tab' => self::TAB_HISTORY, 'paged' => max(1, absint($_GET['paged'] ?? 1)), 'annee' => absint($_GET['annee'] ?? 0)]
+            : [];
+        ?>
+            <table class="wp-list-table widefat striped sub-cards">
+                <thead>
+                    <tr>
+                        <th>Événement</th>
+                        <th style="width:170px;">Type</th>
+                        <th style="width:180px;">Date</th>
+                        <th style="width:130px;">Inscrits</th>
+                        <th style="width:260px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if ($events === []) : ?>
+                    <tr><td colspan="5"><?php echo esc_html($empty); ?></td></tr>
+                <?php endif; ?>
+
+                <?php foreach ($events as $e) : ?>
+                    <?php
+                    $cancelled = $e['status'] === 'cancelled';
+                    ?>
+                    <tr<?php echo $cancelled ? ' style="opacity:.6;"' : ''; ?>>
+                        <td data-label="Événement">
+                            <strong><?php echo esc_html((string) $e['title']); ?></strong>
+                            <?php if (!empty($e['location'])) : ?>
+                                <br><span style="color:#50575e;"><?php echo esc_html((string) $e['location']); ?></span>
+                            <?php endif; ?>
+                            <?php if ($cancelled) : ?>
+                                <br><span class="sub-tag">annulé<?php echo empty($e['cancelled_at']) ? '' : ' le '
+                                    . esc_html(self::frDateTime((string) $e['cancelled_at'])); ?></span>
+                            <?php elseif (!empty($e['announced_at'])) : ?>
+                                <br><span class="sub-tag">annoncée le
+                                    <?php echo esc_html(self::frDateTime((string) $e['announced_at'])); ?></span>
+                            <?php elseif (!$history) : ?>
+                                <br><span style="color:#50575e;">pas encore annoncée</span>
+                            <?php endif; ?>
+                            <?php $documents = count(ClubDocuments::forEvent((int) $e['id'])); ?>
+                            <?php if ($documents > 0) : ?>
+                                <br><small><?php echo esc_html(sprintf(
+                                    _n('%d document', '%d documents', $documents),
+                                    $documents
+                                )); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td data-label="Type"><?php echo esc_html((string) ($e['type_name'] ?? '—')); ?></td>
+                        <td data-label="Date">
+                            <?php echo esc_html(self::frDateTime((string) $e['starts_at'])); ?>
+                            <?php if (!empty($e['ends_at'])) : ?>
+                                <br><small>jusqu’au <?php echo esc_html(self::frDateTime((string) $e['ends_at'])); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td data-label="Inscrits" style="font-variant-numeric:tabular-nums;">
+                            <?php
+                            $capacity = (int) $e['capacity'];
+                            printf(
+                                '%d%s',
+                                (int) $e['confirmed'],
+                                $capacity > 0 ? ' / ' . $capacity : ''
+                            );
+                            if ((int) $e['waiting'] > 0) {
+                                printf('<br><small>%d en attente</small>', (int) $e['waiting']);
+                            }
+                            ?>
+                        </td>
+                        <td data-label="Actions">
+                            <div class="sub-row-actions">
+                                <a class="button button-primary"
+                                   href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG_ROSTER . '&event_id=' . (int) $e['id'])); ?>">
+                                    Liste des inscrits
+                                </a>
+                                <?php if (current_user_can('sub_manage_event_types')) : ?>
+                                    <?php AdminUi::actionButton(
+                                        'sub_event_delete',
+                                        ['event_id' => (int) $e['id']] + $back,
+                                        'Supprimer',
+                                        'button button-link-delete',
+                                        'Supprimer cet événement et toutes ses inscriptions ? '
+                                            . 'Ses documents restent dans les documents du club.'
+                                    ); ?>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
         <?php
     }
 
@@ -453,7 +605,10 @@ final class EventsScreen
                 <?php if (!empty($event['location'])) : ?>
                     — <?php echo esc_html((string) $event['location']); ?>
                 <?php endif; ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG)); ?>">← Tous les événements</a>
+                <?php $finished = ($event['ends_at'] ?: $event['starts_at']) < current_time('mysql'); ?>
+                <a href="<?php echo esc_url(AdminUi::tabUrl(self::SLUG, $finished ? self::TAB_HISTORY : '')); ?>">
+                    ← <?php echo $finished ? 'Historique des événements' : 'Tous les événements'; ?>
+                </a>
             </p>
 
             <p style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -979,7 +1134,16 @@ final class EventsScreen
         ClubDocuments::detachEvent($eventId);
 
         Audit::log('event.deleted', 'event', $eventId);
-        AdminUi::redirect(self::SLUG, 'Événement supprimé.');
+
+        $back = [];
+        if (sanitize_key(wp_unslash((string) ($_POST['tab'] ?? ''))) === self::TAB_HISTORY) {
+            $back = array_filter([
+                'tab'   => self::TAB_HISTORY,
+                'paged' => absint($_POST['paged'] ?? 0),
+                'annee' => absint($_POST['annee'] ?? 0),
+            ]);
+        }
+        AdminUi::redirect(self::SLUG, 'Événement supprimé.', false, $back);
     }
 
     public static function handleMessage(): void

@@ -8,6 +8,7 @@ use RuntimeException;
 use Subalcatel\Club\Content\ClubDocuments;
 use Subalcatel\Club\Content\DocumentDelivery;
 use Subalcatel\Club\Content\DocumentLibrary;
+use Subalcatel\Club\Events\EventService;
 
 /**
  * Écrans du bureau pour les documents du club.
@@ -130,6 +131,22 @@ final class ClubDocumentsScreen
         $capability = (string) get_post_meta($post->ID, ClubDocuments::META_CAPABILITY, true);
         $downloads  = (int) get_post_meta($post->ID, ClubDocuments::META_DOWNLOADS, true);
         $versions   = DocumentLibrary::versionsOf($post->ID);
+        $eventId    = (int) get_post_meta($post->ID, ClubDocuments::META_EVENT, true);
+
+        // Arrivé depuis l'écran d'un événement : le document lui est déjà
+        // rattaché, et une réunion du bureau ne publie pas par défaut ses
+        // pièces aux cent trente adhérents.
+        if ($post->post_status === 'auto-draft' && isset($_GET['sub_event'])) {
+            $eventId = absint($_GET['sub_event']);
+            $event   = (new EventService())->find($eventId);
+
+            if ($event === null) {
+                $eventId = 0;
+            } elseif ($event['visibility'] === EventService::VISIBILITY_OFFICE) {
+                $access     = ClubDocuments::ACCESS_CAPABILITY;
+                $capability = 'sub_manage_content';
+            }
+        }
 
         wp_enqueue_style(
             'subalcatel-admin',
@@ -176,6 +193,25 @@ final class ClubDocumentsScreen
                             <?php selected($capability, $value); ?>><?php echo esc_html($label); ?></option>
                     <?php endforeach; ?>
                 </select>
+            </p>
+
+            <p>
+                <label for="sub-doc-event"><strong>Événement</strong></label><br>
+                <select name="sub_doc_event" id="sub-doc-event">
+                    <option value="0">Aucun</option>
+                    <?php foreach (self::eventChoices($eventId) as $id => $label) : ?>
+                        <option value="<?php echo esc_attr((string) $id); ?>"
+                            <?php selected($eventId, $id); ?>><?php echo esc_html($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if ($eventId > 0) : ?>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=' . EventsScreen::SLUG_ROSTER
+                        . '&event_id=' . $eventId)); ?>">Voir l’événement</a>
+                <?php endif; ?>
+                <br><span class="description">
+                    Convocation, ordre du jour, pouvoir, programme… Le document s’affiche dans le
+                    détail de l’événement, pour ceux qui ont le droit de le télécharger.
+                </span>
             </p>
 
             <?php if ($versions !== []) : ?>
@@ -264,6 +300,8 @@ final class ClubDocumentsScreen
             array_key_exists($capability, ClubDocuments::capabilityChoices()) ? $capability : ''
         );
 
+        self::saveEvent($postId);
+
         $file = $_FILES['sub_doc_file'] ?? null;
 
         if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -279,6 +317,62 @@ final class ClubDocumentsScreen
             add_filter('redirect_post_location', static fn (string $location): string
                 => add_query_arg('sub_doc_error', $postId, $location));
         }
+    }
+
+    /**
+     * Rattachement à un événement.
+     *
+     * Une pièce d'AG rangée sans catégorie rejoint « Assemblées générales » :
+     * c'est là que l'adhérent cherchera le procès-verbal une fois l'AG passée
+     * et sortie de l'agenda.
+     */
+    private static function saveEvent(int $postId): void
+    {
+        $eventId = isset($_POST['sub_doc_event']) ? absint($_POST['sub_doc_event']) : 0;
+        $service = new EventService();
+
+        if ($eventId > 0 && $service->find($eventId) === null) {
+            $eventId = 0;
+        }
+
+        ClubDocuments::linkToEvent($postId, $eventId);
+
+        if ($eventId === 0 || wp_get_object_terms($postId, ClubDocuments::TAXONOMY, ['fields' => 'ids']) !== []) {
+            return;
+        }
+
+        if (($service->typeOf($eventId)['slug'] ?? '') === 'assemblee-generale') {
+            wp_set_object_terms($postId, 'assemblees-generales', ClubDocuments::TAXONOMY);
+        }
+    }
+
+    /**
+     * Événements proposés : à venir, et ceux des dix-huit derniers mois — le
+     * procès-verbal d'une AG se dépose des semaines après. Celui déjà choisi
+     * reste dans la liste, quel que soit son âge.
+     *
+     * @return array<int, string>
+     */
+    private static function eventChoices(int $current): array
+    {
+        global $wpdb;
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, title, starts_at FROM {$wpdb->prefix}sub_events
+              WHERE starts_at >= %s OR id = %d
+              ORDER BY starts_at DESC",
+            (new \DateTimeImmutable(current_time('mysql')))->modify('-18 months')->format('Y-m-d H:i:s'),
+            $current
+        ), ARRAY_A) ?: [];
+
+        $choices = [];
+
+        foreach ($rows as $row) {
+            $choices[(int) $row['id']] = mysql2date('j M Y', (string) $row['starts_at'])
+                . ' — ' . (string) $row['title'];
+        }
+
+        return $choices;
     }
 
     public static function handleVersion(): void
@@ -323,6 +417,7 @@ final class ClubDocumentsScreen
         $date = $columns['date'] ?? '';
         unset($columns['date']);
 
+        $columns['sub_event']     = 'Événement';
         $columns['sub_access']    = 'Accès';
         $columns['sub_file']      = 'Fichier';
         $columns['sub_downloads'] = 'Téléchargements';
@@ -355,6 +450,19 @@ final class ClubDocumentsScreen
                     : esc_html($filename) . ' <span class="description">('
                         . esc_html(size_format((int) get_post_meta($postId, ClubDocuments::META_SIZE, true)))
                         . ')</span>';
+                break;
+
+            case 'sub_event':
+                $eventId = (int) get_post_meta($postId, ClubDocuments::META_EVENT, true);
+                $event   = $eventId > 0 ? (new EventService())->find($eventId) : null;
+
+                echo $event === null
+                    ? '—'
+                    : sprintf(
+                        '<a href="%s">%s</a>',
+                        esc_url(admin_url('admin.php?page=' . EventsScreen::SLUG_ROSTER . '&event_id=' . $eventId)),
+                        esc_html((string) $event['title'])
+                    );
                 break;
 
             case 'sub_downloads':

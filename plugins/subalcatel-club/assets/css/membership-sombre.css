@@ -638,6 +638,10 @@
 	color: #a8ceeb;
 }
 
+:root[data-theme="dark"] .sub-event__documents {
+	border-top-color: #394551;
+}
+
 :root[data-theme="dark"] .sub-event__people summary {
 	color: #a8ceeb;
 }

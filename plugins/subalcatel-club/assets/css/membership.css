@@ -2215,6 +2215,29 @@
 	margin: 0;
 }
 
+/* Documents joints : convocation, ordre du jour, programme. */
+.sub-event__documents {
+	margin: 12px 0 0;
+	padding: 10px 0 0;
+	border-top: 1px solid rgba(29, 84, 128, .15);
+	list-style: none;
+}
+
+.sub-event__documents li {
+	margin: 0 0 6px;
+	overflow-wrap: anywhere;
+}
+
+.sub-event__documents li::before {
+	content: "📄 ";
+}
+
+.sub-event__document-meta {
+	margin-left: 6px;
+	font-size: .85em;
+	opacity: .75;
+}
+
 /* Sur téléphone, l'intitulé passe au-dessus de sa valeur. */
 @media (max-width: 480px) {
 	.sub-event__facts {

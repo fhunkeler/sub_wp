@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Frontend;
 
+use Subalcatel\Club\Content\ClubDocuments;
+use Subalcatel\Club\Content\DocumentDelivery;
 use Subalcatel\Club\Events\EventService;
+use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
 /**
@@ -21,7 +24,9 @@ use Subalcatel\Club\Policy\EligibilityPolicy;
  * partout.
  *
  * Rien du dossier des inscrits ici : ce sont les informations de la sortie,
- * les mêmes pour tous ceux qui la voient.
+ * les mêmes pour tous ceux qui la voient. Les documents joints — convocation
+ * et pouvoir d'une AG, programme d'un stage — y figurent, chacun selon ses
+ * propres droits de téléchargement.
  */
 final class EventDetails
 {
@@ -30,11 +35,26 @@ final class EventDetails
      */
     public static function render(EventService $service, array $event): void
     {
-        $rows = self::rows($service, $event);
-        $text = trim((string) ($event['description'] ?? ''));
+        $rows      = self::rows($service, $event);
+        $text      = trim((string) ($event['description'] ?? ''));
+        $type      = $service->typeOf((int) $event['id']);
+        $documents = array_values(array_filter(
+            ClubDocuments::forEvent((int) $event['id']),
+            static fn (\WP_Post $document): bool => ClubDocuments::mayDownload($document->ID)
+        ));
+
+        // Une AG n'est pas une sortie. Et le nombre de documents se lit sans
+        // déplier : c'est souvent la raison pour laquelle on ouvre.
+        $summary = $type !== null && !EventTypeSeeder::isDivingType($type)
+            ? 'Détails de l’événement'
+            : 'Détails de la sortie';
+
+        if ($documents !== []) {
+            $summary .= sprintf(_n(' · %d document', ' · %d documents', count($documents)), count($documents));
+        }
         ?>
         <details class="sub-event__details">
-            <summary>Détails de la sortie</summary>
+            <summary><?php echo esc_html($summary); ?></summary>
 
             <?php if ($text !== '') : ?>
                 <div class="sub-event__description">
@@ -53,6 +73,26 @@ final class EventDetails
                     <dd><?php echo esc_html($value); ?></dd>
                 <?php endforeach; ?>
             </dl>
+
+            <?php if ($documents !== []) : ?>
+                <ul class="sub-event__documents">
+                    <?php foreach ($documents as $document) : ?>
+                        <?php
+                        $filename = (string) get_post_meta($document->ID, ClubDocuments::META_FILENAME, true);
+                        $size     = (int) get_post_meta($document->ID, ClubDocuments::META_SIZE, true);
+                        ?>
+                        <li>
+                            <a href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>">
+                                <?php echo esc_html($document->post_title); ?>
+                            </a>
+                            <span class="sub-event__document-meta">
+                                <?php echo esc_html(strtoupper((string) pathinfo($filename, PATHINFO_EXTENSION))
+                                    . ($size > 0 ? ' · ' . size_format($size) : '')); ?>
+                            </span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
         </details>
         <?php
     }

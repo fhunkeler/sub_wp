@@ -27,6 +27,7 @@ use Subalcatel\Club\Content\SearchIndexing;
 use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Documents\DocumentTypes;
+use Subalcatel\Club\Frontend\AdminBar;
 use Subalcatel\Club\Frontend\AgendaShortcode;
 use Subalcatel\Club\Frontend\Assets;
 use Subalcatel\Club\Events\IcalFeed;
@@ -183,6 +184,7 @@ final class Plugin
         PermanencesShortcode::register();
         ClubFigures::register();
         MenuVisibility::register();
+        AdminBar::register();
         IcalFeed::register();
         DocumentDelivery::register();
         Visibility::register();

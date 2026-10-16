@@ -333,6 +333,19 @@ SiteBuilder::run();
 
 $menusStables('après 5 installations');
 
+// --- Barre d'administration ------------------------------------------------
+echo "\n--- Barre d’administration ---\n";
+
+// `is_admin_bar_showing()` mémorise sa réponse pour la requête : on interroge
+// le filtre, qui est ce que la page publique consultera.
+$admins = get_users(['role' => 'administrator', 'number' => 1, 'fields' => 'ID']);
+foreach (['un membre' => $member, 'le bureau' => $office, 'un administrateur' => (int) ($admins[0] ?? 0)] as $qui => $id) {
+    wp_set_current_user($id);
+    $check("Pas de barre WordPress sur le site pour {$qui}",
+        apply_filters('show_admin_bar', true) === false);
+}
+wp_set_current_user(0);
+
 foreach ([$member, $lapsed, $office] as $id) {
     wp_delete_user($id);
 }

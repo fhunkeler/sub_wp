@@ -1976,6 +1976,54 @@
 	font-size: 16px; /* sous 16 px, iOS zoome au focus */
 }
 
+/* Bouton « œil » ajouté par login.js : le champ garde sa largeur, le bouton
+   se loge à droite, à l'intérieur du cadre. */
+.sub-login__password {
+	position: relative;
+	display: block;
+	margin-top: 4px;
+}
+
+.sub-login__password input[type="password"],
+.sub-login__password input[type="text"] {
+	margin-top: 0;
+	padding-right: 52px;
+}
+
+.sub-login__reveal {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	padding: 0;
+	background: none;
+	border: 0;
+	border-radius: 0 8px 8px 0;
+	color: #566b84;
+	cursor: pointer;
+}
+
+.sub-login__reveal svg {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.sub-login__reveal:hover {
+	color: #142f52;
+}
+
+.sub-login__reveal:focus-visible {
+	outline: 2px solid var(--sub-corail-fonce, #c0561a);
+	outline-offset: -2px;
+}
+
 .sub-login .login-remember label {
 	font-weight: 400;
 }

@@ -108,6 +108,8 @@ sub_test_make_compliant($secretary);
 update_user_meta($secretary, 'sub_dive_level_id', get_term_by('slug', 'p3', DiveLevels::TAXONOMY)->term_id);
 update_user_meta($secretary, 'sub_mobile', '06 11 22 33 44');
 update_user_meta($secretary, 'sub_emergency_contact', 'Marie D.');
+update_user_meta($secretary, 'sub_vehicle_1', 'AB-123-CD');
+update_user_meta($secretary, 'sub_vehicle_2', 'EF-456-GH');
 
 $members = ExportRegistry::find('members');
 $rows    = $members->rows();
@@ -119,6 +121,8 @@ $email = get_userdata($secretary)->user_email;
 $found = array_values(array_filter($rows, static fn (array $r): bool => $r[2] === $email));
 $check('Colonnes cohérentes', $found !== [] && count($found[0]) === count($members->columns()));
 $check('Téléphone présent', $found !== [] && $found[0][3] === '06 11 22 33 44', $found[0][3] ?? '');
+$check('Véhicules présents', $found !== [] && array_slice($found[0], -2) === ['AB-123-CD', 'EF-456-GH'],
+    implode(' / ', array_slice($found[0] ?? [], -2)));
 
 // La règle absolue : un export est une liste, jamais une archive.
 $serialised = wp_json_encode($rows);

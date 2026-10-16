@@ -214,7 +214,8 @@ final class ApplicationsScreen
                     GROUP BY application_id
                 ) pay ON pay.application_id = a.id
                 WHERE " . implode(' AND ', $where) . "
-                ORDER BY FIELD(a.status,'awaiting_payment','payment_confirmed','active','refused'),
+                ORDER BY FIELD(a.status,'submitted','awaiting_payment','payment_confirmed',
+                                        'active','refused','draft','cancelled'),
                          a.created_at DESC
                 LIMIT " . self::LIMIT;
 

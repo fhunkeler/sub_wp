@@ -252,6 +252,11 @@ final class ProfileFields
                 'editable' => self::EDIT_SELF, 'default' => '1',
                 'help' => 'Votre nom, votre niveau et votre courriel seront visibles des autres membres.',
             ],
+            'image_rights' => [
+                'label' => 'J’autorise le club à publier des photos et vidéos où j’apparais', 'group' => 'preferences', 'type' => 'checkbox',
+                'editable' => self::EDIT_SELF, 'default' => '1',
+                'help' => 'Site du club, réseaux sociaux et supports de communication. Décochez pour retirer votre accord : il vaut pour les publications à venir.',
+            ],
         ];
 
         /**

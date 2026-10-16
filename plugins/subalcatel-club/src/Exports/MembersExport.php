@@ -38,6 +38,7 @@ final class MembersExport extends Export
         return [
             'Nom', 'Prénom', 'Courriel', 'Téléphone mobile', 'Niveau',
             'N° licence FFESSM', 'Adhésion', 'Valable jusqu’au', 'Contact d’urgence',
+            'Véhicule principal', 'Second véhicule',
         ];
     }
 
@@ -60,6 +61,8 @@ final class MembersExport extends Export
                 $membership->allowed ? 'Active' : $membership->shortLabel(),
                 Members::frDate((string) get_user_meta($user->ID, 'sub_membership_valid_until', true)),
                 trim(ProfileFields::get($user->ID, 'emergency_contact') . ' ' . ProfileFields::get($user->ID, 'emergency_phone')),
+                ProfileFields::get($user->ID, 'vehicle_1'),
+                ProfileFields::get($user->ID, 'vehicle_2'),
             ];
         }
 

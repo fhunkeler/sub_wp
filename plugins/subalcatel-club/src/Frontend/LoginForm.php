@@ -49,6 +49,15 @@ final class LoginForm
             \Subalcatel\Club\VERSION
         );
 
+        // Bouton « œil » du mot de passe, que l'écran natif a et pas wp_login_form().
+        wp_enqueue_script(
+            'subalcatel-login',
+            \Subalcatel\Club\PLUGIN_URL . 'assets/js/login.js',
+            [],
+            \Subalcatel\Club\VERSION,
+            true
+        );
+
         $redirect = self::redirectTarget();
 
         ob_start();

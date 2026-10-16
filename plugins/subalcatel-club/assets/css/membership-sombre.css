@@ -566,6 +566,14 @@
 	border: 1px solid #3a5579;
 }
 
+:root[data-theme="dark"] .sub-login__reveal {
+	color: #aebbca;
+}
+
+:root[data-theme="dark"] .sub-login__reveal:hover {
+	color: #bdd3ef;
+}
+
 :root[data-theme="dark"] .sub-pricing__season {
 	color: #aebbca;
 }

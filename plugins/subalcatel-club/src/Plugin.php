@@ -46,6 +46,7 @@ use Subalcatel\Club\Frontend\MemberDashboard;
 use Subalcatel\Club\Frontend\MyMembership;
 use Subalcatel\Club\Frontend\MyRegistrations;
 use Subalcatel\Club\Frontend\OutingForm;
+use Subalcatel\Club\Frontend\ListMessageForm;
 use Subalcatel\Club\Frontend\OutingRoster;
 use Subalcatel\Club\Frontend\MembershipForm;
 use Subalcatel\Club\Frontend\ProfileForm;
@@ -171,6 +172,7 @@ final class Plugin
         MyRegistrations::register();
         OutingForm::register();
         OutingRoster::register();
+        ListMessageForm::register();
         DailyDigest::register();
         SendQuota::register();
         MailQueue::register();

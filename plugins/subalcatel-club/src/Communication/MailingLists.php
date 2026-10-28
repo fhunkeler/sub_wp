@@ -28,6 +28,7 @@ final class MailingLists
     public const ACTIVE     = 'adherents-actifs';
     public const FORMER     = 'anciens-adherents';
     public const OFFICE     = 'bureau';
+    public const AUTONOMOUS = 'autonomes';
     public const INSTRUCTOR = 'encadrants';
     public const LEADER     = 'directeurs-plongee';
 
@@ -61,6 +62,12 @@ final class MailingLists
                 'slug'        => self::OFFICE,
                 'label'       => 'Bureau',
                 'description' => 'Porteurs de la capacité de gestion des adhésions.',
+                'dynamic'     => true,
+            ],
+            [
+                'slug'        => self::AUTONOMOUS,
+                'label'       => 'Plongeurs autonomes',
+                'description' => 'Niveau marqué « autonome ».',
                 'dynamic'     => true,
             ],
             [
@@ -132,6 +139,7 @@ final class MailingLists
             self::ACTIVE     => self::activeMembers(),
             self::FORMER     => self::formerMembers(),
             self::OFFICE     => self::byCapability('sub_manage_memberships'),
+            self::AUTONOMOUS => self::byFlag(DiveLevels::FLAG_AUTONOMOUS),
             self::INSTRUCTOR => self::byFlag(DiveLevels::FLAG_INSTRUCTOR),
             self::LEADER     => self::byFlag(DiveLevels::FLAG_DIVE_LEADER),
             default          => [],

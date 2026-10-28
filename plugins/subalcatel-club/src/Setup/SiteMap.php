@@ -420,6 +420,21 @@ final class SiteMap
                 'content'    => self::shortcode('[subalcatel_mes_inscriptions]'),
             ],
             [
+                'key'        => Pages::WRITE_TO_CLUB,
+                'template'   => 'page-espace-membre',
+                'title'      => 'Écrire au club',
+                'parent'     => Pages::MEMBER_AREA,
+                'visibility' => Visibility::CONNECTED,
+                // Hors menu : la page s'atteint par les tuiles du tableau de
+                // bord, qui sont la navigation de l'espace membre.
+                'content'    => self::paragraph(
+                    'Écrivez à tout le club, aux plongeurs autonomes pour monter une plongée, '
+                    . 'aux encadrants ou au bureau. Vos destinataires vous répondent directement, '
+                    . 'sans que personne ne voie les adresses des autres.'
+                )
+                    . self::shortcode('[subalcatel_ecrire_au_club]'),
+            ],
+            [
                 'key'        => Pages::CLUB_DOCUMENTS,
                 'template'   => 'page-espace-membre',
                 'legacy'     => ['documents'],

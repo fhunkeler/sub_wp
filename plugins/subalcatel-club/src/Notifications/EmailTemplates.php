@@ -55,6 +55,9 @@ final class EmailTemplates
     public const EVENT_TO_ORGANIZER = 'event.to_organizer';
     public const EVENT_ANNOUNCEMENT = 'event.announcement';
 
+    // Listes de diffusion
+    public const LIST_MESSAGE = 'list.message';
+
     public const SECURITY_NEW_DEVICE = 'security.new_device';
 
     /**
@@ -470,6 +473,34 @@ final class EmailTemplates
                 ],
             ],
             [
+                'code'        => self::LIST_MESSAGE,
+                'label'       => 'Message à une liste du club',
+                'description' => 'Message écrit par un adhérent depuis l’espace membre et adressé à une '
+                    . 'liste — tout le club, les autonomes, les encadrants… L’adresse de l’auteur est '
+                    . 'mise en réponse : une réponse ne va qu’à lui, jamais à toute la liste.',
+                'channel'       => self::CHANNEL_TARGETED,
+                // Une liste comme « tout le club » compte des mineurs, et le
+                // message vient d'un adhérent, pas du bureau : leur représentant
+                // légal en reçoit la copie.
+                'copy_guardian' => 1,
+                'subject'     => '[{club} · {liste}] {objet}',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "{message}\n\n"
+                    . "— {expediteur}\n\n"
+                    . "----\n"
+                    . "Message envoyé par {expediteur} à la liste « {liste} » depuis l’espace membre "
+                    . "du site. Pour répondre, répondez simplement à ce courriel : votre réponse "
+                    . "ne parviendra qu’à cette personne.\n\n"
+                    . "Ne plus recevoir les messages des listes du club : {desabonnement}",
+                'variables'   => [
+                    'liste'         => 'Nom de la liste',
+                    'objet'         => 'Objet du message',
+                    'message'       => 'Corps du message',
+                    'expediteur'    => 'Nom de l’auteur',
+                    'desabonnement' => 'Lien de désabonnement en un clic, propre au destinataire',
+                ],
+            ],
+            [
                 'code'        => self::SECURITY_NEW_DEVICE,
                 'label'       => 'Connexion depuis un nouvel appareil',
                 'description' => 'Envoyé au titulaire d’un compte du bureau (certificats, exports, gestion '
@@ -505,7 +536,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 10;
+    private const VERSION        = 11;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void

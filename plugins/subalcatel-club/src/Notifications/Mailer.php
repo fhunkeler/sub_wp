@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Notifications;
 
+use Subalcatel\Club\Communication\Subscriptions;
 use Subalcatel\Club\Identity\LegalGuardian;
 use WP_User;
 
@@ -122,6 +123,14 @@ final class Mailer
 
         $recipient = $context['recipient'] ?? null;
         $variables = array_merge(self::baseVariables($recipient), $variables);
+
+        // Calculé au dernier moment, et pour le seul modèle qui s'en sert : le
+        // lien porte un jeton propre au membre, qu'un envoi groupé ne peut pas
+        // fournir d'avance. La copie au représentant légal reçoit celui du
+        // mineur — c'est à lui de pouvoir dire stop pour son enfant.
+        if (!empty($context['recipient_id']) && str_contains((string) $template['body'], '{desabonnement}')) {
+            $variables['desabonnement'] ??= Subscriptions::unsubscribeUrl((int) $context['recipient_id']);
+        }
 
         $subject = self::render((string) $template['subject'], $variables);
         $body    = self::render((string) $template['body'], $variables);

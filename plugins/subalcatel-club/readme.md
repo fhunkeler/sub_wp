@@ -31,6 +31,7 @@ sur `127.0.0.1`, et le cookie de session ne suit pas d'un hôte à l'autre.
 | `/mon-profil/` | Profil du membre — les champs du bureau sont en lecture seule |
 | `/espace-membre/agenda/organiser-une-sortie/` | Un autonome ou un directeur de plongée ouvre une sortie sans passer par l'administration |
 | `/espace-membre/agenda/mes-sorties-organisees/` | Ses inscrits — niveau, téléphone, personne à prévenir, validité des documents — et la feuille d'émargement à imprimer |
+| `/espace-membre/ecrire-au-club/` | Un adhérent à jour écrit à tout le club, aux autonomes, aux encadrants, aux directeurs de plongée ou au bureau — adresses cachées, réponse à l'auteur, 3 messages par jour |
 | **Club → Adhésions → Dossiers** | Validation : paiement puis secrétariat, et **correction d'un dossier** avant activation |
 | **Club → Membres → Annuaire** | Liste, fiche, attribution des niveaux, historique des brevets |
 | **Club → Adhésions → Campagnes** | Liste, création, **duplication annuelle**, suppression d'une campagne sans dossier |

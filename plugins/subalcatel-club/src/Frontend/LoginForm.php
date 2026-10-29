@@ -24,7 +24,7 @@ final class LoginForm
     public static function register(): void
     {
         add_shortcode('subalcatel_connexion', [self::class, 'render']);
-        add_action('wp_login_failed', [self::class, 'onFailure']);
+        add_action('wp_login_failed', [self::class, 'onFailure'], 10, 2);
 
         // Un identifiant ou un mot de passe vide ne déclenche pas
         // `wp_login_failed` : WordPress s'arrête plus tôt. On rattrape ici,
@@ -66,11 +66,33 @@ final class LoginForm
             $code = sanitize_key(wp_unslash((string) $_GET['connexion']));
 
             echo Notice::feedback('error', match ($code) {
-                'vide'  => 'Renseignez votre identifiant et votre mot de passe.',
-                default => 'Identifiant ou mot de passe incorrect. Réessayez, ou '
-                    . 'demandez un nouveau mot de passe.',
+                'vide'   => 'Renseignez votre identifiant et votre mot de passe.',
+                'bloque' => sprintf(
+                    'Trop de tentatives de connexion. Réessayez dans %d minutes, '
+                    . 'ou utilisez « Mot de passe oublié ? » sous le formulaire.',
+                    (int) ceil(\Subalcatel\Club\Support\SecuritySettings::windowSeconds() / 60)
+                ),
+                // Le journal montre surtout des adhérents qui tapent leur e-mail
+                // avec le mot de passe de l'ancien site, souvent rempli par le
+                // navigateur : il n'a pas été repris, il ne marchera jamais.
+                default  => 'Identifiant ou mot de passe incorrect. Si votre navigateur '
+                    . 'a rempli le mot de passe tout seul, c’est peut-être celui de '
+                    . 'l’ancien site, qui ne fonctionne plus : effacez-le et tapez le '
+                    . 'vôtre. Sinon, utilisez « Mot de passe oublié ? » sous le formulaire.',
             }); // déjà échappé
         }
+
+        // Les mots de passe de l'ancien site n'ont pas été repris : un adhérent
+        // qui ne s'est encore jamais connecté ici n'en a aucun qui fonctionne.
+        // Le dire à tous, plutôt qu'aux seuls comptes jamais utilisés, évite
+        // de révéler quels identifiants existent.
+        echo Notice::feedback(
+            'info',
+            'Première connexion sur le nouveau site ? Le mot de passe de l’ancien site '
+            . 'ne fonctionne plus : utilisez « Mot de passe oublié ? » sous le formulaire '
+            . 'pour en créer un.',
+            'sub-login__premiere'
+        ); // déjà échappé
 
         echo '<div class="sub-login">';
 
@@ -133,8 +155,12 @@ final class LoginForm
 
     /**
      * Ramène l'échec sur notre page plutôt que sur l'écran natif.
+     *
+     * Un blocage du ralentisseur passe aussi par ici : sans le distinguer, la
+     * personne lirait « mot de passe incorrect », réessaierait avec le bon, et
+     * prolongerait son propre blocage à chaque tentative.
      */
-    public static function onFailure(string $username): void
+    public static function onFailure(string $username, ?\WP_Error $error = null): void
     {
         $source = isset($_POST[self::SOURCE])
             ? sanitize_url(wp_unslash((string) $_POST[self::SOURCE]))
@@ -144,7 +170,11 @@ final class LoginForm
             return;
         }
 
-        wp_safe_redirect(add_query_arg('connexion', 'echec', $source));
+        $code = $error !== null && $error->get_error_message('sub_locked_out') !== ''
+            ? 'bloque'
+            : 'echec';
+
+        wp_safe_redirect(add_query_arg('connexion', $code, $source));
         exit;
     }
 

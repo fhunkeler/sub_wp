@@ -1614,6 +1614,7 @@
 .sub-shortcuts__item--adhesion { --sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='9' cy='11' r='2'/%3E%3Cpath d='M6 16c.6-1.5 1.7-2 3-2s2.4.5 3 2M14 10h4M14 14h3'/%3E%3C/svg%3E"); }
 .sub-shortcuts__item--inscriptions { --sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6h11M9 12h11M9 18h11'/%3E%3Cpath d='M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2'/%3E%3C/svg%3E"); }
 .sub-shortcuts__item--documents { --sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 3v5h5M9 13h6M9 17h4'/%3E%3C/svg%3E"); }
+.sub-shortcuts__item--ecrire { --sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 7l9 6 9-6'/%3E%3C/svg%3E"); }
 .sub-shortcuts__item--profil { --sub-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6'/%3E%3C/svg%3E"); }
 
 .sub-dash-grid {
@@ -2471,7 +2472,8 @@
    rectangle vide de la largeur du formulaire, avec sa coche perdue au milieu.
    On la ramène à sa taille, et son libellé passe à côté d'elle plutôt qu'au-
    dessus : sur une case, la phrase est l'étiquette, pas un titre de champ. */
-.sub-outing input[type='checkbox'] {
+.sub-outing input[type='checkbox'],
+.sub-outing input[type='radio'] {
 	width: 20px;
 	height: 20px;
 	flex: 0 0 auto;
@@ -2482,6 +2484,10 @@
 	border: 0;
 	border-radius: 4px;
 	accent-color: var(--sub-profond, #1d5480);
+}
+
+.sub-outing input[type='radio'] {
+	border-radius: 50%;
 }
 
 .sub-outing .sub-check {
@@ -2836,4 +2842,27 @@
 .sub-password input[type='password']:focus-visible {
 	outline: 2px solid var(--sub-profond, #1d5480);
 	outline-offset: 1px;
+}
+
+/* --- Écrire au club --- */
+
+/* Chaque liste est une ligne entière cliquable : le libellé en gras, ce
+   qu'elle sert à faire en dessous, l'effectif à droite. */
+.sub-list-message .sub-choice {
+	align-items: flex-start;
+	font-weight: 400;
+	color: inherit;
+}
+
+.sub-list-message .sub-choice input {
+	margin-top: 2px;
+}
+
+.sub-list-message .sub-choice .sub-help {
+	margin: 0;
+}
+
+.sub-list-message .sub-choice:has(input:disabled) {
+	opacity: 0.6;
+	cursor: default;
 }

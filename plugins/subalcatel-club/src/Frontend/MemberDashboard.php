@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Admin\ClubMenu;
+use Subalcatel\Club\Communication\ListMessages;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Identity\DerivedCapabilities;
@@ -531,13 +532,22 @@ final class MemberDashboard
             Pages::AGENDA        => ['Agenda du club', 'agenda'],
             Pages::MEMBERSHIP    => ['Mon adhésion', 'adhesion'],
             Pages::REGISTRATIONS => ['Mes inscriptions', 'inscriptions'],
+            Pages::WRITE_TO_CLUB => ['Écrire au club', 'ecrire'],
             Pages::MY_DOCUMENTS  => ['Mes documents', 'documents'],
             Pages::PROFILE       => ['Mon profil', 'profil'],
         ];
         ?>
         <nav class="sub-shortcuts" aria-label="Rubriques de l’espace membre">
             <?php foreach ($links as $slug => [$label, $icon]) : ?>
-                <?php $url = Pages::url($slug); ?>
+                <?php
+                // Seul un adhérent à jour écrit aux listes : la tuile ne
+                // mènerait les autres qu'à une porte fermée.
+                if ($slug === Pages::WRITE_TO_CLUB && !ListMessages::canSend(get_current_user_id())) {
+                    continue;
+                }
+
+                $url = Pages::url($slug);
+                ?>
                 <?php if ($url !== '') : ?>
                     <a class="sub-shortcuts__item sub-shortcuts__item--<?php echo esc_attr($icon); ?>"
                        href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>

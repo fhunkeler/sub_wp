@@ -31,6 +31,7 @@ final class Pages
     public const NEW_OUTING  = 'espace-membre/agenda/organiser-une-sortie';
     public const MY_OUTINGS  = 'espace-membre/agenda/mes-sorties-organisees';
     public const REGISTRATIONS = 'espace-membre/inscriptions';
+    public const WRITE_TO_CLUB = 'espace-membre/ecrire-au-club';
     public const CLUB_DOCUMENTS = 'espace-membre/documents';
 
     public const NEWS        = 'actualites';

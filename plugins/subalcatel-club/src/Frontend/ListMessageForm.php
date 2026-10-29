@@ -16,7 +16,8 @@ use Subalcatel\Club\Notifications\MailQueue;
  *
  * Le nombre de destinataires figure à côté de chaque liste et dans la
  * confirmation : écrire à cent trente personnes ne doit pas être un geste
- * distrait, et « Tout le club » ne dit pas combien c'est.
+ * distrait, et « Tout le club » ne dit pas combien c'est. Le bureau voit en
+ * plus leurs noms, repliés sous chaque liste.
  */
 final class ListMessageForm
 {
@@ -67,13 +68,15 @@ final class ListMessageForm
         }
 
         $remaining = ListMessages::remainingToday($userId);
+        $showNames = ListMessages::canSeeRecipients($userId);
         $draft     = (array) get_transient(self::DRAFT . $userId) + ['liste' => '', 'subject' => '', 'message' => ''];
         $lists     = [];
 
         delete_transient(self::DRAFT . $userId);
 
         foreach (ListMessages::listsFor($userId) as $list) {
-            $lists[] = $list + ['count' => count(ListMessages::recipients($list['slug'], $userId))];
+            $ids     = ListMessages::recipients($list['slug'], $userId);
+            $lists[] = $list + ['count' => count($ids), 'ids' => $ids];
         }
 
         // Cochée d'avance : la liste demandée par le lien ou le brouillon, à
@@ -116,6 +119,20 @@ final class ListMessageForm
                             <?php printf('%d destinataire%s', (int) $count, $count > 1 ? 's' : ''); ?>
                         </span>
                     </label>
+
+                    <?php // Hors du <label> : déplier la liste ne doit pas cocher la case. ?>
+                    <?php if ($showNames && $count > 0) : ?>
+                        <details class="sub-list-message__recipients">
+                            <summary>
+                                <?php printf('Voir les %d destinataire%s', (int) $count, $count > 1 ? 's' : ''); ?>
+                            </summary>
+                            <ul>
+                                <?php foreach (ListMessages::recipientNames($list['ids']) as $name) : ?>
+                                    <li><?php echo esc_html($name); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </details>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </fieldset>
 

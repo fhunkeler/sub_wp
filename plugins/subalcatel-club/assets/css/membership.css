@@ -2866,3 +2866,21 @@
 	opacity: 0.6;
 	cursor: default;
 }
+
+/* Noms des destinataires, repliés : sinon « Tout le club »
+   noierait le formulaire sous cent trente lignes. */
+.sub-list-message__recipients {
+	margin: -4px 0 12px 32px;
+	font-size: 0.9em;
+}
+
+.sub-list-message__recipients summary {
+	cursor: pointer;
+}
+
+.sub-list-message__recipients ul {
+	columns: 14em;
+	column-gap: 24px;
+	margin: 8px 0 0;
+	padding-left: 18px;
+}

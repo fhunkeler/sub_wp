@@ -142,6 +142,44 @@ final class ListMessages
     }
 
     /**
+     * Ce membre peut-il voir, avant d'envoyer, qui recevra son message ?
+     *
+     * Quiconque peut écrire : savoir qui lira est la première chose dont on a
+     * besoin pour écrire juste — « qui est autonome pour dimanche ? » ne se
+     * pose pas pareil à trois personnes qu'à quarante. Les noms seulement :
+     * les adresses restent cachées, c'est ce que le formulaire promet.
+     */
+    public static function canSeeRecipients(int $userId): bool
+    {
+        return self::canSend($userId);
+    }
+
+    /**
+     * Noms affichés des destinataires, par ordre alphabétique.
+     *
+     * @param list<int> $ids
+     * @return list<string>
+     */
+    public static function recipientNames(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $names = array_map(
+            static fn (\WP_User $user): string => $user->display_name,
+            get_users(['include' => $ids, 'fields' => 'all'])
+        );
+
+        usort($names, static fn (string $a, string $b): int => strcmp(
+            remove_accents(mb_strtolower($a)),
+            remove_accents(mb_strtolower($b))
+        ));
+
+        return $names;
+    }
+
+    /**
      * Messages qu'il reste à ce membre aujourd'hui ; `null` sans plafond.
      */
     public static function remainingToday(int $userId): ?int

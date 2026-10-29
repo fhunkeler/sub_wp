@@ -210,6 +210,22 @@ $html = ListMessageForm::render();
 $check('Le formulaire propose « Tout le club »', str_contains($html, 'value="' . MailingLists::ACTIVE . '"'));
 $check('… avec le nombre de destinataires', (bool) preg_match('/\d+ destinataires?/', $html));
 $check('… et sans aucune adresse', !str_contains($html, '@subalcatel.test'));
+// Avant d'envoyer, l'adhérent voit qui recevra son message : les noms, pas les adresses.
+$check('Un adhérent voit les noms des destinataires',
+    str_contains($html, 'Voir les ') && str_contains($html, '<li>Mona Monitrice</li>'));
+$check('… ni ceux qui ont refusé les communications', !str_contains($html, 'Rémi Refus'));
+$check('… ni lui-même', !str_contains($html, '<li>Bruno Binôme</li>'));
+
+wp_set_current_user($office);
+$html = ListMessageForm::render();
+$check('Le bureau les voit aussi', str_contains($html, '<li>Mona Monitrice</li>'));
+$check('… sans leurs adresses', !str_contains($html, '@subalcatel.test'));
+
+$names = ListMessages::recipientNames([$moniteur, $buddy, $author]);
+$check('Les noms sont triés sans tenir compte des accents', $names === [
+    'Anne Autonome', 'Bruno Binôme', 'Mona Monitrice',
+], implode(', ', $names));
+$check('Un ancien adhérent n’y a pas droit', !ListMessages::canSeeRecipients($ancien));
 
 wp_set_current_user($ancien);
 $check('Un ancien adhérent voit une porte fermée', !str_contains(ListMessageForm::render(), 'name="liste"'));

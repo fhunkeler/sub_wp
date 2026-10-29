@@ -2867,7 +2867,7 @@
 	cursor: default;
 }
 
-/* Noms des destinataires, pour le bureau : repliés, sinon « Tout le club »
+/* Noms des destinataires, repliés : sinon « Tout le club »
    noierait le formulaire sous cent trente lignes. */
 .sub-list-message__recipients {
 	margin: -4px 0 12px 32px;

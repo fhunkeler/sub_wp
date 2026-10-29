@@ -144,14 +144,14 @@ final class ListMessages
     /**
      * Ce membre peut-il voir, avant d'envoyer, qui recevra son message ?
      *
-     * Le bureau seulement : il exporte déjà ces listes. Un adhérent n'en voit
-     * que l'effectif — le formulaire lui promet que personne ne voit les
-     * autres, et la liste nominative des autonomes ou des encadrants n'a pas
-     * à circuler au-delà du bureau.
+     * Quiconque peut écrire : savoir qui lira est la première chose dont on a
+     * besoin pour écrire juste — « qui est autonome pour dimanche ? » ne se
+     * pose pas pareil à trois personnes qu'à quarante. Les noms seulement :
+     * les adresses restent cachées, c'est ce que le formulaire promet.
      */
     public static function canSeeRecipients(int $userId): bool
     {
-        return $userId !== 0 && user_can($userId, self::OFFICE_CAP);
+        return self::canSend($userId);
     }
 
     /**

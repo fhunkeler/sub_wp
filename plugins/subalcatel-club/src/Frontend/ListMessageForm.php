@@ -16,8 +16,8 @@ use Subalcatel\Club\Notifications\MailQueue;
  *
  * Le nombre de destinataires figure à côté de chaque liste et dans la
  * confirmation : écrire à cent trente personnes ne doit pas être un geste
- * distrait, et « Tout le club » ne dit pas combien c'est. Le bureau voit en
- * plus leurs noms, repliés sous chaque liste.
+ * distrait, et « Tout le club » ne dit pas combien c'est. Leurs noms, sans
+ * les adresses, sont repliés sous chaque liste.
  */
 final class ListMessageForm
 {
@@ -153,7 +153,8 @@ final class ListMessageForm
             </p>
 
             <p class="sub-help">
-                Les destinataires ne voient ni votre adresse ni celles des autres. Ils vous
+                Les destinataires ne voient ni votre adresse ni celles des autres, et vous ne
+                voyez que leurs noms. Ils vous
                 répondent directement, d’un simple « Répondre » : la réponse ne repart pas à
                 toute la liste. Les membres qui ont refusé les communications du club sur leur
                 profil ne reçoivent pas ces messages, et l’envoi est tracé dans le journal du site.

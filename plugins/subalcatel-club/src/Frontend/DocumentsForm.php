@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Documents\DocumentTypes;
+use Subalcatel\Club\Support\FileResponse;
 
 /**
  * Mes documents : shortcode [subalcatel_documents].
@@ -104,8 +105,9 @@ final class DocumentsForm
 
             <?php if ($document !== null && $document['status'] !== DocumentService::STATUS_PURGED) : ?>
                 <p class="sub-doc__file">
-                    <a href="<?php echo esc_url(self::downloadUrl((int) $document['id'])); ?>">
-                        Télécharger mon document
+                    <a href="<?php echo esc_url(self::downloadUrl((int) $document['id'])); ?>"
+                       target="_blank" rel="noopener">
+                        Ouvrir mon document
                     </a>
                     <span class="sub-doc__filename">
                         (<?php echo esc_html((string) $document['original_name']); ?>)
@@ -262,7 +264,8 @@ final class DocumentsForm
      * Sert le fichier après contrôle des droits.
      *
      * Le fichier n'est jamais accessible par une URL directe : il est lu par
-     * PHP, déchiffré si nécessaire, et envoyé en pièce jointe.
+     * PHP, déchiffré si nécessaire, puis affiché dans le navigateur (PDF,
+     * image). Afficher n'est pas protéger : le fichier arrive sur le poste.
      */
     public static function handleDownload(): void
     {
@@ -278,14 +281,9 @@ final class DocumentsForm
             wp_die(esc_html($e->getMessage()), 403);
         }
 
-        nocache_headers();
-        header('Content-Type: ' . $file['mime']);
-        header('Content-Disposition: attachment; filename="' . sanitize_file_name($file['name']) . '"');
-        header('Content-Length: ' . strlen($file['body']));
-        header('X-Content-Type-Options: nosniff');
-
-        echo $file['body']; // phpcs:ignore WordPress.Security.EscapeOutput
-        exit;
+        // Le type déclaré au dépôt vient du navigateur de l'adhérent : FileResponse
+        // ne s'y fie pas et le déduit de l'extension.
+        FileResponse::send(sanitize_file_name($file['name']), $file['mime'], $file['body']);
     }
 
     private static function back(string $message, bool $isError = false): never

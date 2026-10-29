@@ -138,7 +138,8 @@ final class DocumentsScreen
                     </td>
                     <td data-label="Document">
                         <?php echo esc_html((string) $row['type_label']); ?><br>
-                        <a href="<?php echo esc_url(DocumentsForm::downloadUrl((int) $row['id'])); ?>">
+                        <a href="<?php echo esc_url(DocumentsForm::downloadUrl((int) $row['id'])); ?>"
+                           target="_blank" rel="noopener">
                             Ouvrir le fichier
                         </a>
                     </td>

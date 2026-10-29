@@ -803,7 +803,8 @@ final class EventsScreen
                 <ul class="sub-event-docs">
                     <?php foreach ($documents as $document) : ?>
                         <li>
-                            <a href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>">
+                            <a href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>"
+                               target="_blank" rel="noopener">
                                 <?php echo esc_html($document->post_title); ?>
                             </a>
                             <span class="description">

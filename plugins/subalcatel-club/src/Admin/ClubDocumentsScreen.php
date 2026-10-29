@@ -160,7 +160,8 @@ final class ClubDocumentsScreen
                 <label for="sub-doc-file"><strong>Fichier</strong></label><br>
                 <?php if ($key !== '') : ?>
                     <span class="sub-doc-current">
-                        <a href="<?php echo esc_url(DocumentDelivery::url($post->ID)); ?>">
+                        <a href="<?php echo esc_url(DocumentDelivery::url($post->ID)); ?>"
+                           target="_blank" rel="noopener">
                             <?php echo esc_html($filename); ?>
                         </a>
                         <?php echo esc_html(sprintf(' — %s, téléchargé %d fois', size_format($size), $downloads)); ?>

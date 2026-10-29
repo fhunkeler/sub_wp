@@ -82,7 +82,8 @@ final class EventDetails
                         $size     = (int) get_post_meta($document->ID, ClubDocuments::META_SIZE, true);
                         ?>
                         <li>
-                            <a href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>">
+                            <a href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>"
+                               target="_blank" rel="noopener">
                                 <?php echo esc_html($document->post_title); ?>
                             </a>
                             <span class="sub-event__document-meta">

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Content;
 
 use RuntimeException;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\FileResponse;
 
 /**
  * Le seul chemin vers un fichier du club.
@@ -73,13 +74,7 @@ final class DocumentDelivery
             'filename' => $file['filename'],
         ]);
 
-        nocache_headers();
-        header('Content-Type: ' . $file['mime']);
-        header('Content-Length: ' . strlen($file['contents']));
-        header('Content-Disposition: attachment; filename="' . $file['filename'] . '"');
-        header('X-Content-Type-Options: nosniff');
-
-        echo $file['contents'];
-        exit;
+        // Un PDF ou une image s'ouvre dans le navigateur, le reste se télécharge.
+        FileResponse::send($file['filename'], $file['mime'], $file['contents']);
     }
 }

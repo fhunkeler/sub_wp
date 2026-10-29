@@ -1057,18 +1057,23 @@ final class SettingsScreen
     {
         $q       = sanitize_text_field(wp_unslash((string) ($_GET['audit_q'] ?? '')));
         $entity  = sanitize_key(wp_unslash((string) ($_GET['audit_type'] ?? '')));
+        $from    = Audit::day(wp_unslash((string) ($_GET['audit_from'] ?? '')));
+        $to      = Audit::day(wp_unslash((string) ($_GET['audit_to'] ?? '')));
         $perPage = (int) ($_GET['audit_per'] ?? 50);
         $page    = max(1, (int) ($_GET['audit_page'] ?? 1));
 
         $result = Audit::search([
             'q'           => $q,
             'entity_type' => $entity,
+            'from'        => $from,
+            'to'          => $to,
             'per_page'    => $perPage,
             'page'        => $page,
         ]);
 
-        $entries = $result['rows'];
+        $entries  = $result['rows'];
         $baseArgs = ['page' => self::SLUG, 'tab' => 'audit'];
+        $filtered = $q !== '' || $entity !== '' || $from !== '' || $to !== '';
         ?>
         <p class="description">
             Trace des actions sensibles — connexions, adhésions, documents, réglages.
@@ -1088,6 +1093,12 @@ final class SettingsScreen
                     </option>
                 <?php endforeach; ?>
             </select>
+            <label>Du
+                <input type="date" name="audit_from" value="<?php echo esc_attr($from); ?>">
+            </label>
+            <label>au
+                <input type="date" name="audit_to" value="<?php echo esc_attr($to); ?>">
+            </label>
             <select name="audit_per">
                 <?php foreach ([50, 100, 200, 500] as $n) : ?>
                     <option value="<?php echo (int) $n; ?>" <?php selected($result['per_page'], $n); ?>>
@@ -1096,7 +1107,7 @@ final class SettingsScreen
                 <?php endforeach; ?>
             </select>
             <button type="submit" class="button">Rechercher</button>
-            <?php if ($q !== '' || $entity !== '') : ?>
+            <?php if ($filtered) : ?>
                 <a class="button-link" href="<?php echo esc_url(add_query_arg($baseArgs, admin_url('admin.php'))); ?>">
                     Réinitialiser
                 </a>
@@ -1105,9 +1116,29 @@ final class SettingsScreen
 
         <p class="description">
             <strong><?php echo (int) $result['total']; ?></strong> entrée(s)<?php
-                echo ($q !== '' || $entity !== '') ? ' correspondant au filtre' : '';
+                echo $filtered ? ' correspondant au filtre' : '';
             ?> — page <?php echo (int) $result['page']; ?> sur <?php echo (int) $result['pages']; ?>.
         </p>
+
+        <?php if ($result['total'] > 0) : ?>
+            <p style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <?php
+                // L'export reprend le filtre affiché, sans la pagination.
+                ExportsScreen::buttons('audit-log', array_filter([
+                    'audit_q'    => $q,
+                    'audit_type' => $entity,
+                    'audit_from' => $from,
+                    'audit_to'   => $to,
+                ], static fn (string $v): bool => $v !== ''));
+                ?>
+                <?php if ($result['total'] > Audit::EXPORT_LIMIT) : ?>
+                    <span class="description">
+                        Seules les <?php echo esc_html(number_format_i18n(Audit::EXPORT_LIMIT)); ?>
+                        premières entrées seront exportées : resserrez la période.
+                    </span>
+                <?php endif; ?>
+            </p>
+        <?php endif; ?>
 
         <div class="sub-scroll">
         <table class="wp-list-table widefat striped" style="min-width:900px;">
@@ -1123,7 +1154,7 @@ final class SettingsScreen
             </thead>
             <tbody>
             <?php if ($entries === []) : ?>
-                <tr><td colspan="6"><?php echo $q !== '' || $entity !== ''
+                <tr><td colspan="6"><?php echo $filtered
                     ? 'Aucune entrée ne correspond à cette recherche.'
                     : 'Journal vide.'; ?></td></tr>
             <?php endif; ?>
@@ -1159,6 +1190,8 @@ final class SettingsScreen
             $filter   = array_filter([
                 'audit_q'    => $q,
                 'audit_type' => $entity,
+                'audit_from' => $from,
+                'audit_to'   => $to,
                 'audit_per'  => $result['per_page'],
             ], static fn ($v): bool => $v !== '' && $v !== null);
             $pageUrl  = static fn (int $n): string => esc_url(add_query_arg(

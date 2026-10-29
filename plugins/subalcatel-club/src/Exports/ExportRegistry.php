@@ -33,6 +33,7 @@ final class ExportRegistry
             new PaymentsExport(),
             new EventRosterExport(),
             new MailingListExport(),
+            new AuditLogExport(),
         ];
     }
 

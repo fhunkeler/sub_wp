@@ -50,6 +50,9 @@ final class Audit
         ) ?: [];
     }
 
+    /** Plafond d'un export : au-delà, le fichier ne s'ouvre plus bien dans un tableur. */
+    public const EXPORT_LIMIT = 50000;
+
     /**
      * Recherche paginée dans le journal.
      *
@@ -59,19 +62,88 @@ final class Audit
      * et de retrouver ses connexions, alors que la table ne stocke qu'un
      * `user_id`. Un filtre facultatif par catégorie (`entity_type`) isole par
      * exemple les événements de connexion (`auth`) pour déboguer le ralentisseur.
+     * `from` et `to` (AAAA-MM-JJ, jours de l'heure de Paris, bornes incluses)
+     * restreignent à une période.
      *
-     * @param array{q?: string, entity_type?: string, page?: int, per_page?: int} $args
+     * @param array{q?: string, entity_type?: string, from?: string, to?: string, page?: int, per_page?: int} $args
      * @return array{rows: list<array<string, mixed>>, total: int, page: int, per_page: int, pages: int}
      */
     public static function search(array $args = []): array
     {
         global $wpdb;
 
-        $table    = $wpdb->prefix . 'sub_audit_log';
-        $q        = trim((string) ($args['q'] ?? ''));
-        $entity   = trim((string) ($args['entity_type'] ?? ''));
-        $perPage  = max(1, min(500, (int) ($args['per_page'] ?? 50)));
-        $page     = max(1, (int) ($args['page'] ?? 1));
+        $table   = $wpdb->prefix . 'sub_audit_log';
+        $perPage = max(1, min(500, (int) ($args['per_page'] ?? 50)));
+        $page    = max(1, (int) ($args['page'] ?? 1));
+
+        [$whereSql, $params] = self::filter($args);
+
+        // Total (sans LIMIT) : `prepare` refuse une requête sans marqueur, d'où
+        // le branchement selon qu'il y a des paramètres ou non.
+        $countSql = "SELECT COUNT(*) FROM {$table} {$whereSql}";
+        $total    = (int) ($params === []
+            ? $wpdb->get_var($countSql)
+            : $wpdb->get_var($wpdb->prepare($countSql, $params)));
+
+        $pages  = max(1, (int) ceil($total / $perPage));
+        $page   = min($page, $pages);
+        $offset = ($page - 1) * $perPage;
+
+        $rowsSql = "SELECT * FROM {$table} {$whereSql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d";
+        $rows    = $wpdb->get_results(
+            $wpdb->prepare($rowsSql, array_merge($params, [$perPage, $offset])),
+            ARRAY_A
+        ) ?: [];
+
+        return [
+            'rows'     => $rows,
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+            'pages'    => $pages,
+        ];
+    }
+
+    /**
+     * Toutes les entrées d'un filtre, sans pagination, pour un export.
+     *
+     * Ordre chronologique, à l'inverse de l'écran : une analyse se lit du
+     * début à la fin.
+     *
+     * @param array{q?: string, entity_type?: string, from?: string, to?: string} $args
+     * @return list<array<string, mixed>>
+     */
+    public static function matching(array $args = [], int $limit = self::EXPORT_LIMIT): array
+    {
+        global $wpdb;
+
+        [$whereSql, $params] = self::filter($args);
+
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}sub_audit_log {$whereSql}
+                 ORDER BY created_at ASC, id ASC LIMIT %d",
+                array_merge($params, [max(1, $limit)])
+            ),
+            ARRAY_A
+        ) ?: [];
+    }
+
+    /**
+     * Clause WHERE commune à l'écran et à l'export : les deux montrent
+     * exactement les mêmes entrées pour un même filtre.
+     *
+     * @param array<string, mixed> $args
+     * @return array{0: string, 1: list<string|int>}
+     */
+    private static function filter(array $args): array
+    {
+        global $wpdb;
+
+        $q      = trim((string) ($args['q'] ?? ''));
+        $entity = trim((string) ($args['entity_type'] ?? ''));
+        $from   = self::day((string) ($args['from'] ?? ''));
+        $to     = self::day((string) ($args['to'] ?? ''));
 
         $where  = [];
         $params = [];
@@ -106,32 +178,33 @@ final class Audit
             $params[] = $entity;
         }
 
-        $whereSql = $where === [] ? '' : 'WHERE ' . implode(' AND ', $where);
+        // Le journal est en UTC, la personne raisonne en jours de Paris : les
+        // bornes sont converties, sinon une connexion à 00:30 changerait de jour.
+        if ($from !== '') {
+            $where[]  = 'created_at >= %s';
+            $params[] = get_gmt_from_date($from . ' 00:00:00');
+        }
 
-        // Total (sans LIMIT) : `prepare` refuse une requête sans marqueur, d'où
-        // le branchement selon qu'il y a des paramètres ou non.
-        $countSql = "SELECT COUNT(*) FROM {$table} {$whereSql}";
-        $total    = (int) ($params === []
-            ? $wpdb->get_var($countSql)
-            : $wpdb->get_var($wpdb->prepare($countSql, $params)));
+        if ($to !== '') {
+            $where[]  = 'created_at < %s';
+            $params[] = get_gmt_from_date(
+                gmdate('Y-m-d', (int) strtotime($to . ' +1 day')) . ' 00:00:00'
+            );
+        }
 
-        $pages  = max(1, (int) ceil($total / $perPage));
-        $page   = min($page, $pages);
-        $offset = ($page - 1) * $perPage;
+        return [$where === [] ? '' : 'WHERE ' . implode(' AND ', $where), $params];
+    }
 
-        $rowsSql = "SELECT * FROM {$table} {$whereSql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d";
-        $rows    = $wpdb->get_results(
-            $wpdb->prepare($rowsSql, array_merge($params, [$perPage, $offset])),
-            ARRAY_A
-        ) ?: [];
+    /** Une date AAAA-MM-JJ valide, ou chaîne vide. */
+    public static function day(string $raw): string
+    {
+        $raw = trim($raw);
 
-        return [
-            'rows'     => $rows,
-            'total'    => $total,
-            'page'     => $page,
-            'per_page' => $perPage,
-            'pages'    => $pages,
-        ];
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $m) !== 1) {
+            return '';
+        }
+
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $raw : '';
     }
 
     /**

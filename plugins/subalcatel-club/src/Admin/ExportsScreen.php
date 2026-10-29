@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
+use Subalcatel\Club\Exports\AuditLogExport;
 use Subalcatel\Club\Exports\ExportRegistry;
 use Subalcatel\Club\Exports\MembershipDetailExport;
 use Subalcatel\Club\Support\Audit;
@@ -200,6 +201,10 @@ final class ExportsScreen
 
         if (isset($_POST['campaign_id']) || isset($_GET['campaign_id'])) {
             $args['campaign_id'] = absint($_POST['campaign_id'] ?? $_GET['campaign_id']);
+        }
+
+        if ($key === 'audit-log') {
+            $args = AuditLogExport::argsFrom($_POST);
         }
 
         ExportRegistry::stream($key, $format, $args);

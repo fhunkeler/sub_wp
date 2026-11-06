@@ -402,4 +402,78 @@
 	if (eventType) {
 		setupEventForm(eventType);
 	}
+
+	// ------------------------------------------------- Actions groupées
+
+	/**
+	 * Cases des dossiers : tout cocher, compter, confirmer.
+	 *
+	 * Sans JavaScript, les cases se cochent une à une et le serveur fait le
+	 * reste ; la confirmation, elle, n'a de sens que si l'on dit combien de
+	 * dossiers elle engage.
+	 */
+	function setupBulk(form) {
+		const boxes = document.querySelectorAll('input[name="ids[]"][form="' + form.id + '"]');
+		const all = document.querySelector('[data-bulk-all]');
+		const count = form.querySelector('[data-bulk-count]');
+		const operation = form.querySelector('select[name="operation"]');
+
+		function checked() {
+			return Array.prototype.filter.call(boxes, function (box) {
+				return box.checked;
+			}).length;
+		}
+
+		function refresh() {
+			const n = checked();
+
+			if (count) {
+				count.textContent = n === 0 ? '' : n + ' dossier' + (n > 1 ? 's' : '') + ' coché' + (n > 1 ? 's' : '');
+			}
+
+			if (all) {
+				all.checked = n > 0 && n === boxes.length;
+				all.indeterminate = n > 0 && n < boxes.length;
+			}
+		}
+
+		if (all) {
+			all.disabled = boxes.length === 0;
+			all.addEventListener('change', function () {
+				boxes.forEach(function (box) {
+					box.checked = all.checked;
+				});
+				refresh();
+			});
+		}
+
+		boxes.forEach(function (box) {
+			box.addEventListener('change', refresh);
+		});
+
+		form.addEventListener('submit', function (event) {
+			const n = checked();
+
+			if (n === 0) {
+				event.preventDefault();
+				window.alert('Cochez au moins un dossier.');
+
+				return;
+			}
+
+			const label = operation.options[operation.selectedIndex].text;
+
+			if (!window.confirm(label + ' — ' + n + ' dossier' + (n > 1 ? 's' : '') + ' ? Chaque adhérent concerné sera prévenu par courriel.')) {
+				event.preventDefault();
+			}
+		});
+
+		refresh();
+	}
+
+	const bulkForm = document.querySelector('[data-bulk-form]');
+
+	if (bulkForm) {
+		setupBulk(bulkForm);
+	}
 })();

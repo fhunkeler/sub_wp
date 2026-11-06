@@ -547,6 +547,22 @@
 }
 
 @media screen and (max-width: 782px) {
+	/* Case d'action groupée : en tête de carte, à côté de son libellé. Elle
+	   échappe à la hauteur tactile des champs, qui l'étirait en rectangle —
+	   la cellule entière reste le point d'appui. */
+	.sub-admin .sub-cards td.check-column {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: auto;
+		padding: 8px 0;
+	}
+
+	.sub-admin .sub-cards td.check-column input[type='checkbox'] {
+		min-height: 0;
+		margin: 0;
+	}
+
 	/* Ligne de détail : elle prolonge la carte précédente plutôt que d'en
 	   ouvrir une nouvelle. */
 	.sub-admin .sub-cards tr.sub-cards__detail {

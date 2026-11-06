@@ -8,6 +8,9 @@ use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Membership\PaymentMethods;
+use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Notifications\SendQuota;
 
 /**
  * Adhésions : les dossiers, et les campagnes qui en fixent les tarifs.
@@ -35,6 +38,7 @@ final class ApplicationsScreen
         add_action('admin_post_sub_record_payment', [self::class, 'handlePayment']);
         add_action('admin_post_sub_validate_secretariat', [self::class, 'handleValidation']);
         add_action('admin_post_sub_cancel_membership', [self::class, 'handleCancel']);
+        add_action('admin_post_sub_bulk_applications', [self::class, 'handleBulk']);
     }
 
     public static function render(): void
@@ -390,9 +394,15 @@ final class ApplicationsScreen
                 </p>
             <?php endif; ?>
 
+            <?php self::renderBulkBar(); ?>
+
             <div class="sub-scroll"><table class="wp-list-table widefat striped sub-cards sub-table--wide">
                 <thead>
                     <tr>
+                        <td class="check-column">
+                            <label class="screen-reader-text" for="sub-bulk-all">Tout sélectionner</label>
+                            <input type="checkbox" id="sub-bulk-all" data-bulk-all>
+                        </td>
                         <th style="width:140px;">Référence</th>
                         <th>Membre</th>
                         <th style="width:130px;">Formule</th>
@@ -404,7 +414,7 @@ final class ApplicationsScreen
                 </thead>
                 <tbody>
                 <?php if ($rows === []) : ?>
-                    <tr><td colspan="7">
+                    <tr><td colspan="8">
                         <?php echo $filters['state'] !== '' || $filters['search'] !== ''
                             ? 'Aucun dossier ne répond à ces critères.'
                             : 'Aucun dossier pour l’instant.'; ?>
@@ -413,6 +423,15 @@ final class ApplicationsScreen
 
                 <?php foreach ($rows as $row) : ?>
                     <tr>
+                        <td class="check-column" data-label="Sélection">
+                            <?php // Seuls les dossiers en cours se cochent : une action groupée
+                                  // n'a rien à faire d'une adhésion active ou close. ?>
+                            <?php if (ApplicationService::isEditable((string) $row['status'])) : ?>
+                                <input type="checkbox" name="ids[]" form="sub-bulk"
+                                       value="<?php echo esc_attr((string) $row['id']); ?>"
+                                       aria-label="<?php echo esc_attr('Sélectionner ' . $row['reference']); ?>">
+                            <?php endif; ?>
+                        </td>
                         <td data-label="Référence"><code><?php echo esc_html((string) $row['reference']); ?></code></td>
                         <td data-label="Membre">
                             <?php if ($row['user_id'] === null) : ?>
@@ -445,7 +464,7 @@ final class ApplicationsScreen
                         <td data-label="Action"><?php self::renderActions($row); ?></td>
                     </tr>
                     <tr class="sub-cards__detail">
-                        <td colspan="7" data-label="Détail" style="background:#fbfbfb;">
+                        <td colspan="8" data-label="Détail" style="background:#fbfbfb;">
                             <?php self::renderLines($service, (int) $row['id']); ?>
                         </td>
                     </tr>
@@ -703,6 +722,209 @@ final class ApplicationsScreen
         } catch (\RuntimeException $e) {
             self::redirect($e->getMessage(), true);
         }
+    }
+
+    /** Les actions groupées sur les dossiers. */
+    public const BULK_PAYMENT  = 'paiement';
+    public const BULK_VALIDATE = 'valider';
+    public const BULK_CANCEL   = 'annuler';
+
+    /**
+     * Les actions groupées que la personne devant l'écran peut mener.
+     *
+     * @return array<string, string>
+     */
+    public static function bulkOperations(): array
+    {
+        $operations = [];
+
+        if (current_user_can('sub_validate_membership_treasury')) {
+            $operations[self::BULK_PAYMENT] = 'Paiement reçu (mode annoncé)';
+        }
+
+        if (current_user_can('sub_validate_membership_secretariat')) {
+            $operations[self::BULK_VALIDATE] = 'Valider le dossier';
+        }
+
+        if (current_user_can('sub_manage_memberships')) {
+            $operations[self::BULK_CANCEL] = 'Annuler';
+        }
+
+        return $operations;
+    }
+
+    /**
+     * La barre d'actions groupées, au-dessus de la liste.
+     *
+     * Le trésorier qui rentre d'une permanence avec quinze chèques, ou le
+     * secrétariat qui valide les dossiers d'une soirée d'inscriptions,
+     * enchaînaient jusqu'ici quinze fois le même bouton, la page rechargée
+     * entre chaque. On coche, on choisit, on applique.
+     *
+     * Les cases sont dans les lignes, le formulaire est ici : les lignes portent
+     * déjà leurs propres formulaires, qui ne s'imbriquent pas. L'attribut
+     * `form` rattache les cases à celui-ci.
+     */
+    private static function renderBulkBar(): void
+    {
+        $operations = self::bulkOperations();
+
+        if ($operations === []) {
+            return;
+        }
+        ?>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+              id="sub-bulk" class="sub-step-form" data-bulk-form style="margin:0 0 12px;">
+            <input type="hidden" name="action" value="sub_bulk_applications">
+            <?php wp_nonce_field('sub_bulk_applications'); ?>
+
+            <label class="screen-reader-text" for="sub-bulk-operation">Action groupée</label>
+            <select name="operation" id="sub-bulk-operation" required>
+                <option value="">Pour la sélection…</option>
+                <?php foreach ($operations as $value => $label) : ?>
+                    <option value="<?php echo esc_attr($value); ?>"><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <label class="screen-reader-text" for="sub-bulk-comment">Commentaire ou motif</label>
+            <input type="text" name="comment" id="sub-bulk-comment" placeholder="Commentaire ou motif" style="width:180px;">
+            <button class="button">Appliquer</button>
+            <span class="description" data-bulk-count></span>
+        </form>
+        <?php
+    }
+
+    /**
+     * Applique une action à plusieurs dossiers.
+     *
+     * Chaque dossier passe par le même service, donc les mêmes contrôles, que
+     * s'il avait été traité seul : l'action groupée ne crée aucun chemin de
+     * plus vers la base. Un dossier qui n'est pas à l'étape voulue est écarté
+     * et nommé, plutôt que de faire échouer les autres — cocher « toute la
+     * page » est le geste naturel, et elle mêle les étapes.
+     *
+     * Les courriels de confirmation partent comme pour un dossier seul. Leur
+     * nombre est vérifié d'avance contre le plafond du jour : une validation
+     * de quarante dossiers est une rafale, et la messagerie a déjà été
+     * bloquée pour moins. Tout ou rien — mieux vaut refuser le lot que
+     * d'activer des adhésions dont la moitié ne serait pas prévenue.
+     *
+     * @param list<int> $ids
+     * @return array{done: int, skipped: list<string>, failed: list<string>}
+     */
+    public static function applyBulk(string $operation, array $ids, int $actorId, string $comment = ''): array
+    {
+        $service = new ApplicationService();
+        $step    = match ($operation) {
+            self::BULK_PAYMENT  => ApplicationService::STATUS_AWAITING_PAYMENT,
+            self::BULK_VALIDATE => ApplicationService::STATUS_PAYMENT_CONFIRMED,
+            self::BULK_CANCEL   => null,
+            default             => throw new \RuntimeException('Action groupée inconnue.'),
+        };
+
+        $eligible = [];
+        $skipped  = [];
+
+        foreach (array_unique(array_map('intval', $ids)) as $id) {
+            $application = $service->find($id);
+
+            if ($application === null) {
+                continue;
+            }
+
+            $ok = $step === null
+                ? $service->canCancel($id, $actorId)
+                : $application['status'] === $step;
+
+            if ($ok) {
+                $eligible[$id] = $application;
+            } else {
+                $skipped[] = (string) $application['reference'];
+            }
+        }
+
+        $template = match ($operation) {
+            self::BULK_PAYMENT  => EmailTemplates::MEMBERSHIP_PAID,
+            self::BULK_VALIDATE => EmailTemplates::MEMBERSHIP_ACTIVATED,
+            default             => EmailTemplates::MEMBERSHIP_CANCELLED,
+        };
+
+        SendQuota::ensureBulk(Mailer::messageCount(
+            $template,
+            array_values(array_filter(array_map(
+                static fn (array $a): int => (int) $a['user_id'],
+                $eligible
+            )))
+        ));
+
+        $done   = 0;
+        $failed = [];
+
+        foreach ($eligible as $id => $application) {
+            try {
+                match ($operation) {
+                    self::BULK_PAYMENT  => $service->recordPayment(
+                        $id,
+                        (float) $application['total_amount'],
+                        (string) ($application['payment_method'] ?? ''),
+                        null,
+                        $actorId
+                    ),
+                    self::BULK_VALIDATE => $service->validateSecretariat($id, $actorId, $comment),
+                    default             => $service->cancel($id, $actorId, $comment),
+                };
+                $done++;
+            } catch (\RuntimeException $e) {
+                $failed[] = $application['reference'] . ' : ' . $e->getMessage();
+            }
+        }
+
+        return ['done' => $done, 'skipped' => $skipped, 'failed' => $failed];
+    }
+
+    public static function handleBulk(): void
+    {
+        check_admin_referer('sub_bulk_applications');
+        AdminUi::requireCap('sub_manage_memberships');
+
+        $operation = sanitize_key(wp_unslash((string) ($_POST['operation'] ?? '')));
+        $ids       = array_map('absint', (array) ($_POST['ids'] ?? []));
+        $comment   = sanitize_text_field(wp_unslash((string) ($_POST['comment'] ?? '')));
+
+        if (!isset(self::bulkOperations()[$operation])) {
+            self::redirect('Choisissez une action groupée.', true);
+        }
+
+        if ($ids === []) {
+            self::redirect('Aucun dossier coché.', true);
+        }
+
+        try {
+            $result = self::applyBulk($operation, $ids, get_current_user_id(), $comment);
+        } catch (\RuntimeException $e) {
+            self::redirect($e->getMessage(), true);
+        }
+
+        $verb = match ($operation) {
+            self::BULK_PAYMENT  => 'paiement%s enregistré%s',
+            self::BULK_VALIDATE => 'dossier%s validé%s',
+            default             => 'dossier%s annulé%s',
+        };
+        $plural  = $result['done'] > 1 ? 's' : '';
+        $message = sprintf('%d ' . $verb . '.', $result['done'], $plural, $plural);
+
+        if ($result['skipped'] !== []) {
+            $message .= sprintf(
+                ' Écarté%s, pas à cette étape : %s.',
+                count($result['skipped']) > 1 ? 's' : '',
+                implode(', ', $result['skipped'])
+            );
+        }
+
+        if ($result['failed'] !== []) {
+            $message .= ' En échec : ' . implode(' ; ', $result['failed']) . '.';
+        }
+
+        self::redirect($message, $result['done'] === 0 || $result['failed'] !== []);
     }
 
     private static function redirect(string $message, bool $isError = false): never

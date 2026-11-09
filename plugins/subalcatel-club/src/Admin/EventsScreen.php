@@ -562,6 +562,14 @@ final class EventsScreen
                                    href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG_ROSTER . '&event_id=' . (int) $e['id'])); ?>">
                                     Liste des inscrits
                                 </a>
+                                <?php // Mêmes droits que le bloc de modification de l'écran de la sortie. ?>
+                                <?php if (!$cancelled && (current_user_can('sub_manage_event_types')
+                                    || (int) $e['organizer_id'] === get_current_user_id())) : ?>
+                                    <a class="button"
+                                       href="<?php echo esc_url(admin_url('admin.php?page=' . self::SLUG_ROSTER . '&event_id=' . (int) $e['id'] . '&modifier=1#sub-event-edit')); ?>">
+                                        Modifier
+                                    </a>
+                                <?php endif; ?>
                                 <?php if (current_user_can('sub_manage_event_types')) : ?>
                                     <?php AdminUi::actionButton(
                                         'sub_event_delete',
@@ -810,7 +818,8 @@ final class EventsScreen
             }
         }
         ?>
-        <details class="sub-card" style="margin-bottom:20px;">
+        <?php // Ouvert d'emblée quand on arrive du bouton « Modifier » de la liste. ?>
+        <details class="sub-card" id="sub-event-edit" style="margin-bottom:20px;"<?php echo isset($_GET['modifier']) ? ' open' : ''; ?>>
             <summary><strong>Modifier l’événement</strong></summary>
 
             <p class="description">

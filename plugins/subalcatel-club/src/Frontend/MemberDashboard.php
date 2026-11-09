@@ -581,8 +581,10 @@ final class MemberDashboard
 
     public static function frDateTime(string $mysqlDate): string
     {
-        $ts = strtotime($mysqlDate);
+        // Heure du site, sans fuseau : strtotime() la lirait en UTC, et
+        // wp_date() la décalerait d'une ou deux heures selon la saison.
+        $formatted = mysql2date('l j F Y à H\hi', $mysqlDate);
 
-        return $ts === false ? $mysqlDate : wp_date('l j F Y à H\hi', $ts);
+        return $formatted === false ? $mysqlDate : (string) $formatted;
     }
 }

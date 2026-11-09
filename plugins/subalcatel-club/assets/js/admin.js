@@ -359,14 +359,15 @@
 
 		function apply() {
 			const rule = rules[typeSelect.value] || {};
-			const needsLeader = Boolean(rule.leader || rule.autonomous);
 
 			if (levelsRow) {
 				levelsRow.hidden = !rule.diving;
 			}
 
+			// Toute plongée a son directeur de plongée, y compris une séance
+			// de piscine, dont le type n'exige aucun niveau d'encadrement.
 			if (leaderRow) {
-				leaderRow.hidden = !needsLeader;
+				leaderRow.hidden = !rule.diving;
 			}
 
 			if (!leaderSelect) {
@@ -376,14 +377,15 @@
 			// Un directeur de plongée convient partout où un autonome suffit ;
 			// l'inverse est faux. On masque donc les noms que ce type refuse,
 			// et on relâche la sélection si elle vient d'être écartée.
-			const besoin = rule.leader ? 'leader' : 'autonomous';
+			// Sans exigence, toute la liste convient.
+			const besoin = rule.leader ? 'leader' : (rule.autonomous ? 'autonomous' : '');
 
 			Array.prototype.forEach.call(leaderSelect.options, function (option) {
 				if (option.value === '') {
 					return;
 				}
 
-				const convient = option.getAttribute('data-' + besoin) === '1';
+				const convient = besoin === '' || option.getAttribute('data-' + besoin) === '1';
 				option.hidden = !convient;
 				option.disabled = !convient;
 

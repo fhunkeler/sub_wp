@@ -89,20 +89,7 @@ final class EventService
             throw new RuntimeException('Vous ne pouvez pas désigner quelqu’un d’autre à l’encadrement.');
         }
 
-        // Contraintes de niveau propres à l'encadrement : un plongeur autonome
-        // encadre une exploration, pas une formation. Elles pèsent sur la
-        // personne désignée — c'est elle qui sera au bord de l'eau.
-        if ((int) $type['requires_dive_leader'] === 1 && !$this->policy->isDiveLeader($leaderId)) {
-            throw new RuntimeException($leaderId === $organizerId
-                ? 'Seul un directeur de plongée peut créer ce type d’événement.'
-                : 'La personne désignée n’est pas directrice de plongée.');
-        }
-
-        if ((int) $type['requires_autonomous'] === 1 && !$this->policy->isAutonomousDiver($leaderId)) {
-            throw new RuntimeException($leaderId === $organizerId
-                ? 'Seul un plongeur autonome peut créer ce type d’événement.'
-                : 'La personne désignée n’est pas plongeuse autonome.');
-        }
+        $this->assertLeaderFits($type, $leaderId, $leaderId === $organizerId);
 
         // Cohérence des dates. Une fin avant le début ou une clôture après le
         // départ ne se rattrapent pas ensuite : l'événement s'affiche déjà de
@@ -141,6 +128,99 @@ final class EventService
         Audit::log('event.created', 'event', $eventId, ['type' => $typeSlug], $organizerId);
 
         return $eventId;
+    }
+
+    /**
+     * Corrige une sortie déjà ouverte : titre, lieu, description, directeur
+     * de plongée.
+     *
+     * Sans cela, une faute dans un titre obligeait à annuler la sortie — ce
+     * qui prévient tous les inscrits — puis à la recréer. Les dates et les
+     * règles d'inscription restent hors de portée : les changer après coup
+     * modifierait ce à quoi les inscrits ont dit oui, sans le leur dire.
+     *
+     * @param array{title: string, location?: string, description?: string, dive_leader_id?: int} $data
+     */
+    public function update(int $eventId, array $data, int $actorId): void
+    {
+        global $wpdb;
+
+        $event = $this->find($eventId);
+
+        if ($event === null) {
+            throw new RuntimeException('Événement introuvable.');
+        }
+
+        // Même règle que pour annuler la sortie ou écrire aux inscrits.
+        if (!user_can($actorId, 'sub_communicate_event_participants')
+            && (int) $event['organizer_id'] !== $actorId) {
+            throw new RuntimeException('Vous n’avez pas le droit de modifier cet événement.');
+        }
+
+        if (trim($data['title']) === '') {
+            throw new RuntimeException('Le titre est obligatoire.');
+        }
+
+        $changes = [
+            'title'       => $data['title'],
+            'location'    => ($data['location'] ?? '') !== '' ? $data['location'] : null,
+            'description' => $data['description'] ?? '',
+        ];
+
+        $leaderId = (int) ($data['dive_leader_id'] ?? 0);
+
+        if ($leaderId > 0 && $leaderId !== (int) $event['dive_leader_id']) {
+            if (!self::mayDelegate($actorId)) {
+                throw new RuntimeException('Vous ne pouvez pas désigner quelqu’un d’autre à l’encadrement.');
+            }
+
+            $this->assertLeaderFits((array) $this->typeOf($eventId), $leaderId, false);
+            $changes['dive_leader_id'] = $leaderId;
+        }
+
+        $changed = array_keys(array_filter(
+            $changes,
+            static fn ($value, string $column): bool => (string) $value !== (string) ($event[$column] ?? ''),
+            ARRAY_FILTER_USE_BOTH
+        ));
+
+        if ($changed === []) {
+            return;
+        }
+
+        $wpdb->update("{$this->prefix}events", $changes, ['id' => $eventId]);
+
+        Audit::log('event.updated', 'event', $eventId, ['fields' => $changed], $actorId);
+    }
+
+    /**
+     * La personne désignée peut-elle diriger une sortie de ce type ?
+     *
+     * Contraintes de niveau propres à l'encadrement : un plongeur autonome
+     * encadre une exploration, pas une formation. Elles pèsent sur la
+     * personne désignée — c'est elle qui sera au bord de l'eau.
+     *
+     * @param array<string, mixed> $type
+     */
+    private function assertLeaderFits(array $type, int $leaderId, bool $isSelf): void
+    {
+        // Une séance de piscine n'exige aucun niveau : n'importe quel identifiant
+        // passerait, y compris celui d'un compte supprimé entre-temps.
+        if (get_userdata($leaderId) === false) {
+            throw new RuntimeException('La personne désignée n’a pas de compte sur le site.');
+        }
+
+        if ((int) ($type['requires_dive_leader'] ?? 0) === 1 && !$this->policy->isDiveLeader($leaderId)) {
+            throw new RuntimeException($isSelf
+                ? 'Seul un directeur de plongée peut créer ce type d’événement.'
+                : 'La personne désignée n’est pas directrice de plongée.');
+        }
+
+        if ((int) ($type['requires_autonomous'] ?? 0) === 1 && !$this->policy->isAutonomousDiver($leaderId)) {
+            throw new RuntimeException($isSelf
+                ? 'Seul un plongeur autonome peut créer ce type d’événement.'
+                : 'La personne désignée n’est pas plongeuse autonome.');
+        }
     }
 
     /**
@@ -465,7 +545,7 @@ final class EventService
             return null;
         }
 
-        $hoursLeft = (strtotime((string) $event['starts_at']) - time()) / 3600;
+        $hoursLeft = ((int) get_gmt_from_date((string) $event['starts_at'], 'U') - time()) / 3600;
 
         if ($hoursLeft < $promoteCutoffHours) {
             return null; // Le DP décide : la place est signalée, pas attribuée.
@@ -1150,11 +1230,11 @@ final class EventService
             return ['evenement' => '', 'date' => '', 'lieu' => ''];
         }
 
-        $ts = strtotime((string) $event['starts_at']);
+        $date = mysql2date('l j F Y à H\hi', (string) $event['starts_at']);
 
         return [
             'evenement' => (string) $event['title'],
-            'date'      => $ts === false ? '' : wp_date('l j F Y à H\hi', $ts),
+            'date'      => $date === false ? '' : (string) $date,
             'lieu'      => (string) ($event['location'] ?: '—'),
         ];
     }

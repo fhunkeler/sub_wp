@@ -353,14 +353,13 @@ final class OutingForm
             return '';
         }
 
-        // Le champ datetime-local envoie une heure locale (site) sans
-        // fuseau ; on la convertit en GMT avant stockage, sinon strtotime()
-        // la prend pour de l'UTC (fuseau par défaut de PHP sous WP) et
-        // l'affichage la re-décale d'un cran via wp_date().
-        if (strtotime($value) === false) {
-            return '';
-        }
+        // Le champ datetime-local envoie l'heure du site, sans fuseau : elle
+        // est stockée telle quelle. Les dates des sorties sont toutes en
+        // heure du site — le calendrier, l'iCal, la clôture des inscriptions
+        // les lisent ainsi. Les afficher passe par mysql2date(), pas par
+        // strtotime(), qui les prendrait pour de l'UTC.
+        $ts = strtotime($value);
 
-        return get_gmt_from_date($value, 'Y-m-d H:i:s');
+        return $ts === false ? '' : gmdate('Y-m-d H:i:s', $ts);
     }
 }

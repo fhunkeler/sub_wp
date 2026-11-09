@@ -64,16 +64,16 @@ final class UpcomingEvents
             <?php else : ?>
                 <ul class="sub-upcoming__list">
                     <?php foreach ($events as $event) : ?>
-                        <?php $timestamp = strtotime((string) $event['starts_at']); ?>
+                        <?php $startsAt = (string) $event['starts_at']; ?>
                         <li class="sub-upcoming__item">
                             <span class="sub-upcoming__date" aria-hidden="true">
-                                <span class="sub-upcoming__day"><?php echo esc_html(wp_date('j', $timestamp)); ?></span>
-                                <span class="sub-upcoming__month"><?php echo esc_html(wp_date('M', $timestamp)); ?></span>
+                                <span class="sub-upcoming__day"><?php echo esc_html(mysql2date('j', $startsAt)); ?></span>
+                                <span class="sub-upcoming__month"><?php echo esc_html(mysql2date('M', $startsAt)); ?></span>
                             </span>
                             <span class="sub-upcoming__body">
                                 <span class="sub-upcoming__name"><?php echo esc_html((string) $event['title']); ?></span>
                                 <span class="sub-upcoming__meta">
-                                    <?php echo esc_html(wp_date('l j F, H\hi', $timestamp)); ?>
+                                    <?php echo esc_html(mysql2date('l j F, H\hi', $startsAt)); ?>
                                     <?php if ((string) ($event['location'] ?? '') !== '') : ?>
                                         — <?php echo esc_html((string) $event['location']); ?>
                                     <?php endif; ?>

@@ -30,6 +30,7 @@ final class EventsScreen
     public static function register(): void
     {
         add_action('admin_post_sub_event_save', [self::class, 'handleSave']);
+        add_action('admin_post_sub_event_update', [self::class, 'handleUpdate']);
         add_action('admin_post_sub_event_delete', [self::class, 'handleDelete']);
         add_action('admin_post_sub_event_unregister', [self::class, 'handleUnregister']);
         add_action('admin_post_sub_event_message', [self::class, 'handleMessage']);
@@ -181,7 +182,9 @@ final class EventsScreen
         $types   = self::creatableTypes();
         $levels  = DiveLevels::ordered();
         $service = new EventService();
-        $leaders = $service->potentialLeaders();
+        // Qui ne peut pas déléguer encadre lui-même : lui proposer une liste
+        // de noms, c'est offrir un choix que l'enregistrement refusera.
+        $leaders = EventService::mayDelegate(get_current_user_id()) ? $service->potentialLeaders() : [];
 
         // Ce que chaque type attend, à destination du formulaire.
         $typeRules = [];
@@ -217,8 +220,7 @@ final class EventsScreen
                         <td>
                             <?php // Chaque type dit ce qu'il attend : le formulaire s'y règle
                                   // sans aller-retour au serveur. Un événement qui n'est pas une
-                                  // plongée ne demande pas de niveau, et seul un type qui exige un
-                                  // encadrement fait apparaître le choix du directeur de plongée. ?>
+                                  // plongée ne demande ni niveau ni directeur de plongée. ?>
                             <select name="type_slug" id="sub-event-type" required
                                     data-event-types="<?php echo esc_attr((string) wp_json_encode($typeRules)); ?>">
                                 <?php foreach ($types as $type) : ?>
@@ -267,6 +269,7 @@ final class EventsScreen
                             <p class="description">0 = pas de limite. Au-delà, les suivants passent en liste d’attente.</p>
                         </td>
                     </tr>
+                    <?php if ($leaders !== []) : ?>
                     <tr data-event-row="leader" hidden>
                         <th scope="row">Directeur de plongée</th>
                         <td>
@@ -288,6 +291,7 @@ final class EventsScreen
                             </p>
                         </td>
                     </tr>
+                    <?php endif; ?>
                     <tr data-event-row="levels">
                         <th scope="row">Niveau minimum</th>
                         <td>
@@ -616,6 +620,10 @@ final class EventsScreen
                 <?php ExportsScreen::buttons('event-roster', ['event_id' => $eventId]); ?>
             </p>
 
+            <?php if ($canManage && $event['status'] !== 'cancelled') : ?>
+                <?php self::renderEditForm($service, $event, $eventId); ?>
+            <?php endif; ?>
+
             <?php self::renderDocuments($eventId); ?>
 
             <?php if ($event['status'] === 'cancelled') : ?>
@@ -768,6 +776,95 @@ final class EventsScreen
                 <?php self::renderCallOffForm($event, $eventId, count($participants)); ?>
             <?php endif; ?>
         </div>
+        <?php
+    }
+
+    /**
+     * Corriger le titre, le lieu, la description ou le directeur de plongée
+     * sans annuler la sortie : l'annulation prévient tous les inscrits.
+     *
+     * @param array<string, mixed> $event
+     */
+    private static function renderEditForm(EventService $service, array $event, int $eventId): void
+    {
+        $type     = $service->typeOf($eventId);
+        $leaderId = (int) ($event['dive_leader_id'] ?? 0);
+        $leaders  = [];
+
+        // Seule une plongée a un directeur de plongée, et seul qui peut
+        // déléguer en désigne un autre que lui.
+        if ($type !== null && EventTypeSeeder::isDivingType($type) && EventService::mayDelegate(get_current_user_id())) {
+            foreach ($service->potentialLeaders() as $person) {
+                $fits = (int) $type['requires_dive_leader'] === 1 ? $person['leader']
+                    : ((int) $type['requires_autonomous'] === 1 ? $person['autonomous'] : true);
+
+                if ($fits || $person['id'] === $leaderId) {
+                    $leaders[$person['id']] = $person['name'];
+                }
+            }
+
+            // L'encadrant actuel reste affiché même s'il n'a plus le niveau :
+            // le formulaire ne doit pas le remplacer en silence.
+            if ($leaderId > 0 && !isset($leaders[$leaderId]) && ($current = get_userdata($leaderId))) {
+                $leaders[$leaderId] = $current->display_name;
+            }
+        }
+        ?>
+        <details class="sub-card" style="margin-bottom:20px;">
+            <summary><strong>Modifier l’événement</strong></summary>
+
+            <p class="description">
+                Les inscrits ne sont pas prévenus. La date et les conditions d’inscription
+                ne se modifient pas : elles engagent ce à quoi chacun a dit oui.
+            </p>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sub-form">
+                <input type="hidden" name="action" value="sub_event_update">
+                <input type="hidden" name="event_id" value="<?php echo esc_attr((string) $eventId); ?>">
+                <?php wp_nonce_field('sub_event_update_' . $eventId); ?>
+
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row">Titre</th>
+                        <td>
+                            <input type="text" name="title" class="regular-text" required
+                                   value="<?php echo esc_attr((string) $event['title']); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Lieu</th>
+                        <td>
+                            <input type="text" name="location" class="regular-text"
+                                   value="<?php echo esc_attr((string) ($event['location'] ?? '')); ?>">
+                        </td>
+                    </tr>
+                    <?php if ($leaders !== []) : ?>
+                        <tr>
+                            <th scope="row">Directeur de plongée</th>
+                            <td>
+                                <select name="dive_leader_id">
+                                    <?php foreach ($leaders as $id => $name) : ?>
+                                        <option value="<?php echo esc_attr((string) $id); ?>" <?php selected($id, $leaderId); ?>>
+                                            <?php echo esc_html($name); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    <tr>
+                        <th scope="row">Description</th>
+                        <td>
+                            <textarea name="description" rows="4" class="large-text"><?php
+                                echo esc_textarea((string) ($event['description'] ?? ''));
+                            ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit"><button class="button button-primary">Enregistrer</button></p>
+            </form>
+        </details>
         <?php
     }
 
@@ -1075,6 +1172,25 @@ final class EventsScreen
         );
     }
 
+    public static function handleUpdate(): void
+    {
+        $eventId = absint($_POST['event_id'] ?? 0);
+        check_admin_referer('sub_event_update_' . $eventId);
+
+        try {
+            (new EventService())->update($eventId, [
+                'title'          => sanitize_text_field(wp_unslash((string) ($_POST['title'] ?? ''))),
+                'location'       => sanitize_text_field(wp_unslash((string) ($_POST['location'] ?? ''))),
+                'description'    => wp_kses_post(wp_unslash((string) ($_POST['description'] ?? ''))),
+                'dive_leader_id' => absint($_POST['dive_leader_id'] ?? 0),
+            ], get_current_user_id());
+        } catch (\RuntimeException $e) {
+            AdminUi::redirect(self::SLUG_ROSTER, $e->getMessage(), true, ['event_id' => $eventId]);
+        }
+
+        AdminUi::redirect(self::SLUG_ROSTER, 'Événement modifié.', false, ['event_id' => $eventId]);
+    }
+
     public static function handleAnnounce(): void
     {
         $eventId = absint($_POST['event_id'] ?? 0);
@@ -1262,21 +1378,22 @@ final class EventsScreen
             return '';
         }
 
-        // Le champ datetime-local envoie une heure locale (site) sans
-        // fuseau ; on la convertit en GMT avant stockage, sinon strtotime()
-        // la prend pour de l'UTC (fuseau par défaut de PHP sous WP) et
-        // l'affichage la re-décale d'un cran via wp_date().
-        if (strtotime($value) === false) {
-            return '';
-        }
+        // Le champ datetime-local envoie l'heure du site, sans fuseau : elle
+        // est stockée telle quelle. Les dates des sorties sont toutes en
+        // heure du site — le calendrier, l'iCal, la clôture des inscriptions
+        // les lisent ainsi. Les afficher passe par mysql2date(), pas par
+        // strtotime(), qui les prendrait pour de l'UTC.
+        $ts = strtotime($value);
 
-        return get_gmt_from_date($value, 'Y-m-d H:i:s');
+        return $ts === false ? '' : gmdate('Y-m-d H:i:s', $ts);
     }
 
     private static function frDateTime(string $mysqlDate): string
     {
-        $ts = strtotime($mysqlDate);
+        // Heure du site, sans fuseau : strtotime() la lirait en UTC, et
+        // wp_date() la décalerait d'une ou deux heures selon la saison.
+        $formatted = mysql2date('D j M Y, H\hi', $mysqlDate);
 
-        return $ts === false ? $mysqlDate : wp_date('D j M Y, H\hi', $ts);
+        return $formatted === false ? $mysqlDate : (string) $formatted;
     }
 }

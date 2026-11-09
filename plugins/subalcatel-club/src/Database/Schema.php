@@ -17,7 +17,7 @@ use Subalcatel\Club\Support\Audit;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 18;
+    private const VERSION        = 19;
 
     /**
      * Fin de la saison 2025-2026, et celle qui la remplace.
@@ -26,6 +26,14 @@ final class Schema
      */
     private const TRANSITION_SEASON_END      = '2026-09-30';
     private const TRANSITION_SEASON_EXTENDED = '2026-12-31';
+
+    /**
+     * Publication de la version 1.7.1, heure de Paris : à partir de là, les
+     * formulaires de sortie ont enregistré leurs dates en GMT.
+     *
+     * Voir {@see self::eventDatesBackToSiteTime()}.
+     */
+    private const EVENT_DATES_GMT_SINCE = '2026-09-25 09:37:35';
 
     /**
      * Colonnes qui désignent la personne concernée par la ligne.
@@ -461,6 +469,10 @@ final class Schema
             self::markSeasonalOptions();
         }
 
+        if ($previous < 19) {
+            self::eventDatesBackToSiteTime();
+        }
+
         update_option(self::VERSION_OPTION, self::VERSION, false);
     }
 
@@ -585,6 +597,52 @@ final class Schema
                 'to'        => self::TRANSITION_SEASON_EXTENDED,
                 'campaigns' => $campaignIds,
                 'members'   => $members,
+            ]);
+        }
+    }
+
+    /**
+     * Ramène à l'heure du site les sorties saisies en GMT.
+     *
+     * La version 1.7.1 a corrigé un affichage décalé en convertissant en GMT
+     * ce que saisissaient les formulaires, au lieu de corriger l'affichage.
+     * Tout le reste lit pourtant ces dates en heure du site — le calendrier
+     * mensuel, l'iCal, la clôture des inscriptions, la reprise du Joomla —
+     * et une séance de piscine à 20 h y apparaissait à 19 h.
+     *
+     * Ne sont touchées que les sorties créées par le service après la
+     * publication de cette version : c'est le journal qui les désigne. Les
+     * sorties reprises du Joomla, ou créées avant, étaient déjà à l'heure.
+     */
+    private static function eventDatesBackToSiteTime(): void
+    {
+        global $wpdb;
+        $p = $wpdb->prefix . 'sub_';
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT DISTINCT e.id, e.starts_at, e.ends_at, e.registration_closes_at
+             FROM {$p}events e
+             JOIN {$p}audit_log a
+               ON a.entity_type = 'event' AND a.entity_id = e.id AND a.action = 'event.created'
+             WHERE a.created_at >= %s",
+            self::EVENT_DATES_GMT_SINCE
+        ), ARRAY_A) ?: [];
+
+        foreach ($rows as $row) {
+            $local = [];
+
+            foreach (['starts_at', 'ends_at', 'registration_closes_at'] as $column) {
+                if (!empty($row[$column])) {
+                    $local[$column] = get_date_from_gmt((string) $row[$column], 'Y-m-d H:i:s');
+                }
+            }
+
+            $wpdb->update("{$p}events", $local, ['id' => (int) $row['id']]);
+        }
+
+        if ($rows !== []) {
+            Audit::log('event.dates_to_site_time', 'event', null, [
+                'events' => array_map(static fn (array $row): int => (int) $row['id'], $rows),
             ]);
         }
     }

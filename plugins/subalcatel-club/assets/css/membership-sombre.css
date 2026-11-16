@@ -224,6 +224,10 @@
 	border-left-color: #29424f;
 }
 
+:root[data-theme="dark"] .sub-doclib__contribute-body {
+	border-color: #394551;
+}
+
 :root[data-theme="dark"] .sub-doclib__count {
 	color: #aebbca;
 }

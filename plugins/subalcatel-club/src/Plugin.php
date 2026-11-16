@@ -32,6 +32,7 @@ use Subalcatel\Club\Frontend\AgendaShortcode;
 use Subalcatel\Club\Frontend\Assets;
 use Subalcatel\Club\Events\IcalFeed;
 use Subalcatel\Club\Frontend\CalendarShortcode;
+use Subalcatel\Club\Frontend\ClubDocumentsContribute;
 use Subalcatel\Club\Frontend\ClubDocumentsList;
 use Subalcatel\Club\Frontend\ClubFigures;
 use Subalcatel\Club\Frontend\MenuVisibility;
@@ -177,6 +178,7 @@ final class Plugin
         SendQuota::register();
         MailQueue::register();
         ClubDocumentsList::register();
+        ClubDocumentsContribute::register();
         CalendarShortcode::register();
         SiteMapShortcode::register();
         UpcomingEvents::register();

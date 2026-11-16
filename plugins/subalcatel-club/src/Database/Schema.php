@@ -17,7 +17,7 @@ use Subalcatel\Club\Support\Audit;
 final class Schema
 {
     private const VERSION_OPTION = 'subalcatel_club_db_version';
-    private const VERSION        = 19;
+    private const VERSION        = 20;
 
     /**
      * Fin de la saison 2025-2026, et celle qui la remplace.
@@ -471,6 +471,12 @@ final class Schema
 
         if ($previous < 19) {
             self::eventDatesBackToSiteTime();
+        }
+
+        // Le dépôt s'ouvre aux adhérents : les rubriques officielles restent
+        // au bureau.
+        if ($previous < 20) {
+            \Subalcatel\Club\Content\ClubDocuments::markOfficeOnlyDefaults();
         }
 
         update_option(self::VERSION_OPTION, self::VERSION, false);

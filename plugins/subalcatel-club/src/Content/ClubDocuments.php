@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Content;
 
+use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\Roles;
 
 /**
@@ -40,6 +41,21 @@ final class ClubDocuments
     public const META_CAPABILITY  = '_sub_doc_capability';
     public const META_DOWNLOADS   = '_sub_doc_downloads';
     public const META_VERSIONS    = '_sub_doc_versions';
+
+    /**
+     * Méta de catégorie : `1` réserve la catégorie au bureau.
+     *
+     * Tout adhérent à jour dépose des documents depuis le site ; ce drapeau
+     * garde pour le bureau les rubriques officielles (statuts, comptes rendus
+     * d'AG). Une catégorie sans drapeau est ouverte.
+     */
+    public const META_OFFICE_ONLY = 'sub_office_only';
+
+    /** Catégories de départ réservées au bureau. */
+    public const OFFICE_ONLY_DEFAULTS = ['assemblees-generales', 'comptes-rendus', 'statuts-reglements'];
+
+    /** Accès « Encadrants » proposé aux adhérents : la capacité qui le porte. */
+    public const INSTRUCTOR_CAPABILITY = 'sub_create_training_event';
 
     /**
      * Événement auquel le document se rattache — convocation et pouvoir d'une
@@ -175,10 +191,143 @@ final class ClubDocuments
     public static function seedCategories(): void
     {
         foreach (self::defaultCategories() as $slug => $label) {
-            if (!term_exists($slug, self::TAXONOMY)) {
-                wp_insert_term($label, self::TAXONOMY, ['slug' => $slug]);
+            if (term_exists($slug, self::TAXONOMY)) {
+                continue;
+            }
+
+            $term = wp_insert_term($label, self::TAXONOMY, ['slug' => $slug]);
+
+            if (is_array($term) && in_array($slug, self::OFFICE_ONLY_DEFAULTS, true)) {
+                update_term_meta((int) $term['term_id'], self::META_OFFICE_ONLY, '1');
             }
         }
+    }
+
+    /**
+     * Réserve au bureau les catégories officielles déjà installées.
+     *
+     * Migration : avant l'ouverture du dépôt aux adhérents, aucune catégorie
+     * ne portait le drapeau. On ne touche qu'aux catégories qui n'ont encore
+     * aucune valeur, pour ne pas défaire un choix du bureau.
+     */
+    public static function markOfficeOnlyDefaults(): void
+    {
+        foreach (self::OFFICE_ONLY_DEFAULTS as $slug) {
+            $term = get_term_by('slug', $slug, self::TAXONOMY);
+
+            if ($term instanceof \WP_Term && get_term_meta($term->term_id, self::META_OFFICE_ONLY, true) === '') {
+                update_term_meta($term->term_id, self::META_OFFICE_ONLY, '1');
+            }
+        }
+    }
+
+    public static function isOfficeOnly(int $termId): bool
+    {
+        return get_term_meta($termId, self::META_OFFICE_ONLY, true) === '1';
+    }
+
+    /**
+     * Catégories où un adhérent peut ranger un document, dans l'ordre de
+     * l'arborescence, avec leur profondeur pour l'affichage.
+     *
+     * Le drapeau vaut pour la catégorie seule : le bureau peut fermer
+     * « Formation » et ouvrir sa sous-catégorie « Supports élèves ».
+     *
+     * @return list<array{term: \WP_Term, depth: int}>
+     */
+    public static function openCategories(): array
+    {
+        $terms = get_terms(['taxonomy' => self::TAXONOMY, 'hide_empty' => false]);
+        $terms = is_array($terms) ? $terms : [];
+
+        $childrenOf = [];
+        $ids        = [];
+
+        foreach ($terms as $term) {
+            $ids[$term->term_id] = true;
+        }
+
+        foreach ($terms as $term) {
+            $parent = isset($ids[$term->parent]) ? (int) $term->parent : 0;
+            $childrenOf[$parent][] = $term;
+        }
+
+        $out  = [];
+        $walk = static function (int $parent, int $depth, array $seen) use (&$walk, &$out, $childrenOf): void {
+            $children = $childrenOf[$parent] ?? [];
+            usort($children, static fn (\WP_Term $a, \WP_Term $b): int => strnatcasecmp($a->name, $b->name));
+
+            foreach ($children as $term) {
+                if (isset($seen[$term->term_id])) {
+                    continue;
+                }
+
+                if (!self::isOfficeOnly($term->term_id)) {
+                    $out[] = ['term' => $term, 'depth' => $depth];
+                }
+
+                $walk($term->term_id, $depth + 1, $seen + [$term->term_id => true]);
+            }
+        };
+
+        $walk(0, 0, []);
+
+        return $out;
+    }
+
+    /**
+     * Accès qu'un adhérent peut donner à son document.
+     *
+     * Trois choix lisibles plutôt que la liste des capacités, qui n'a de sens
+     * que pour le bureau.
+     *
+     * @return array<string, string>
+     */
+    public static function contributorAccessLevels(): array
+    {
+        return [
+            self::ACCESS_PUBLIC  => 'Public — tout le monde, même sans compte',
+            self::ACCESS_MEMBERS => 'Adhérents — membres à jour de cotisation',
+            'instructors'        => 'Encadrants — moniteurs et directeurs de plongée',
+        ];
+    }
+
+    /**
+     * Cette personne peut-elle déposer un document depuis le site ?
+     *
+     * Tout adhérent à jour dont le compte est validé, et le bureau.
+     */
+    public static function mayContribute(int $userId): bool
+    {
+        if ($userId === 0) {
+            return false;
+        }
+
+        if (user_can($userId, 'sub_manage_content')) {
+            return true;
+        }
+
+        if (AccountApproval::isPending($userId) || AccountApproval::isRefused($userId)) {
+            return false;
+        }
+
+        return self::isActiveMember($userId);
+    }
+
+    /**
+     * Peut-elle remplacer ou retirer ce document ? Le bureau, ou son auteur.
+     *
+     * L'auteur garde la main même après expiration de son adhésion : retirer
+     * un support qu'on a déposé ne doit pas dépendre d'une cotisation.
+     */
+    public static function mayManage(int $documentId, int $userId): bool
+    {
+        if ($userId === 0 || get_post_type($documentId) !== self::POST_TYPE) {
+            return false;
+        }
+
+        return user_can($userId, 'sub_manage_content')
+            || (int) get_post_field('post_author', $documentId) === $userId;
     }
 
     /**
@@ -203,6 +352,12 @@ final class ClubDocuments
 
         // Le bureau accède à tout : il produit ces documents.
         if (user_can($userId, 'sub_manage_content')) {
+            return true;
+        }
+
+        // L'auteur relit toujours ce qu'il a déposé, même s'il l'a réservé aux
+        // encadrants sans en être un.
+        if ((int) get_post_field('post_author', $documentId) === $userId) {
             return true;
         }
 

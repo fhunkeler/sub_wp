@@ -86,6 +86,148 @@ final class DocumentLibrary
     }
 
     /**
+     * Dépôt d'un document par un adhérent, depuis le site.
+     *
+     * Le document est publié aussitôt. Toutes les règles sont vérifiées ici et
+     * non dans le formulaire : adhésion à jour, catégorie ouverte, accès parmi
+     * les trois proposés, fichier contrôlé par [attach]. Si le fichier est
+     * refusé, le document créé pour l'accueillir est effacé : pas de fiche
+     * fantôme sans fichier dans la liste.
+     *
+     * @param array{name: string, tmp_name: string, type?: string, size: int, error?: int}|null $file
+     * @return int identifiant du document
+     */
+    public function contribute(
+        int $userId,
+        string $title,
+        string $description,
+        int $termId,
+        string $access,
+        ?array $file
+    ): int {
+        if (!ClubDocuments::mayContribute($userId)) {
+            throw new RuntimeException('Le dépôt de documents est réservé aux adhérents à jour de cotisation.');
+        }
+
+        $title = trim($title);
+
+        if ($title === '') {
+            throw new RuntimeException('Le titre est obligatoire.');
+        }
+
+        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            throw new RuntimeException('Aucun fichier reçu.');
+        }
+
+        $term = get_term($termId, ClubDocuments::TAXONOMY);
+
+        if (!$term instanceof \WP_Term) {
+            throw new RuntimeException('Choisissez une catégorie.');
+        }
+
+        if (ClubDocuments::isOfficeOnly($termId) && !user_can($userId, 'sub_manage_content')) {
+            throw new RuntimeException(sprintf('La catégorie « %s » est réservée au bureau.', $term->name));
+        }
+
+        if (!array_key_exists($access, ClubDocuments::contributorAccessLevels())) {
+            throw new RuntimeException('Niveau d’accès inconnu.');
+        }
+
+        $documentId = wp_insert_post([
+            'post_type'    => ClubDocuments::POST_TYPE,
+            'post_status'  => 'publish',
+            'post_title'   => mb_substr($title, 0, 150),
+            'post_content' => $description,
+            'post_author'  => $userId,
+        ], true);
+
+        if (is_wp_error($documentId)) {
+            throw new RuntimeException('Le document n’a pas pu être créé.');
+        }
+
+        wp_set_object_terms($documentId, [$termId], ClubDocuments::TAXONOMY);
+
+        if ($access === 'instructors') {
+            update_post_meta($documentId, ClubDocuments::META_ACCESS, ClubDocuments::ACCESS_CAPABILITY);
+            update_post_meta($documentId, ClubDocuments::META_CAPABILITY, ClubDocuments::INSTRUCTOR_CAPABILITY);
+        } else {
+            update_post_meta($documentId, ClubDocuments::META_ACCESS, $access);
+            update_post_meta($documentId, ClubDocuments::META_CAPABILITY, '');
+        }
+
+        try {
+            $this->attach($documentId, $file, $userId);
+        } catch (RuntimeException $e) {
+            wp_delete_post($documentId, true);
+
+            throw $e;
+        }
+
+        Audit::log('club_document.contributed', 'club_document', $documentId, [
+            'term'   => $term->slug,
+            'access' => $access,
+        ], $userId);
+
+        return $documentId;
+    }
+
+    /**
+     * Remplacement du fichier par son auteur (ou le bureau).
+     *
+     * @param array{name: string, tmp_name: string, type?: string, size: int, error?: int}|null $file
+     */
+    public function replaceAsContributor(int $documentId, int $userId, ?array $file): void
+    {
+        if (!ClubDocuments::mayManage($documentId, $userId)) {
+            throw new RuntimeException('Seul l’auteur du document ou le bureau peut le modifier.');
+        }
+
+        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            throw new RuntimeException('Aucun fichier reçu.');
+        }
+
+        $this->attach($documentId, $file, $userId);
+    }
+
+    /**
+     * Retrait par son auteur (ou le bureau) : le document part à la corbeille.
+     *
+     * La corbeille plutôt que l'effacement : le bureau peut encore le
+     * restaurer, et les fichiers ne sont purgés qu'à la vidange.
+     */
+    public function withdraw(int $documentId, int $userId): void
+    {
+        if (!ClubDocuments::mayManage($documentId, $userId)) {
+            throw new RuntimeException('Seul l’auteur du document ou le bureau peut le retirer.');
+        }
+
+        wp_trash_post($documentId);
+
+        Audit::log('club_document.withdrawn', 'club_document', $documentId, [], $userId);
+    }
+
+    /**
+     * Documents publiés par cette personne, du plus récent au plus ancien.
+     *
+     * @return list<\WP_Post>
+     */
+    public function contributedBy(int $userId): array
+    {
+        if ($userId === 0) {
+            return [];
+        }
+
+        return get_posts([
+            'post_type'      => ClubDocuments::POST_TYPE,
+            'post_status'    => 'publish',
+            'author'         => $userId,
+            'posts_per_page' => -1,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ]);
+    }
+
+    /**
      * Versions archivées, toujours sous forme de tableau.
      *
      * Une méta absente vaut chaîne vide, et `(array) ''` produit `['']` — un

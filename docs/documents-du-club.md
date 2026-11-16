@@ -1,8 +1,10 @@
 # Créer et diffuser un document du club
 
 Guide pour le bureau : déposer un document (statuts, compte rendu d'AG,
-consignes…) et choisir qui peut le télécharger. Le code de référence est
-`plugins/subalcatel-club/src/Content/ClubDocuments.php`.
+consignes…) et choisir qui peut le télécharger. Tout adhérent à jour peut
+aussi déposer des documents depuis le site, par exemple un moniteur ses
+supports de cours : voir [Dépôt par les adhérents](#6-dépôt-par-les-adhérents).
+Le code de référence est `plugins/subalcatel-club/src/Content/ClubDocuments.php`.
 
 > Les captures viennent de la démo locale, avec des documents d'exemple.
 
@@ -61,6 +63,11 @@ menu **Club → Documents du club → Catégories** : saisissez le nom
 (« Niveau 1 »), choisissez **Supports de formation** comme **Catégorie
 parente**, puis **Ajouter une catégorie**. On peut descendre d'autant de
 niveaux qu'on veut.
+
+Chaque catégorie peut être **réservée au bureau** (case du même nom sur
+l'écran de la catégorie, colonne « Dépôt » dans la liste) : les adhérents ne
+peuvent alors pas y ranger de document. Voir
+[Dépôt par les adhérents](#6-dépôt-par-les-adhérents).
 
 Sur le document, cochez seulement la catégorie la plus précise (« Théorie »).
 Cocher aussi la parente ne change rien : le document reste rangé sous la plus
@@ -190,3 +197,64 @@ une actualité avec le lien, ou écrivez-leur depuis **Club → Communication**.
   n'apparaît nulle part et son lien est refusé (sauf pour le bureau).
 - **Supprimer** : **Déplacer dans la corbeille**. Le fichier et toutes ses
   versions sont effacés quand la corbeille est vidée.
+
+## 6. Dépôt par les adhérents
+
+Tout adhérent **à jour de cotisation** dont le compte est validé peut déposer
+un document lui-même, sans accès à l'administration : un moniteur y met ses
+supports de cours, un membre le compte rendu d'une sortie. Les comptes
+« Invité du club » et les adhésions expirées ne peuvent pas déposer.
+
+### Côté adhérent
+
+Sur la page **Documents du club**, bouton **Déposer un document** en haut de
+la page : titre, description facultative, catégorie, accès et fichier, puis
+**Publier le document**. Le document est **publié aussitôt**.
+
+![Formulaire de dépôt d'un adhérent](img/documents-du-club/depot-formulaire.jpg)
+
+L'adhérent choisit l'accès parmi trois possibilités, plus simples que celles
+du bureau :
+
+| Choix proposé | Équivaut, côté bureau, à |
+|---|---|
+| Public | Public |
+| Adhérents | Adhérents |
+| Encadrants | Restreint — Créer une plongée de formation |
+
+L'auteur peut toujours télécharger son propre document, même s'il l'a réservé
+aux encadrants sans en être un.
+
+Sous le formulaire, **Mes documents déposés** liste ses documents : il peut en
+**remplacer le fichier** (l'ancien rejoint l'historique des versions) ou les
+**retirer** (ils partent à la corbeille).
+
+![Mes documents déposés](img/documents-du-club/depot-mes-documents.jpg)
+
+Les formats et la taille maximale sont les mêmes que pour le bureau, et chaque
+fichier passe par le même contrôle (un fichier qui contient du code est
+refusé).
+
+### Côté bureau : choisir les catégories ouvertes
+
+Dans **Club → Documents du club → Catégories**, la colonne **Dépôt** indique
+pour chaque catégorie qui peut y ranger des documents : **Bureau** ou
+**Adhérents**. Pour changer, ouvrez la catégorie et cochez ou décochez
+**Réservée au bureau**.
+
+![Case « Réservée au bureau » d'une catégorie](img/documents-du-club/categorie-reservee-bureau.jpg)
+
+- Une nouvelle catégorie est **ouverte** par défaut.
+- « Assemblées générales », « Comptes rendus de réunion » et « Statuts et
+  règlement intérieur » sont réservées au bureau dès l'installation de cette
+  version. Le bureau peut changer ce réglage.
+- Le réglage vaut pour la catégorie seule : on peut réserver « Supports de
+  formation » au bureau et ouvrir sa sous-catégorie « Niveau 1 ».
+
+### Côté bureau : garder la main
+
+Les documents déposés par les adhérents apparaissent dans **Club → Documents
+du club** comme les autres ; la colonne **Déposé par** indique leur auteur. Le
+bureau peut les modifier, changer leur accès ou les supprimer comme n'importe
+quel document. Aucun courriel n'est envoyé au bureau lors d'un dépôt.
+

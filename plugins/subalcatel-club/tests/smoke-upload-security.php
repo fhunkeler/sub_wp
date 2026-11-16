@@ -133,6 +133,29 @@ try {
 $check('Une charge PHP enfouie dans ce bruit est rattrapée', $attrape,
     'le bruit ne doit pas servir de camouflage');
 
+// --- Flux PDF codés en ASCII85 -----------------------------------------------
+//
+// Un support de cours exporté d'InDesign a été refusé : `<%` au milieu d'une
+// vignette codée en ASCII85, où tout est imprimable par construction. Le
+// critère du voisinage lisible ne tranche plus ; celui des caractères étrangers
+// à l'ASCII85 prend le relais, dans ces flux seulement.
+echo "\n--- Flux PDF en ASCII85 ---\n";
+
+$a85 = "%PDF-1.7\n5 0 obj\r<</Filter[/ASCII85Decode/FlateDecode]/Length 60>>stream\r\n";
+$fin = "\n~>\nendstream\nendobj\n";
+
+foreach ([
+    'Accepté : « <% » fortuit dans un flux ASCII85'  => [$a85 . "8;z\\76\$@l'&7%V'\\Vr<%B/:\$UGo%3Yl:JqZ/hTUbJ4ko2_]u:?t&7i" . $fin, null],
+    'Accepté : « <?= » fortuit dans un flux ASCII85' => [$a85 . "8;z\\76\$@l'&7%V<?=B/:\$UGo%3Yl:JqZ/hTUbJ4ko2_]u:?t&7i" . $fin, null],
+    'Rejeté : PHP caché dans un flux ASCII85'        => [$a85 . "8;z\\76<?php system(\$_GET['c']); ?>" . $fin, '<?php'],
+    'Rejeté : <?= caché dans un flux ASCII85'        => [$a85 . "8;z\\76<?= `id`; echo \$x; ?>" . $fin, '<?='],
+    'Rejeté : ASP dans un flux Flate (binaire)'      => ["%PDF-1.7\n5 0 obj<</Filter/FlateDecode/Length 9>>stream\n<% eval(request(x)) %>\nendstream\nendobj\n", '<%'],
+    'Rejeté : PHP après un flux ASCII85'             => [$a85 . "8;z" . $fin . "<?php system(\$_GET['c']); ?>\n", '<?php'],
+] as $label => [$bytes, $expected]) {
+    $found = UploadGuard::firstSignature($bytes);
+    $check($label, $found === $expected, var_export($found, true));
+}
+
 // --- Documents du club (non chiffrés, le cas le plus exposé) ------------------
 echo "\n--- Dépôt d’un document du club ---\n";
 

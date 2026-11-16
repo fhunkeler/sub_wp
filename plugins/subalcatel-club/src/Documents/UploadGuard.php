@@ -106,20 +106,50 @@ final class UploadGuard
      *
      * Une signature ne suffit pas : elle doit être suivie de ce qui ressemble à
      * du code, faute de quoi on refuse des documents parfaitement sains. Voir
-     * `CONTEXT_BYTES`.
+     * `CONTEXT_BYTES`, et [ascii85Regions] pour les flux PDF où ce critère ne
+     * suffit plus.
      */
     public static function firstSignature(string $content): ?string
     {
+        $regions = self::ascii85Regions($content);
+        $cursor  = 0;
+
+        // Le contenu est découpé en tronçons : hors flux ASCII85, le contrôle
+        // habituel ; dans un flux ASCII85, le contrôle renforcé.
+        foreach ($regions as [$start, $end]) {
+            $found = self::scanSegment(substr($content, $cursor, $start - $cursor), false)
+                ?? self::scanSegment(substr($content, $start, $end - $start), true);
+
+            if ($found !== null) {
+                return $found;
+            }
+
+            $cursor = $end;
+        }
+
+        return self::scanSegment(substr($content, $cursor), false);
+    }
+
+    private static function scanSegment(string $segment, bool $ascii85): ?string
+    {
+        if ($segment === '') {
+            return null;
+        }
+
         // `<?php` peut contenir un octet nul intercalé (`<\0?php`) pour tromper
         // une recherche naïve tout en restant exécutable après un filtre qui
         // supprime les nuls. On les retire avant de chercher.
-        $haystack = strtolower(str_replace("\0", '', $content));
+        $original = str_replace("\0", '', $segment);
+        $haystack = strtolower($original);
 
         foreach (self::SIGNATURES as $signature) {
             $offset = 0;
 
             while (($at = strpos($haystack, $signature, $offset)) !== false) {
-                if (self::readsAsCode($haystack, $at + strlen($signature))) {
+                $from = $at + strlen($signature);
+
+                if (self::readsAsCode($haystack, $from)
+                    && (!$ascii85 || self::leavesAscii85($original, $from))) {
                     return $signature;
                 }
 
@@ -128,6 +158,79 @@ final class UploadGuard
         }
 
         return null;
+    }
+
+    /**
+     * Flux PDF codés en ASCII85 : positions [début, fin[ de leur contenu.
+     *
+     * **Le critère du texte imprimable n'y vaut rien.** L'ASCII85 traduit du
+     * binaire en caractères de `!` à `u` : tout y est imprimable par
+     * construction, et `<%`, `<?=` ou `#!/` y apparaissent par hasard, suivis
+     * de vingt-quatre caractères « lisibles ». Un support de cours exporté
+     * d'InDesign, sain, a été refusé ainsi : `<%` au milieu d'une vignette.
+     *
+     * Seuls comptent les flux dont le **premier** filtre est l'ASCII85 : c'est
+     * alors lui qui fixe les octets écrits dans le fichier. Un flux
+     * `FlateDecode` seul reste du binaire, que le contrôle habituel sait juger.
+     *
+     * @return list<array{0: int, 1: int}>
+     */
+    private static function ascii85Regions(string $content): array
+    {
+        // Le marqueur doit se trouver dans le premier kilo-octet (norme PDF).
+        if (!str_contains(substr($content, 0, 1024), '%PDF-')) {
+            return [];
+        }
+
+        $regions = [];
+        $offset  = 0;
+
+        while (preg_match('/stream\r?\n/', $content, $m, PREG_OFFSET_CAPTURE, $offset) === 1) {
+            $keyword = (int) $m[0][1];
+            $start   = $keyword + strlen($m[0][0]);
+            $end     = strpos($content, 'endstream', $start);
+
+            if ($end === false) {
+                break;
+            }
+
+            // `endstream` contient lui-même « stream » : on repart après lui.
+            $offset = $end + strlen('endstream');
+
+            // Le dictionnaire du flux précède le mot-clé ; 2 Ko suffisent
+            // largement, et bornent la lecture en arrière.
+            $from       = max(0, $keyword - 2048);
+            $dictionary = substr($content, $from, $keyword - $from);
+            $open       = strrpos($dictionary, 'obj');
+            $dictionary = $open === false ? $dictionary : substr($dictionary, $open);
+
+            if (preg_match('#/Filter\s*\[?\s*/(ASCII85Decode|A85)\b#', $dictionary) === 1) {
+                $regions[] = [$start, $end];
+            }
+        }
+
+        return $regions;
+    }
+
+    /**
+     * Après une signature trouvée dans un flux ASCII85 : un caractère que
+     * l'ASCII85 n'emploie jamais apparaît-il dans le voisinage ?
+     *
+     * Des données ASCII85 n'en contiennent aucun : `v` à `y`, accolades, barre
+     * verticale, et tout ce qui sort de l'ASCII. Du code en contient presque
+     * toujours — `system`, `exec`, `{`, `$x`… Lu sur les octets d'origine :
+     * la mise en minuscules ferait passer `V`…`Z`, valides, pour du code.
+     *
+     * La limite est la même que celle de `CONTEXT_BYTES` : une charge écrite
+     * exprès dans l'alphabet de l'ASCII85 et rangée dans un flux qui s'en
+     * réclame passerait. Le fichier n'est de toute façon jamais servi par une
+     * URL, et le dossier de stockage coupe le moteur PHP.
+     */
+    private static function leavesAscii85(string $original, int $from): bool
+    {
+        $context = substr($original, $from, self::CONTEXT_BYTES);
+
+        return preg_match('/[^\x21-\x75z\s]/', $context) === 1;
     }
 
     /**

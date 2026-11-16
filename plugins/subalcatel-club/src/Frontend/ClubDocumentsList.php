@@ -177,7 +177,8 @@ final class ClubDocumentsList
         ?>
         <li class="sub-doclib__item">
             <a class="sub-doclib__link"
-               href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>">
+               href="<?php echo esc_url(DocumentDelivery::url($document->ID)); ?>"
+               target="_blank" rel="noopener">
                 <?php echo esc_html($document->post_title); ?>
             </a>
             <span class="sub-doclib__meta">

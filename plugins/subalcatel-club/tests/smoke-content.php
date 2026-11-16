@@ -285,6 +285,95 @@ foreach ([$level1, $level2, $level10, $formation] as $termId) {
     wp_delete_term($termId, $tax);
 }
 
+// --- Dépôt par les adhérents ---------------------------------------------------
+echo "\n--- Dépôt par les adhérents ---\n";
+
+$tax      = ClubDocuments::TAXONOMY;
+$open     = (int) wp_insert_term('Supports test', $tax, ['slug' => 'supports-test'])['term_id'];
+$closed   = (int) get_term_by('slug', 'assemblees-generales', $tax)->term_id;
+$guest    = $makeUser('sub_guest', false);
+$contribs = [];
+
+$check('Catégorie officielle réservée au bureau', ClubDocuments::isOfficeOnly($closed));
+$check('Nouvelle catégorie ouverte par défaut', !ClubDocuments::isOfficeOnly($open));
+$openIds = array_map(static fn (array $c): int => $c['term']->term_id, ClubDocuments::openCategories());
+$check('Le formulaire ne propose que les catégories ouvertes',
+    in_array($open, $openIds, true) && !in_array($closed, $openIds, true));
+
+$check('Un adhérent à jour peut déposer', ClubDocuments::mayContribute($member));
+$check('Adhésion expirée : pas de dépôt', !ClubDocuments::mayContribute($expired));
+$check('Invité : pas de dépôt', !ClubDocuments::mayContribute($guest));
+$check('Visiteur : pas de dépôt', !ClubDocuments::mayContribute(0));
+
+$contribs[] = $courseId = $library->contribute($member, 'Cours réglementation N1', 'Support du cours.',
+    $open, 'instructors', sub_test_upload('rous.pdf'));
+$check('Le dépôt est publié aussitôt', get_post_status($courseId) === 'publish');
+$check('L’auteur est le déposant', (int) get_post_field('post_author', $courseId) === $member);
+$check('Accès « Encadrants » = capacité de formation',
+    get_post_meta($courseId, ClubDocuments::META_ACCESS, true) === ClubDocuments::ACCESS_CAPABILITY
+    && get_post_meta($courseId, ClubDocuments::META_CAPABILITY, true) === ClubDocuments::INSTRUCTOR_CAPABILITY);
+$check('L’auteur télécharge son document même sans être encadrant',
+    ClubDocuments::mayDownload($courseId, $member));
+$check('Un autre adhérent non encadrant ne le voit pas', !ClubDocuments::mayDownload($courseId, $expired));
+
+foreach ([
+    'Catégorie du bureau refusée' => [$member, 'Faux CR', $closed, ClubDocuments::ACCESS_MEMBERS, 'cr.pdf', '%PDF-1.4'],
+    'Accès hors des trois choix refusé' => [$member, 'Doc', $open, 'capability', 'a.pdf', '%PDF-1.4'],
+    'Adhésion expirée refusée' => [$expired, 'Doc', $open, ClubDocuments::ACCESS_PUBLIC, 'a.pdf', '%PDF-1.4'],
+    'Fichier piégé refusé' => [$member, 'Piège', $open, ClubDocuments::ACCESS_PUBLIC, 'piege.pdf', '<?php echo 1;'],
+] as $label => [$who, $title, $termId, $access, $name, $content]) {
+    $before = count(get_posts(['post_type' => ClubDocuments::POST_TYPE, 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids']));
+
+    try {
+        $contribs[] = $library->contribute($who, $title, '', $termId, $access, sub_test_upload($name, $content));
+        $check($label, false);
+    } catch (RuntimeException $e) {
+        $after = count(get_posts(['post_type' => ClubDocuments::POST_TYPE, 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids']));
+        $check($label, $after === $before, $e->getMessage());
+    }
+}
+
+$check('Le bureau dépose dans une catégorie réservée', (static function () use ($library, $office, $closed, &$contribs): bool {
+    try {
+        $contribs[] = $library->contribute($office, 'CR bureau', '', $closed, ClubDocuments::ACCESS_MEMBERS, sub_test_upload('cr.pdf'));
+
+        return true;
+    } catch (RuntimeException) {
+        return false;
+    }
+})());
+
+try {
+    $library->withdraw($courseId, $expired);
+    $check('Un autre membre ne peut pas retirer le document', false);
+} catch (RuntimeException $e) {
+    $check('Un autre membre ne peut pas retirer le document', get_post_status($courseId) === 'publish');
+}
+
+$library->replaceAsContributor($courseId, $member, sub_test_upload('rous-v2.pdf'));
+$check('L’auteur remplace son fichier, l’ancien est archivé',
+    get_post_meta($courseId, ClubDocuments::META_FILENAME, true) === 'rous-v2.pdf'
+    && count(DocumentLibrary::versionsOf($courseId)) === 1);
+
+$check('« Mes documents » liste le dépôt',
+    in_array($courseId, array_map(static fn ($p) => $p->ID, $library->contributedBy($member)), true));
+
+$library->withdraw($courseId, $member);
+$check('L’auteur retire son document (corbeille)', get_post_status($courseId) === 'trash');
+
+update_term_meta($open, ClubDocuments::META_OFFICE_ONLY, '1');
+$check('Une catégorie fermée par le bureau n’est plus proposée',
+    !in_array($open, array_map(static fn (array $c): int => $c['term']->term_id, ClubDocuments::openCategories()), true));
+
+foreach ($contribs as $id) {
+    $library->purgeFiles($id);
+    wp_delete_post($id, true);
+}
+
+wp_delete_term($open, $tax);
+require_once ABSPATH . 'wp-admin/includes/user.php';
+wp_delete_user($guest);
+
 // --- Visibilité des articles -------------------------------------------------
 echo "\n--- Visibilité des articles ---\n";
 

@@ -786,6 +786,52 @@
 	color: #566b84;
 }
 
+/* Dépôt par les adhérents, au-dessus de la liste. */
+.sub-doclib__contribute {
+	margin-bottom: 24px;
+}
+
+.sub-doclib__contribute > summary {
+	display: inline-flex;
+	list-style: none;
+	cursor: pointer;
+}
+
+.sub-doclib__contribute > summary::-webkit-details-marker {
+	display: none;
+}
+
+.sub-doclib__contribute-body {
+	margin-top: 12px;
+	padding: 16px 20px;
+	border: 1px solid var(--sub-brume, #c4d3e3);
+	border-radius: 8px;
+}
+
+.sub-doclib__mine-title {
+	margin: 24px 0 8px;
+	font-size: 1rem;
+}
+
+.sub-doclib__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin-top: 8px;
+}
+
+.sub-doclib__actions form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.sub-doclib__actions input[type="file"] {
+	max-width: 100%;
+	font-size: 0.85rem;
+}
+
 /* --- Blocs du profil (lettre d'information, suppression) --- */
 
 .sub-panel-block {

@@ -32,6 +32,93 @@ final class ClubDocumentsScreen
 
         add_filter('manage_' . ClubDocuments::POST_TYPE . '_posts_columns', [self::class, 'columns']);
         add_action('manage_' . ClubDocuments::POST_TYPE . '_posts_custom_column', [self::class, 'column'], 10, 2);
+
+        // Catégories : ouvertes au dépôt des adhérents, ou réservées au bureau.
+        $tax = ClubDocuments::TAXONOMY;
+        add_action($tax . '_add_form_fields', [self::class, 'categoryAddField']);
+        add_action($tax . '_edit_form_fields', [self::class, 'categoryEditField']);
+        add_action('created_' . $tax, [self::class, 'categorySave']);
+        add_action('edited_' . $tax, [self::class, 'categorySave']);
+        add_filter('manage_edit-' . $tax . '_columns', [self::class, 'categoryColumns']);
+        add_filter('manage_' . $tax . '_custom_column', [self::class, 'categoryColumn'], 10, 3);
+    }
+
+    private const CATEGORY_HELP = 'Cochée, seul le bureau range des documents ici. Décochée, tout adhérent '
+        . 'à jour peut y déposer depuis la page Documents du club. Vaut pour cette catégorie seule, '
+        . 'pas pour ses sous-catégories.';
+
+    public static function categoryAddField(): void
+    {
+        ?>
+        <div class="form-field">
+            <?php wp_nonce_field('sub_doc_category', 'sub_doc_category_nonce'); ?>
+            <label>
+                <input type="checkbox" name="sub_office_only" value="1">
+                Réservée au bureau
+            </label>
+            <p><?php echo esc_html(self::CATEGORY_HELP); ?></p>
+        </div>
+        <?php
+    }
+
+    public static function categoryEditField(\WP_Term $term): void
+    {
+        ?>
+        <tr class="form-field">
+            <th scope="row">Dépôt</th>
+            <td>
+                <?php wp_nonce_field('sub_doc_category', 'sub_doc_category_nonce'); ?>
+                <label>
+                    <input type="checkbox" name="sub_office_only" value="1"
+                        <?php checked(ClubDocuments::isOfficeOnly($term->term_id)); ?>>
+                    Réservée au bureau
+                </label>
+                <p class="description"><?php echo esc_html(self::CATEGORY_HELP); ?></p>
+            </td>
+        </tr>
+        <?php
+    }
+
+    public static function categorySave(int $termId): void
+    {
+        $nonce = isset($_POST['sub_doc_category_nonce'])
+            ? sanitize_text_field(wp_unslash($_POST['sub_doc_category_nonce']))
+            : '';
+
+        // Sans notre champ (création par un autre chemin), on ne touche à rien.
+        if (!wp_verify_nonce($nonce, 'sub_doc_category') || !current_user_can('sub_manage_content')) {
+            return;
+        }
+
+        update_term_meta($termId, ClubDocuments::META_OFFICE_ONLY, isset($_POST['sub_office_only']) ? '1' : '0');
+    }
+
+    /**
+     * @param array<string, string> $columns
+     * @return array<string, string>
+     */
+    public static function categoryColumns(array $columns): array
+    {
+        $count = $columns['posts'] ?? null;
+        unset($columns['posts']);
+        $columns['sub_deposit'] = 'Dépôt';
+
+        if ($count !== null) {
+            $columns['posts'] = $count;
+        }
+
+        return $columns;
+    }
+
+    public static function categoryColumn(string $content, string $column, int $termId): string
+    {
+        if ($column !== 'sub_deposit') {
+            return $content;
+        }
+
+        return ClubDocuments::isOfficeOnly($termId)
+            ? '<span class="sub-tag sub-tag--capability">Bureau</span>'
+            : '<span class="sub-tag sub-tag--public">Adhérents</span>';
     }
 
     /**
@@ -422,6 +509,7 @@ final class ClubDocumentsScreen
         $columns['sub_access']    = 'Accès';
         $columns['sub_file']      = 'Fichier';
         $columns['sub_downloads'] = 'Téléchargements';
+        $columns['sub_author']    = 'Déposé par';
         $columns['date']          = $date;
 
         return $columns;
@@ -468,6 +556,11 @@ final class ClubDocumentsScreen
 
             case 'sub_downloads':
                 echo (int) get_post_meta($postId, ClubDocuments::META_DOWNLOADS, true);
+                break;
+
+            case 'sub_author':
+                $author = get_userdata((int) get_post_field('post_author', $postId));
+                echo esc_html($author ? $author->display_name : '—');
                 break;
         }
     }

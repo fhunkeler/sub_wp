@@ -48,6 +48,8 @@ final class ClubDocumentsList
         ob_start();
         ?>
         <div class="sub-doclib">
+            <?php echo ClubDocumentsContribute::render(); // déjà échappé ?>
+
             <form class="sub-doclib__search" method="get">
                 <?php // Les autres paramètres de l'URL survivent à la recherche. ?>
                 <?php foreach ($_GET as $name => $value) : ?>

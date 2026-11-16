@@ -216,8 +216,16 @@
 	border: 1px solid #3a5579;
 }
 
-:root[data-theme="dark"] .sub-doclib__group h3 {
-	border-bottom: 2px solid #29424f;
+:root[data-theme="dark"] .sub-doclib__summary {
+	border-bottom-color: #29424f;
+}
+
+:root[data-theme="dark"] .sub-doclib__body > .sub-doclib__group {
+	border-left-color: #29424f;
+}
+
+:root[data-theme="dark"] .sub-doclib__count {
+	color: #aebbca;
 }
 
 :root[data-theme="dark"] .sub-doclib__item {

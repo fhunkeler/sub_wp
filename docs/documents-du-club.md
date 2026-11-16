@@ -33,7 +33,8 @@ Sur l'écran d'ajout :
 1. **Titre** : c'est le nom affiché aux membres (« Calendrier des sorties 2027 »).
 2. **Texte** (facultatif) : une courte description, affichée sous le titre.
 3. **Catégories** (à droite) : cochez la rubrique sous laquelle le document
-   sera rangé. **+ Ajouter une catégorie** en crée une nouvelle.
+   sera rangé. **+ Ajouter une catégorie** en crée une nouvelle (voir
+   [Ranger en sous-catégories](#ranger-en-sous-catégories)).
 4. **Fichier et accès** (en bas) : **Choisir un fichier**, puis **Qui peut le
    télécharger**.
 5. **Publier**.
@@ -51,6 +52,20 @@ PNG et ZIP, jusqu'à 25 Mo.
 > ⚠️ La ligne **Visibilité : Publique** du cadre « Publier » ne concerne pas les
 > droits de téléchargement. Laissez-la telle quelle : c'est le champ **Qui peut
 > le télécharger** qui décide.
+
+### Ranger en sous-catégories
+
+Les catégories s'emboîtent comme des dossiers :
+« Supports de formation › Niveau 1 › Théorie ». Pour créer une sous-catégorie,
+menu **Club → Documents du club → Catégories** : saisissez le nom
+(« Niveau 1 »), choisissez **Supports de formation** comme **Catégorie
+parente**, puis **Ajouter une catégorie**. On peut descendre d'autant de
+niveaux qu'on veut.
+
+Sur le document, cochez seulement la catégorie la plus précise (« Théorie »).
+Cocher aussi la parente ne change rien : le document reste rangé sous la plus
+précise. En revanche, deux catégories sans lien (« Niveau 1 » et « Niveau 2 »)
+le font apparaître aux deux endroits.
 
 ## 2. Choisir qui peut le télécharger
 
@@ -105,8 +120,16 @@ la cotisation a expiré garde l'accès aux documents réservés aux encadrants.
 ## 3. Ce que voit chacun
 
 La page **Documents du club** est dans le menu principal et dans **Mon espace**.
-Les documents y sont rangés par catégorie ; un cadenas 🔒 signale un document
-non public.
+Les documents y sont rangés dans l'arborescence des catégories, repliée par
+défaut : un clic sur une catégorie l'ouvre, **Tout déplier** ouvre tout. Le
+nombre affiché à droite compte les documents de la catégorie et de ses
+sous-catégories. Un cadenas 🔒 signale un document non public.
+
+![Arborescence des documents, dépliée](img/documents-du-club/arborescence.jpg)
+
+Une catégorie dont aucun document n'est visible pour la personne n'apparaît
+pas : un visiteur ne voit pas de rubrique vide. Une recherche déplie
+automatiquement les catégories qui contiennent un résultat.
 
 **Visiteur non connecté** : uniquement les documents publics, et une invitation
 à se connecter.
@@ -126,6 +149,11 @@ Restreint).
 
 - **Par la page Documents du club** : rien à faire, le document y apparaît dès
   sa publication, pour les personnes autorisées.
+- **Par un lien vers une catégorie** : ajoutez `#doc-cat-` suivi de
+  l'identifiant de la catégorie (colonne « Identifiant » de l'écran
+  Catégories) à l'adresse de la page, par exemple
+  `…/espace-membre/documents/#doc-cat-niveau-1`. La page s'ouvre directement
+  sur cette catégorie, dépliée.
 - **Par un lien direct** (dans un article, une actualité, un courriel) : sur
   l'écran du document, dans le cadre « Fichier et accès », faites un clic droit
   sur le nom du fichier → **Copier l'adresse du lien**. Le lien ressemble à

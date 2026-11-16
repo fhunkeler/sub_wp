@@ -214,30 +214,18 @@ final class DocumentLibrary
     }
 
     /**
-     * Documents visibles par cette personne, groupés par catégorie.
+     * Documents visibles par cette personne, groupés par catégorie, à plat.
+     *
+     * Chaque document range sous sa première catégorie. La page publique passe
+     * par [tree] ; cette vue à plat reste pour qui veut une liste simple.
      *
      * @return list<array{term: \WP_Term|null, documents: list<\WP_Post>}>
      */
     public function browse(?int $userId = null, string $search = ''): array
     {
-        $userId ??= get_current_user_id();
-
-        $posts = get_posts([
-            'post_type'      => ClubDocuments::POST_TYPE,
-            'post_status'    => 'publish',
-            'posts_per_page' => 200,
-            'orderby'        => 'title',
-            'order'          => 'ASC',
-            's'              => $search,
-        ]);
-
         $grouped = [];
 
-        foreach ($posts as $post) {
-            if (!ClubDocuments::mayDownload($post->ID, $userId)) {
-                continue;
-            }
-
+        foreach ($this->visibleDocuments($userId, $search) as $post) {
             $terms = get_the_terms($post->ID, ClubDocuments::TAXONOMY);
             $term  = is_array($terms) && $terms !== [] ? $terms[0] : null;
             $key   = $term?->term_id ?? 0;
@@ -257,6 +245,193 @@ final class DocumentLibrary
         });
 
         return array_values($grouped);
+    }
+
+    /**
+     * Documents visibles par cette personne, rangés dans l'arborescence des
+     * catégories.
+     *
+     * Les catégories se hiérarchisent (« Supports de formation › Niveau 1 ») ;
+     * l'arbre rendu suit cette hiérarchie. Trois règles :
+     *
+     * - une branche sans aucun document visible disparaît. Un visiteur ne doit
+     *   pas voir une rubrique vide dont le contenu lui est caché ;
+     * - un document coché dans plusieurs catégories apparaît dans chacune,
+     *   sauf dans celles qui sont ancêtres d'une autre de ses catégories :
+     *   cocher « Formation » et « Niveau 1 » le range sous « Niveau 1 » seul ;
+     * - les documents sans catégorie forment une branche finale sans terme.
+     *
+     * `count` est le nombre de documents de la branche, sous-catégories
+     * comprises, chaque document compté une fois.
+     *
+     * @return list<array{term: \WP_Term|null, documents: list<\WP_Post>, children: list<array<string, mixed>>, count: int}>
+     */
+    public function tree(?int $userId = null, string $search = ''): array
+    {
+        $terms = get_terms([
+            'taxonomy'   => ClubDocuments::TAXONOMY,
+            'hide_empty' => false,
+        ]);
+        $terms = is_array($terms) ? $terms : [];
+
+        /** @var array<int, \WP_Term> $byId */
+        $byId = [];
+
+        foreach ($terms as $term) {
+            $byId[$term->term_id] = $term;
+        }
+
+        /** @var array<int, list<\WP_Post>> $documentsOf terme => documents, 0 pour « sans catégorie » */
+        $documentsOf = [];
+
+        foreach ($this->visibleDocuments($userId, $search) as $post) {
+            // `get_the_terms` lit le cache rempli par `get_posts` : aucune
+            // requête par document, contrairement à `wp_get_object_terms`.
+            $postTerms = get_the_terms($post->ID, ClubDocuments::TAXONOMY);
+            $ids       = is_array($postTerms) ? array_values(array_filter(
+                array_map(static fn (\WP_Term $t): int => (int) $t->term_id, $postTerms),
+                static fn (int $id): bool => isset($byId[$id])
+            )) : [];
+
+            // Un ancêtre d'une autre catégorie cochée cède la place au plus précis.
+            $ancestors = [];
+
+            foreach ($ids as $id) {
+                foreach (get_ancestors($id, ClubDocuments::TAXONOMY, 'taxonomy') as $ancestor) {
+                    $ancestors[(int) $ancestor] = true;
+                }
+            }
+
+            $leaves = array_values(array_filter($ids, static fn (int $id): bool => !isset($ancestors[$id])));
+
+            foreach ($leaves === [] ? [0] : $leaves as $id) {
+                $documentsOf[$id][] = $post;
+            }
+        }
+
+        /** @var array<int, list<int>> $childrenOf */
+        $childrenOf = [];
+
+        foreach ($byId as $id => $term) {
+            // Un parent disparu (supprimé à la main en base) ne doit pas faire
+            // perdre la branche : elle remonte à la racine.
+            $parent = isset($byId[$term->parent]) ? (int) $term->parent : 0;
+            $childrenOf[$parent][] = $id;
+        }
+
+        $build = function (int $id, array $seen = []) use (&$build, $byId, $childrenOf, $documentsOf): ?array {
+            // Garde-fou contre une boucle de parents corrompue.
+            if (isset($seen[$id])) {
+                return null;
+            }
+
+            $seen[$id] = true;
+            $children  = [];
+            $unique    = [];
+
+            foreach ($childrenOf[$id] ?? [] as $childId) {
+                $child = $build($childId, $seen);
+
+                if ($child !== null) {
+                    $children[] = $child;
+
+                    foreach ($child['ids'] as $documentId => $_) {
+                        $unique[$documentId] = true;
+                    }
+                }
+            }
+
+            $documents = $documentsOf[$id] ?? [];
+
+            foreach ($documents as $document) {
+                $unique[$document->ID] = true;
+            }
+
+            if ($unique === []) {
+                return null;
+            }
+
+            usort($children, static fn (array $a, array $b): int
+                => strnatcasecmp($a['term']->name, $b['term']->name));
+
+            return [
+                'term'      => $byId[$id],
+                'documents' => $documents,
+                'children'  => $children,
+                'count'     => count($unique),
+                'ids'       => $unique,
+            ];
+        };
+
+        $tree = [];
+
+        foreach ($childrenOf[0] ?? [] as $rootId) {
+            $node = $build($rootId);
+
+            if ($node !== null) {
+                $tree[] = $node;
+            }
+        }
+
+        usort($tree, static fn (array $a, array $b): int
+            => strnatcasecmp($a['term']->name, $b['term']->name));
+
+        if (($documentsOf[0] ?? []) !== []) {
+            $tree[] = [
+                'term'      => null,
+                'documents' => $documentsOf[0],
+                'children'  => [],
+                'count'     => count($documentsOf[0]),
+                'ids'       => [],
+            ];
+        }
+
+        return self::stripIds($tree);
+    }
+
+    /**
+     * Retire l'index interne qui a servi à compter sans doublon.
+     *
+     * @param list<array<string, mixed>> $nodes
+     * @return list<array<string, mixed>>
+     */
+    private static function stripIds(array $nodes): array
+    {
+        return array_map(static function (array $node): array {
+            unset($node['ids']);
+            $node['children'] = self::stripIds($node['children']);
+
+            return $node;
+        }, $nodes);
+    }
+
+    /**
+     * Documents publiés que cette personne peut télécharger, par titre.
+     *
+     * Aucune limite de nombre : la reprise Joomla en apporte plus de 500, et
+     * une limite coupait la liste sans prévenir. Les métadonnées et les termes
+     * sont chargés en bloc par `get_posts`, le contrôle d'accès ne coûte donc
+     * pas une requête par document.
+     *
+     * @return list<\WP_Post>
+     */
+    private function visibleDocuments(?int $userId, string $search): array
+    {
+        $userId ??= get_current_user_id();
+
+        $posts = get_posts([
+            'post_type'      => ClubDocuments::POST_TYPE,
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            's'              => $search,
+        ]);
+
+        return array_values(array_filter(
+            $posts,
+            static fn (\WP_Post $post): bool => ClubDocuments::mayDownload($post->ID, $userId)
+        ));
     }
 
     /**

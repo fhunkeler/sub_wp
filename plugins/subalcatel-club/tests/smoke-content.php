@@ -191,6 +191,100 @@ $check('Le bureau voit tout', count($officeSees) >= 3, count($officeSees) . ' do
 $check('La recherche filtre', $library->browse($office, 'compresseur') !== []
     && count($library->browse($office, 'compresseur')[0]['documents']) === 1);
 
+// --- Arborescence ------------------------------------------------------------
+echo "\n--- Arborescence des catégories ---\n";
+
+$tax       = ClubDocuments::TAXONOMY;
+$formation = (int) wp_insert_term('Formation test', $tax, ['slug' => 'formation-test'])['term_id'];
+$level1    = (int) wp_insert_term('Niveau 1 test', $tax, ['slug' => 'niveau-1-test', 'parent' => $formation])['term_id'];
+$level2    = (int) wp_insert_term('Niveau 2 test', $tax, ['slug' => 'niveau-2-test', 'parent' => $formation])['term_id'];
+$level10   = (int) wp_insert_term('Niveau 10 test', $tax, ['slug' => 'niveau-10-test', 'parent' => $formation])['term_id'];
+
+$treeDocs = [
+    'rous'    => [$makeDoc('Support RIFAP N1', ClubDocuments::ACCESS_PUBLIC), [$level1]],
+    'both'    => [$makeDoc('Programme N1', ClubDocuments::ACCESS_PUBLIC), [$formation, $level1]],
+    'level2'  => [$makeDoc('Support N2', ClubDocuments::ACCESS_MEMBERS), [$level2]],
+    'level10' => [$makeDoc('Support N10', ClubDocuments::ACCESS_PUBLIC), [$level10]],
+];
+
+foreach ($treeDocs as [$id, $terms]) {
+    wp_set_object_terms($id, $terms, $tax);
+}
+
+$findNode = static function (array $nodes, string $slug) use (&$findNode): ?array {
+    foreach ($nodes as $node) {
+        if (($node['term']?->slug ?? '') === $slug) {
+            return $node;
+        }
+
+        $found = $findNode($node['children'], $slug);
+
+        if ($found !== null) {
+            return $found;
+        }
+    }
+
+    return null;
+};
+
+$childSlugs = static fn (?array $node): array
+    => array_map(static fn (array $c): string => $c['term']->slug, $node['children'] ?? []);
+
+$visitorTree = $library->tree(0);
+$memberTree  = $library->tree($member);
+
+$check('La sous-catégorie est rangée sous sa parente',
+    $childSlugs($findNode($visitorTree, 'formation-test')) === ['niveau-1-test', 'niveau-10-test'],
+    implode(', ', $childSlugs($findNode($visitorTree, 'formation-test'))));
+$check('Une branche sans document visible disparaît',
+    $findNode($visitorTree, 'niveau-2-test') === null, 'le Niveau 2 est réservé aux adhérents');
+$check('L’adhérent voit la branche réservée, en ordre naturel',
+    $childSlugs($findNode($memberTree, 'formation-test')) === ['niveau-1-test', 'niveau-2-test', 'niveau-10-test'],
+    'Niveau 2 avant Niveau 10');
+$check('Parente et fille cochées : rangé sous la fille seule',
+    ($findNode($visitorTree, 'formation-test')['documents'] ?? null) === []
+    && count($findNode($visitorTree, 'niveau-1-test')['documents'] ?? []) === 2);
+$check('Le compteur inclut les sous-catégories',
+    ($findNode($visitorTree, 'formation-test')['count'] ?? 0) === 3
+    && ($findNode($memberTree, 'formation-test')['count'] ?? 0) === 4);
+$check('Les catégories vides n’apparaissent pas', $findNode($visitorTree, 'comptes-rendus') === null);
+
+$last = end($memberTree);
+$check('Les documents sans catégorie ferment la marche', $last['term'] === null
+    && in_array('Compte rendu AG 2026', array_map(static fn ($d) => $d->post_title, $last['documents']), true));
+
+$searched = $library->tree(0, 'RIFAP');
+$check('La recherche garde le chemin de la catégorie',
+    count($searched) === 1 && $childSlugs($searched[0]) === ['niveau-1-test']);
+
+// --- Pas de limite de nombre ---------------------------------------------------
+$bulk = [];
+
+for ($i = 0; $i < 205; $i++) {
+    $bulk[] = $makeDoc(sprintf('Archive Joomla %03d', $i), ClubDocuments::ACCESS_PUBLIC);
+}
+
+$visibleCount = 0;
+
+foreach ($library->tree(0) as $node) {
+    $visibleCount += $node['count'];
+}
+
+$check('Plus de 200 documents : aucun ne manque', $visibleCount >= 205 + 4,
+    $visibleCount . ' document(s) dans l’arbre');
+
+foreach ($bulk as $id) {
+    wp_delete_post($id, true);
+}
+
+foreach ($treeDocs as [$id]) {
+    wp_delete_post($id, true);
+}
+
+foreach ([$level1, $level2, $level10, $formation] as $termId) {
+    wp_delete_term($termId, $tax);
+}
+
 // --- Visibilité des articles -------------------------------------------------
 echo "\n--- Visibilité des articles ---\n";
 

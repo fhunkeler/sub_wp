@@ -662,15 +662,91 @@
 	border-radius: 4px;
 }
 
-.sub-doclib__group {
-	margin-bottom: 28px;
+.sub-doclib__tools {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
 }
 
-.sub-doclib__group h3 {
-	margin: 0 0 10px;
-	padding-bottom: 6px;
+.sub-doclib__tools[hidden] {
+	display: none;
+}
+
+/* Arborescence : un <details> par catégorie, imbriqués. */
+.sub-doclib__group {
+	margin-bottom: 12px;
+}
+
+.sub-doclib__summary {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 8px 0 6px;
 	border-bottom: 2px solid var(--sub-ecume, #e9f4fa);
 	font-size: 1.05rem;
+	font-weight: 700;
+	cursor: pointer;
+	list-style: none;
+}
+
+.sub-doclib__summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Chevron qui pivote à l'ouverture. */
+.sub-doclib__summary::before {
+	content: "";
+	flex: none;
+	width: 0.5em;
+	height: 0.5em;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: translateY(-0.15em) rotate(-45deg);
+	transition: transform 0.15s ease;
+}
+
+.sub-doclib__group[open] > .sub-doclib__summary::before {
+	transform: translateY(-0.3em) rotate(45deg);
+}
+
+.sub-doclib__summary:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.sub-doclib__count {
+	margin-left: auto;
+	font-size: 0.8rem;
+	font-weight: 400;
+	color: #566b84;
+	white-space: nowrap;
+}
+
+.sub-doclib__body {
+	padding: 4px 0 0 18px;
+}
+
+/* Les sous-catégories, un ton en dessous, rattachées par un filet. */
+.sub-doclib__body > .sub-doclib__group {
+	margin: 8px 0 4px;
+	padding-left: 12px;
+	border-left: 2px solid var(--sub-ecume, #e9f4fa);
+}
+
+.sub-doclib__body > .sub-doclib__group > .sub-doclib__summary {
+	font-size: 0.98rem;
+	border-bottom-width: 1px;
+}
+
+@media (max-width: 600px) {
+	.sub-doclib__body {
+		padding-left: 8px;
+	}
+
+	.sub-doclib__body > .sub-doclib__group {
+		padding-left: 8px;
+	}
 }
 
 .sub-doclib__list {

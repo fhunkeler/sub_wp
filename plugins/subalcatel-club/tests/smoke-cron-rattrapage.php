@@ -221,6 +221,70 @@ $check(
 );
 
 // =============================================================================
+// 5. Avis d'expiration : il part une fois, même après une journée sautée
+// =============================================================================
+echo "\n--- Expiration d'un document : le membre est prévenu ---\n";
+
+$expiredMailsTo = static function (int $userId): int {
+    $email = (string) get_userdata($userId)->user_email;
+    $n     = 0;
+    foreach ($GLOBALS['sub_sent_mails'] as $mail) {
+        $to = (array) ($mail['to'] ?? []);
+        if (in_array($email, $to, true) && str_contains((string) ($mail['subject'] ?? ''), 'a expiré')) {
+            $n++;
+        }
+    }
+
+    return $n;
+};
+
+$insertDocument = static function (int $userId, string $status, string $validUntil) use ($wpdb, $at): int {
+    $wpdb->insert("{$wpdb->prefix}sub_member_documents", [
+        'user_id'     => $userId,
+        'type_slug'   => 'certificat-medical',
+        'file_path'   => 'rattrapage/' . wp_generate_password(8, false) . '.pdf',
+        'status'      => $status,
+        'valid_until' => $validUntil,
+        'uploaded_at' => $at(-300),
+    ]);
+
+    return (int) $wpdb->insert_id;
+};
+
+$expiredDocs = [];
+
+// Dernier jour de validité hier : le document bascule ce matin.
+$lapsed        = $makeUser('Périmé');
+$expiredDocs[] = $insertDocument($lapsed, 'valid', $at(-1));
+
+// Échu il y a trois jours, mais la tâche n'a pas tourné depuis.
+$missed        = $makeUser('Oublié');
+$expiredDocs[] = $insertDocument($missed, 'valid', $at(-3));
+
+// Un nouveau certificat attend déjà la validation du bureau.
+$renewed       = $makeUser('Renouvelé');
+$expiredDocs[] = $insertDocument($renewed, 'valid', $at(-1));
+$expiredDocs[] = $insertDocument($renewed, 'pending', $at(364));
+
+// Expiré depuis des mois : la mise en service ne doit pas le réveiller.
+$ancient       = $makeUser('Ancien');
+$expiredDocs[] = $insertDocument($ancient, 'expired', $at(-90));
+
+$GLOBALS['sub_sent_mails'] = [];
+DailyDigest::run($at(0));
+
+$check('le document échu hier est signalé', $expiredMailsTo($lapsed) === 1);
+$check('celui manqué par le cron aussi', $expiredMailsTo($missed) === 1);
+$check('rien si un document plus récent est déposé', $expiredMailsTo($renewed) === 0);
+$check('rien pour une expiration ancienne', $expiredMailsTo($ancient) === 0);
+
+DailyDigest::run($at(1));
+$check(
+    'et jamais une seconde fois',
+    $expiredMailsTo($lapsed) === 1 && $expiredMailsTo($missed) === 1
+);
+
+// =============================================================================
 // Ménage
 // =============================================================================
 $wpdb->delete("{$wpdb->prefix}sub_applications", ['campaign_id' => $campaignId]);
@@ -228,8 +292,11 @@ $wpdb->delete("{$wpdb->prefix}sub_campaigns", ['id' => $campaignId]);
 
 require_once ABSPATH . 'wp-admin/includes/user.php';
 $wpdb->delete("{$wpdb->prefix}sub_member_documents", ['id' => $documentId]);
+foreach ($expiredDocs as $id) {
+    $wpdb->delete("{$wpdb->prefix}sub_member_documents", ['id' => $id]);
+}
 
-foreach ([$late, $soon, $grownUp, $plainAdult, $warned] as $id) {
+foreach ([$late, $soon, $grownUp, $plainAdult, $warned, $lapsed, $missed, $renewed, $ancient] as $id) {
     wp_delete_user($id);
 }
 

@@ -41,6 +41,7 @@ final class EmailTemplates
 
     // Documents
     public const DOCUMENT_REMINDER  = 'document.reminder';
+    public const DOCUMENT_EXPIRED   = 'document.expired';
     public const DOCUMENT_VALIDATED = 'document.validated';
     public const DOCUMENT_REJECTED  = 'document.rejected';
     public const DOCUMENT_PURGED    = 'document.purged';
@@ -297,6 +298,24 @@ final class EmailTemplates
                 'variables'   => ['document' => 'Nom du document', 'fin_validite' => 'Date de fin', 'jours' => 'Jours restants'],
             ],
             [
+                'code'        => self::DOCUMENT_EXPIRED,
+                'copy_guardian' => 1,
+                'label'       => 'Document expiré',
+                'description' => 'Envoyé une fois, quand un document arrive au terme de sa validité. '
+                    . 'Le rappel préalable ne suffit pas : déposé après lui, ou ignoré, le document '
+                    . 'expirait sans que personne ne le dise, et le membre ne le découvrait qu’en '
+                    . 'voyant son inscription refusée. Rien ne part si un document plus récent du même '
+                    . 'type a déjà été déposé.',
+                'subject'     => '[{club}] Votre {document} a expiré',
+                'body'        => "Bonjour {prenom},\n\n"
+                    . "Votre {document}, valable jusqu’au {fin_validite}, a expiré.\n\n"
+                    . "Tant qu’un nouveau document n’aura pas été déposé et validé, vous ne pourrez "
+                    . "plus vous inscrire aux plongées.\n\n"
+                    . "Vous pouvez le déposer depuis votre espace membre.\n\n"
+                    . "— {club}",
+                'variables'   => ['document' => 'Nom du document', 'fin_validite' => 'Dernier jour de validité'],
+            ],
+            [
                 'code'        => self::DOCUMENT_VALIDATED,
                 'label'       => 'Document validé',
                 'description' => 'Envoyé quand le bureau accepte un document déposé.',
@@ -536,7 +555,7 @@ final class EmailTemplates
      * modèle absent ne provoque pas d'erreur, il fait taire l'envoi. À
      * incrémenter dès qu'un modèle est ajouté à `defaults()`.
      */
-    private const VERSION        = 11;
+    private const VERSION        = 12;
     private const VERSION_OPTION = 'subalcatel_club_templates_version';
 
     public static function seedIfNeeded(): void

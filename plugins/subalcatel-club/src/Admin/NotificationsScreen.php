@@ -462,9 +462,10 @@ final class NotificationsScreen
         $result = DailyDigest::run();
 
         self::back(sprintf(
-            'Tâche exécutée : %d document(s) expiré(s), %d purgé(s), %d rappel(s) document, '
+            'Tâche exécutée : %d document(s) expiré(s), %d avis d’expiration, %d purgé(s), %d rappel(s) document, '
             . '%d avertissement(s) de suppression, %d rappel(s) d’adhésion.',
             $result['expired'],
+            $result['expired_notices'],
             $result['purged'],
             $result['doc_reminders'],
             $result['purge_warnings'],

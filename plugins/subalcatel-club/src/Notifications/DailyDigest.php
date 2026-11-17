@@ -41,7 +41,7 @@ final class DailyDigest
     }
 
     /**
-     * @return array{expired: int, purged: int, doc_reminders: int, purge_warnings: int, membership_reminders: int, came_of_age: int, campaign_notices: int, deferred: int, queued_sent: int}
+     * @return array{expired: int, expired_notices: int, purged: int, doc_reminders: int, purge_warnings: int, membership_reminders: int, came_of_age: int, campaign_notices: int, deferred: int, queued_sent: int}
      */
     public static function run(?string $onDate = null): array
     {
@@ -49,6 +49,7 @@ final class DailyDigest
 
         $result = [
             'expired'              => $documents->markExpired($onDate),
+            'expired_notices'      => self::expiredNotices($onDate),
             'purged'               => $documents->purgeDue($onDate),
             'doc_reminders'        => self::documentReminders($onDate),
             'purge_warnings'       => $documents->warnBeforePurge(15, $onDate),
@@ -187,6 +188,70 @@ final class DailyDigest
                     $sent += $ok ? 1 : 0;
                 }
             }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Fenêtre de rattrapage de l'avis d'expiration, en jours.
+     *
+     * Un document expiré ne repasse jamais par `markExpired()` : si l'avis ne
+     * cherchait que les documents basculés le jour même, une exécution sautée
+     * ou un envoi reporté faute de quota le perdrait pour de bon. On regarde
+     * donc en arrière, assez loin pour couvrir une panne ou un quota saturé,
+     * pas au point de prévenir à la mise en service des membres expirés depuis
+     * des mois. La garde `once` empêche tout second envoi.
+     */
+    private const EXPIRED_NOTICE_DAYS = 14;
+
+    /**
+     * Prévient le membre le jour où un document arrive à expiration.
+     *
+     * Le rappel préalable ne suffit pas : un membre l'ignore, ou le document a
+     * été saisi alors qu'il n'était plus dans la fenêtre du rappel, et
+     * l'expiration passait sans un mot. Il la découvrait en voyant son
+     * inscription refusée.
+     *
+     * Rien ne part si le membre a déjà déposé un document plus récent du même
+     * type, en attente ou validé : lui annoncer l'expiration de l'ancien
+     * laisserait croire que le nouveau n'a pas été reçu.
+     */
+    private static function expiredNotices(?string $onDate = null): int
+    {
+        global $wpdb;
+
+        $today = new \DateTimeImmutable($onDate ?? current_time('Y-m-d'));
+        $table = $wpdb->prefix . 'sub_member_documents';
+        $sent  = 0;
+
+        $documents = $wpdb->get_results($wpdb->prepare(
+            "SELECT d.* FROM {$table} d
+             WHERE d.status = 'expired'
+               AND d.valid_until >= %s AND d.valid_until < %s
+               AND NOT EXISTS (
+                   SELECT 1 FROM {$table} n
+                   WHERE n.user_id = d.user_id AND n.type_slug = d.type_slug
+                     AND n.id > d.id AND n.status IN ('pending', 'valid')
+               )",
+            $today->modify('-' . self::EXPIRED_NOTICE_DAYS . ' days')->format('Y-m-d'),
+            $today->format('Y-m-d')
+        ), ARRAY_A) ?: [];
+
+        foreach ($documents as $document) {
+            $type = DocumentTypes::find((string) $document['type_slug']);
+
+            $ok = Mailer::toUser(EmailTemplates::DOCUMENT_EXPIRED, (int) $document['user_id'], [
+                'document'     => mb_strtolower((string) ($type['label'] ?? 'document')),
+                'fin_validite' => DocumentService::frDate((string) $document['valid_until']),
+            ], [
+                'entity_type' => 'member_document_expired',
+                'entity_id'   => (int) $document['id'],
+                'once'        => true,
+                'deferrable'  => true,
+            ]);
+
+            $sent += $ok ? 1 : 0;
         }
 
         return $sent;

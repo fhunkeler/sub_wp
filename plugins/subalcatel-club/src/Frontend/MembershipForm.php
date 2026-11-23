@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Frontend;
 use Subalcatel\Club\Membership\ApplicantIdentity;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\IncompleteApplication;
 use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Membership\PricingEngine;
@@ -170,6 +171,21 @@ final class MembershipForm
                             <span>Total</span>
                             <strong data-quote-total>—</strong>
                         </p>
+                        <?php // Rempli quand le règlement passe par le CE Orange. ?>
+                        <div class="sub-summary__share" data-quote-share hidden>
+                            <p class="sub-summary__share-line">
+                                <span>Pris en charge par le CE Orange</span>
+                                <span data-quote-share-ce>—</span>
+                            </p>
+                            <p class="sub-summary__share-line sub-summary__share-line--member">
+                                <span>Reste à votre charge</span>
+                                <strong data-quote-share-member>—</strong>
+                            </p>
+                            <p class="sub-summary__share-help">
+                                Carte de niveau et assurance, à régler dans la boutique CE Orange
+                                une fois le dossier déposé.
+                            </p>
+                        </div>
                     </div>
                     <button type="submit" class="sub-button">Soumettre mon dossier</button>
                     <p class="sub-summary__note">
@@ -205,12 +221,23 @@ final class MembershipForm
             )
             : '';
 
+        // Réglé par le CE, le total n'est pas ce que l'adhérent paie : c'est
+        // ici qu'il atterrit juste après le dépôt, la répartition y figure.
+        $share = (string) ($application['payment_method'] ?? '') === CeOrangeShare::METHOD
+            && $status !== ApplicationService::STATUS_ACTIVE
+            ? '<br>' . esc_html(CeOrangeShare::sentence(CeOrangeShare::fromStoredLines(
+                (float) $application['total_amount'],
+                (new ApplicationService())->lines((int) $application['id'])
+            )))
+            : '';
+
         return self::notice(
             'Vous avez déjà un dossier pour cette campagne',
             sprintf(
-                'Dossier <code>%s</code> — %s.<br>%s%s',
+                'Dossier <code>%s</code> — %s.%s<br>%s%s',
                 esc_html((string) $application['reference']),
                 esc_html(self::euro((float) $application['total_amount'])),
+                $share,
                 esc_html($where),
                 $link
             )
@@ -432,12 +459,22 @@ final class MembershipForm
                 // `instructionsHtml` rend déjà du HTML échappé, lien de
                 // paiement compris : le repasser à `esc_html` afficherait la
                 // balise au lieu du lien.
+                // Réglé par le CE, le total n'est pas ce que l'adhérent paie :
+                // la répartition vient avant les consignes.
+                $share = $method === CeOrangeShare::METHOD
+                    ? esc_html(CeOrangeShare::sentence(CeOrangeShare::fromStoredLines(
+                        (float) $application['total_amount'],
+                        $service->lines((int) $application['id'])
+                    ))) . ' '
+                    : '';
+
                 $html .= sprintf(
                     '<div class="sub-notice sub-notice--success" role="status"><strong>Dossier %s enregistré</strong>'
-                    . '<p>Montant à régler : <strong>%s</strong>, par %s. %s</p></div>',
+                    . '<p>Montant à régler : <strong>%s</strong>, par %s. %s%s</p></div>',
                     esc_html((string) $application['reference']),
                     esc_html(self::euro((float) $application['total_amount'])),
                     esc_html(PaymentMethods::label($method)),
+                    $share,
                     PaymentMethods::instructionsHtml(
                         $method,
                         $link,

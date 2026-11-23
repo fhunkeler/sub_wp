@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\PricingEngine;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -70,7 +71,22 @@ final class QuoteEndpoint
             }
         }
 
+        // Réglé par le CE, le total reste celui que le club encaisse : on dit
+        // en plus ce que le CE prend, et ce qui reste à l'adhérent.
+        $share = null;
+
+        if (sanitize_key((string) $request->get_param('payment_method')) === CeOrangeShare::METHOD) {
+            $split = CeOrangeShare::fromQuote($quote);
+            $share = [
+                'ce'             => $split['ce'],
+                'member'         => $split['member'],
+                'ce_display'     => number_format($split['ce'], 2, ',', ' ') . ' €',
+                'member_display' => number_format($split['member'], 2, ',', ' ') . ' €',
+            ];
+        }
+
         return new WP_REST_Response([
+            'share'   => $share,
             'lines'   => array_map(
                 static fn (array $l): array => [
                     'type'   => $l['type'],

@@ -271,6 +271,37 @@
 	color: var(--sub-profond);
 }
 
+.sub-summary__share {
+	margin: -8px 0 16px;
+	padding-top: 12px;
+	border-top: 1px dashed var(--sub-ardoise);
+	font-variant-numeric: tabular-nums;
+}
+
+.sub-summary__share-line {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 12px;
+	margin: 0 0 6px;
+}
+
+/* Un montant ne se coupe pas : « 180,00 » d'un côté, « € » de l'autre. */
+.sub-summary__share-line > :last-child {
+	white-space: nowrap;
+}
+
+.sub-summary__share-line--member strong {
+	font-size: 20px;
+	color: var(--sub-profond);
+}
+
+.sub-summary__share-help {
+	font-size: 13px;
+	color: var(--sub-ardoise);
+	margin: 0;
+}
+
 .sub-summary__note {
 	font-size: 13px;
 	color: var(--sub-ardoise);
@@ -1904,6 +1935,18 @@
 	border-bottom: 0;
 	border-top: 2px solid var(--sub-profond);
 	font-size: 19px;
+	padding-top: 12px;
+}
+
+/* Réglé par le CE Orange : sous le total, ce que le CE prend et ce qui reste. */
+.sub-lines tfoot .sub-lines__share td {
+	border-top: 0;
+	font-size: 16px;
+	padding-top: 6px;
+}
+
+.sub-lines tfoot tr:first-child + .sub-lines__share td {
+	border-top: 1px dashed var(--sub-ardoise);
 	padding-top: 12px;
 }
 

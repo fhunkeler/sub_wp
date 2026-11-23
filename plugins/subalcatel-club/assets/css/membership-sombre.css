@@ -91,6 +91,14 @@
 	color: #a8ceeb;
 }
 
+:root[data-theme="dark"] .sub-summary__share-line--member strong {
+	color: #a8ceeb;
+}
+
+:root[data-theme="dark"] .sub-summary__share-help {
+	color: #aebbca;
+}
+
 :root[data-theme="dark"] .sub-summary__note {
 	color: #aebbca;
 }

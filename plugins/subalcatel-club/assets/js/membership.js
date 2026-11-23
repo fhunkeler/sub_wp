@@ -15,6 +15,7 @@
 
 	const linesEl = form.querySelector('[data-quote-lines]');
 	const totalEl = form.querySelector('[data-quote-total]');
+	const shareEl = form.querySelector('[data-quote-share]');
 	const campaignId = form.dataset.campaign;
 
 	let pending = null;
@@ -30,7 +31,12 @@
 			}
 		}
 
-		return { campaign_id: campaignId, plan: data.get('plan') || '', options };
+		return {
+			campaign_id: campaignId,
+			plan: data.get('plan') || '',
+			payment_method: data.get('payment_method') || '',
+			options,
+		};
 	}
 
 	function applyVisibility(visible) {
@@ -70,6 +76,22 @@
 			.join('');
 	}
 
+	/**
+	 * Réglé par le CE Orange, le total reste ce que le club encaisse : le
+	 * serveur ajoute ce que le CE prend et ce qui reste à l'adhérent.
+	 */
+	function renderShare(share) {
+		if (!shareEl) {
+			return;
+		}
+
+		shareEl.hidden = !share;
+		if (share) {
+			shareEl.querySelector('[data-quote-share-ce]').textContent = share.ce_display;
+			shareEl.querySelector('[data-quote-share-member]').textContent = share.member_display;
+		}
+	}
+
 	function escapeHtml(value) {
 		const div = document.createElement('div');
 		div.textContent = value;
@@ -104,10 +126,12 @@
 				applyVisibility(data.visible || []);
 				renderLines(data.lines || []);
 				totalEl.textContent = data.display;
+				renderShare(data.share || null);
 			})
 			.catch(function (error) {
 				if (error.name !== 'AbortError') {
 					totalEl.textContent = '—';
+					renderShare(null);
 				}
 			});
 	}

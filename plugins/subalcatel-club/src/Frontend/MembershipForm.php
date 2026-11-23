@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Frontend;
 use Subalcatel\Club\Membership\ApplicantIdentity;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\IncompleteApplication;
 use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Membership\PricingEngine;
@@ -89,6 +90,15 @@ final class MembershipForm
         $standing = (new ApplicationService())->currentFor($userId, $campaignId);
 
         if ($standing !== null) {
+            // Juste après le dépôt, la redirection porte ce dossier : c'est la
+            // confirmation qu'on attend, consignes de règlement comprises, et
+            // pas « vous avez déjà un dossier ». Depuis que le dossier remplace
+            // le formulaire (17/09/2026), elle n'était plus jamais affichée.
+            if (isset($_GET['sub_application'])
+                && absint($_GET['sub_application']) === (int) $standing['id']) {
+                return self::submitted($standing);
+            }
+
             return self::standingApplication($standing);
         }
 
@@ -170,6 +180,21 @@ final class MembershipForm
                             <span>Total</span>
                             <strong data-quote-total>—</strong>
                         </p>
+                        <?php // Rempli quand le règlement passe par le CE Orange. ?>
+                        <div class="sub-summary__share" data-quote-share hidden>
+                            <p class="sub-summary__share-line">
+                                <span>Pris en charge par le CE Orange</span>
+                                <span data-quote-share-ce>—</span>
+                            </p>
+                            <p class="sub-summary__share-line sub-summary__share-line--member">
+                                <span>Reste à votre charge</span>
+                                <strong data-quote-share-member>—</strong>
+                            </p>
+                            <p class="sub-summary__share-help">
+                                Carte de niveau et assurance, à régler dans la boutique CE Orange
+                                une fois le dossier déposé.
+                            </p>
+                        </div>
                     </div>
                     <button type="submit" class="sub-button">Soumettre mon dossier</button>
                     <p class="sub-summary__note">
@@ -205,12 +230,23 @@ final class MembershipForm
             )
             : '';
 
+        // Réglé par le CE, le total n'est pas ce que l'adhérent paie : c'est
+        // ici qu'il atterrit juste après le dépôt, la répartition y figure.
+        $share = (string) ($application['payment_method'] ?? '') === CeOrangeShare::METHOD
+            && $status !== ApplicationService::STATUS_ACTIVE
+            ? '<br>' . esc_html(CeOrangeShare::sentence(CeOrangeShare::fromStoredLines(
+                (float) $application['total_amount'],
+                (new ApplicationService())->lines((int) $application['id'])
+            )))
+            : '';
+
         return self::notice(
             'Vous avez déjà un dossier pour cette campagne',
             sprintf(
-                'Dossier <code>%s</code> — %s.<br>%s%s',
+                'Dossier <code>%s</code> — %s.%s<br>%s%s',
                 esc_html((string) $application['reference']),
                 esc_html(self::euro((float) $application['total_amount'])),
+                $share,
                 esc_html($where),
                 $link
             )
@@ -405,7 +441,64 @@ final class MembershipForm
     }
 
     /**
-     * Message affiché au retour de soumission : dossier accepté, ou motif du refus.
+     * Confirmation d'un dossier tout juste déposé : montant, mode de règlement
+     * et ce qu'il reste à faire pour régler, lien de paiement compris.
+     *
+     * Le dossier vient de `currentFor` sur l'utilisateur connecté : il est à
+     * lui, sans autre contrôle.
+     *
+     * @param array<string, mixed> $application
+     */
+    private static function submitted(array $application): string
+    {
+        $method = (string) ($application['payment_method'] ?? '');
+
+        // Le lien vient de la campagne du dossier, pas de celle qui se
+        // trouve ouverte aujourd'hui : pendant la quinzaine où deux
+        // campagnes se chevauchent, elles n'encaissent pas au même
+        // endroit.
+        $campaignRepo = new CampaignRepository();
+        $link         = $campaignRepo->paymentLink((int) $application['campaign_id'], $method);
+
+        // Réglé par le CE, le total n'est pas ce que l'adhérent paie :
+        // la répartition vient avant les consignes.
+        $share = $method === CeOrangeShare::METHOD
+            ? esc_html(CeOrangeShare::sentence(CeOrangeShare::fromStoredLines(
+                (float) $application['total_amount'],
+                (new ApplicationService())->lines((int) $application['id'])
+            ))) . ' '
+            : '';
+
+        $more = Pages::exists(Pages::MEMBERSHIP)
+            ? sprintf(
+                '<p>Le bureau vous tiendra informé de chaque étape. <a href="%s">Voir mon adhésion</a>.</p>',
+                esc_url(Pages::url(Pages::MEMBERSHIP))
+            )
+            : '';
+
+        // `instructionsHtml` rend déjà du HTML échappé, lien de paiement
+        // compris : le repasser à `esc_html` afficherait la balise au lieu
+        // du lien.
+        return sprintf(
+            '<div class="sub-notice sub-notice--success" role="status"><strong>Dossier %s enregistré</strong>'
+            . '<p>Montant à régler : <strong>%s</strong>, par %s. %s%s</p>%s</div>',
+            esc_html((string) $application['reference']),
+            esc_html(self::euro((float) $application['total_amount'])),
+            esc_html(PaymentMethods::label($method)),
+            $share,
+            PaymentMethods::instructionsHtml(
+                $method,
+                $link,
+                $campaignRepo->chequePayee((int) $application['campaign_id']),
+                $campaignRepo->chequeAddress((int) $application['campaign_id'])
+            ),
+            $more
+        );
+    }
+
+    /**
+     * Message affiché au retour d'une soumission refusée : son motif.
+     * La confirmation d'un dépôt réussi, elle, est [submitted].
      *
      * @param array<string, string> $errors
      * @param list<string> $notices
@@ -413,40 +506,6 @@ final class MembershipForm
     private static function feedback(array $errors, array $notices): string
     {
         $html = '';
-
-        if (isset($_GET['sub_application'])) {
-            $service     = new ApplicationService();
-            $application = $service->find(absint($_GET['sub_application']));
-
-            // On ne montre un dossier qu'à son auteur.
-            if ($application !== null && (int) $application['user_id'] === get_current_user_id()) {
-                $method = (string) ($application['payment_method'] ?? '');
-
-                // Le lien vient de la campagne du dossier, pas de celle qui se
-                // trouve ouverte aujourd'hui : pendant la quinzaine où deux
-                // campagnes se chevauchent, elles n'encaissent pas au même
-                // endroit.
-                $campaignRepo = new CampaignRepository();
-                $link         = $campaignRepo->paymentLink((int) $application['campaign_id'], $method);
-
-                // `instructionsHtml` rend déjà du HTML échappé, lien de
-                // paiement compris : le repasser à `esc_html` afficherait la
-                // balise au lieu du lien.
-                $html .= sprintf(
-                    '<div class="sub-notice sub-notice--success" role="status"><strong>Dossier %s enregistré</strong>'
-                    . '<p>Montant à régler : <strong>%s</strong>, par %s. %s</p></div>',
-                    esc_html((string) $application['reference']),
-                    esc_html(self::euro((float) $application['total_amount'])),
-                    esc_html(PaymentMethods::label($method)),
-                    PaymentMethods::instructionsHtml(
-                        $method,
-                        $link,
-                        $campaignRepo->chequePayee((int) $application['campaign_id']),
-                        $campaignRepo->chequeAddress((int) $application['campaign_id'])
-                    )
-                );
-            }
-        }
 
         if (isset($_GET['sub_error'])) {
             $detail = '';

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
+use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Membership\PaymentMethods;
 
@@ -141,6 +142,13 @@ final class MyMembership
     private static function renderCurrent(array $application, ApplicationService $service): void
     {
         $status = (string) $application['status'];
+        $lines  = $service->lines((int) $application['id']);
+
+        // Réglé par le CE, le total est ce que le club encaisse au bout du
+        // compte, pas ce que l'adhérent paie : on montre la répartition.
+        $share = (string) ($application['payment_method'] ?? '') === CeOrangeShare::METHOD
+            ? CeOrangeShare::fromStoredLines((float) $application['total_amount'], $lines)
+            : null;
         ?>
         <section class="sub-block">
             <h2 class="sub-block__title">
@@ -171,6 +179,9 @@ final class MyMembership
                             — mode choisi : <strong><?php echo esc_html(PaymentMethods::label($method)); ?></strong>.
                         <?php else : ?>
                             .
+                        <?php endif; ?>
+                        <?php if ($share !== null) : ?>
+                            <?php echo esc_html(CeOrangeShare::sentence($share)); ?>
                         <?php endif; ?>
                         <?php echo PaymentMethods::instructionsHtml(
                             $method,
@@ -206,7 +217,7 @@ final class MyMembership
             <h3 class="sub-membership-view__subtitle">Détail de votre cotisation</h3>
             <table class="sub-lines">
                 <tbody>
-                <?php foreach ($service->lines((int) $application['id']) as $line) : ?>
+                <?php foreach ($lines as $line) : ?>
                     <tr class="sub-lines__row sub-lines__row--<?php echo esc_attr((string) $line['line_type']); ?>">
                         <td>
                             <?php echo esc_html((string) $line['label']); ?>
@@ -227,6 +238,16 @@ final class MyMembership
                             <strong><?php echo esc_html(self::euro((float) $application['total_amount'])); ?></strong>
                         </td>
                     </tr>
+                    <?php if ($share !== null) : ?>
+                        <tr class="sub-lines__share">
+                            <td>Pris en charge par le CE Orange</td>
+                            <td class="sub-lines__amount"><?php echo esc_html(self::euro($share['ce'])); ?></td>
+                        </tr>
+                        <tr class="sub-lines__share sub-lines__share--member">
+                            <td>Reste à votre charge <span class="sub-lines__value">— carte de niveau et assurance</span></td>
+                            <td class="sub-lines__amount"><strong><?php echo esc_html(self::euro($share['member'])); ?></strong></td>
+                        </tr>
+                    <?php endif; ?>
                 </tfoot>
             </table>
 

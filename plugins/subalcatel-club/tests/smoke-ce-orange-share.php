@@ -8,11 +8,15 @@
  * Réglé par le CE Orange, un dossier garde son total — ce que le club
  * encaisse — mais dit en plus ce que le CE prend en charge et ce qui reste à
  * l'adhérent : la carte de niveau et l'assurance, réglées dans la boutique CE.
+ *
+ * Vérifie aussi la confirmation affichée juste après le dépôt, qui ne
+ * paraissait plus depuis que le dossier remplace le formulaire.
  */
 
 require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Frontend\QuoteEndpoint;
+use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\PricingEngine;
@@ -103,6 +107,62 @@ $check('La phrase donne les deux montants',
 $check('… et où régler le reste', str_contains($sentence, 'boutique CE Orange'));
 $check('Rien à régler : on le dit',
     str_contains(CeOrangeShare::sentence($noExtra), 'Rien ne reste à votre charge'));
+
+// --- Juste après le dépôt -----------------------------------------------------
+echo "\n--- Retour de dépôt ---\n";
+
+global $wpdb;
+$p = $wpdb->prefix . 'sub_';
+
+// Seule la campagne de test est ouverte le temps du contrôle : le formulaire
+// prend LA campagne ouverte, et d'autres suites en laissent.
+$otherOpen = array_map('intval', $wpdb->get_col("SELECT id FROM {$p}campaigns WHERE status = 'open'"));
+foreach ($otherOpen as $other) {
+    $wpdb->update("{$p}campaigns", ['status' => 'draft'], ['id' => $other]);
+}
+$wpdb->update("{$p}campaigns", ['status' => 'open'], ['id' => $campaignId]);
+
+$member = (int) wp_insert_user([
+    'user_login' => 'demo_' . wp_generate_password(8, false),
+    'user_pass'  => wp_generate_password(),
+    'role'       => 'sub_member',
+]);
+sub_test_complete_identity($member);
+
+$applicationId = (new ApplicationService())->submit($member, $campaignId, 'plongee', $answers + [
+    'pret_detendeur' => 'non',
+    'pret_gilet'     => 'non',
+], 'ce_orange');
+$reference = (string) ((new ApplicationService())->find($applicationId)['reference'] ?? '');
+
+wp_set_current_user($member);
+
+$_GET['sub_application'] = (string) $applicationId;
+$back = do_shortcode('[subalcatel_adhesion]');
+
+$check('Après le dépôt : la confirmation s’affiche',
+    str_contains($back, 'Dossier ' . $reference . ' enregistré'), $reference);
+$check('… avec le montant et le mode', str_contains($back, '291,00 €') && str_contains($back, 'CE Orange'));
+$check('… la répartition', str_contains($back, 'Reste à votre charge : 45,00 €'));
+$check('… et les consignes de règlement', str_contains($back, 'comité d’entreprise Orange'));
+$check('Pas « vous avez déjà un dossier » à ce moment-là', !str_contains($back, 'déjà un dossier'));
+
+$_GET['sub_application'] = '999999999';
+$check('Un autre numéro : le récapitulatif ordinaire',
+    str_contains(do_shortcode('[subalcatel_adhesion]'), 'déjà un dossier'));
+
+unset($_GET['sub_application']);
+$later = do_shortcode('[subalcatel_adhesion]');
+$check('Revenu plus tard : le récapitulatif ordinaire', str_contains($later, 'déjà un dossier')
+    && !str_contains($later, 'enregistré</strong>'));
+$check('… qui garde la répartition', str_contains($later, 'Reste à votre charge : 45,00 €'));
+
+wp_set_current_user(0);
+require_once ABSPATH . 'wp-admin/includes/user.php';
+wp_delete_user($member);
+foreach ($otherOpen as $other) {
+    $wpdb->update("{$p}campaigns", ['status' => 'open'], ['id' => $other]);
+}
 
 sub_test_drop_campaign($campaignId);
 

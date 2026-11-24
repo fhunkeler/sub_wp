@@ -67,7 +67,7 @@ jobs:
         run: |
           publier=non
 
-          for paquet in plugin theme; do
+          for paquet in plugin theme profil; do
             # La sortie standard porte les valeurs, l'erreur standard le récit :
             # l'une se relit par un script, l'autre par une personne.
             python3 version.py "$paquet" > "$RUNNER_TEMP/$paquet.env" 2> "$RUNNER_TEMP/$paquet.log"
@@ -98,7 +98,7 @@ jobs:
 
           resume=""
 
-          for paquet in plugin theme; do
+          for paquet in plugin theme profil; do
             [ "$(lire "$paquet" publier)" = "oui" ] || continue
 
             version=$(lire "$paquet" version)
@@ -107,6 +107,7 @@ jobs:
             case "$paquet" in
               plugin) resume="${resume:+$resume, }extension en $version" ;;
               theme)  resume="${resume:+$resume, }thème en $version" ;;
+              profil) resume="${resume:+$resume, }profil en $version" ;;
             esac
           done
 
@@ -144,7 +145,7 @@ jobs:
         run: |
           lire() { grep -m1 "^$2=" "$RUNNER_TEMP/$1.env" | cut -d= -f2- || true; }
 
-          for paquet in plugin theme; do
+          for paquet in plugin theme profil; do
             [ "$(lire "$paquet" publier)" = "oui" ] || continue
 
             version=$(lire "$paquet" version)
@@ -153,6 +154,7 @@ jobs:
             case "$paquet" in
               plugin) slug=subalcatel-club ;;
               theme)  slug=subalcatel ;;
+              profil) slug=subalcatel-profil ;;
             esac
 
             ARCHIVE="dist/subalcatel-$paquet-$version.zip"
@@ -173,10 +175,17 @@ jobs:
             # (`<slug>-<version>.zip`), le seul que cherchent les sites dont
             # l'extension est antérieure au changement de nom. À retirer une
             # fois tous les sites passés à une version qui connaît le nouveau.
+            #
+            # Le profil n'a jamais eu d'autre nom : son archive porte déjà le
+            # slug, et la recopier sur elle-même ferait échouer `cp`.
             ANCIEN="dist/$slug-$version.zip"
-            cp "$ARCHIVE" "$ANCIEN"
+            PIECES=("$ARCHIVE")
+            if [ "$ANCIEN" != "$ARCHIVE" ]; then
+              cp "$ARCHIVE" "$ANCIEN"
+              PIECES+=("$ANCIEN")
+            fi
 
-            gh release create "$etiquette" "$ARCHIVE" "$ANCIEN" \
+            gh release create "$etiquette" "${PIECES[@]}" \
               --repo "$GITHUB_REPOSITORY" \
               --target "${{ steps.poser.outputs.sha }}" \
               --title "$slug $version" \

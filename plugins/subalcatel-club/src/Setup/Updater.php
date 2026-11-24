@@ -45,23 +45,26 @@ final class Updater
     public const THEME_SLUG     = 'subalcatel';
 
     /**
-     * Préfixes de balises. Un seul dépôt porte les deux extensions : sans
-     * préfixe, `releases/latest` désignerait tantôt l'un tantôt l'autre.
+     * Filtre : les extensions que ce dépôt met à jour, fichier principal →
+     * `slug`, `prefixe` de balise et nom d'`archive`.
+     *
+     *     add_filter('subalcatel_updater_plugins', static fn (array $p): array => $p + [
+     *         'subalcatel-profil/subalcatel-profil.php' => [
+     *             'slug' => 'subalcatel-profil', 'prefixe' => 'profil-', 'archive' => 'subalcatel-profil',
+     *         ],
+     *     ]);
+     *
+     * L'extension du club s'y trouve d'office. Une extension publiée par le
+     * même dépôt — le profil d'un club, demain un module — s'y inscrit
+     * elle-même : le cœur n'a pas à la connaître. Elle doit aussi porter
+     * `Update URI: https://github.com/fhunkeler/sub_wp`, sans quoi WordPress
+     * ne nous la confie pas.
      */
-    private const PREFIXES = [
-        'plugin-' => self::PLUGIN_SLUG,
-        'theme-'  => self::THEME_SLUG,
-    ];
+    public const PLUGINS_FILTER = 'subalcatel_updater_plugins';
 
-    /**
-     * Nom des archives jointes aux releases, sans la version. Il ne nomme que
-     * le fichier : le dossier racine, lui, reste le slug — c'est lui que
-     * WordPress lit pour savoir quoi remplacer.
-     */
-    private const ARCHIVES = [
-        self::PLUGIN_SLUG => 'subalcatel-plugin',
-        self::THEME_SLUG  => 'subalcatel-theme',
-    ];
+    /** Le thème : son préfixe de balise et son nom d'archive. */
+    private const THEME_PREFIXE = 'theme-';
+    private const THEME_ARCHIVE = 'subalcatel-theme';
 
     private const CACHE = 'subalcatel_releases';
 
@@ -114,6 +117,60 @@ final class Updater
         add_action('load-update-core.php', [self::class, 'oublierSiDemande']);
     }
 
+    /**
+     * Extensions suivies : fichier principal → slug, préfixe, archive.
+     *
+     * Le préfixe de balise distingue les paquets : un seul dépôt les porte
+     * tous, et sans préfixe `releases/latest` désignerait tantôt l'un tantôt
+     * l'autre. Le nom d'archive ne nomme que le fichier : le dossier racine,
+     * lui, reste le slug — c'est lui que WordPress lit pour savoir quoi
+     * remplacer.
+     *
+     * @return array<string, array{slug: string, prefixe: string, archive: string}>
+     */
+    private static function extensions(): array
+    {
+        $suivies = [];
+        $inscrites = (array) apply_filters(self::PLUGINS_FILTER, [
+            self::PLUGIN_FICHIER => ['slug' => self::PLUGIN_SLUG, 'prefixe' => 'plugin-', 'archive' => 'subalcatel-plugin'],
+        ]);
+
+        foreach ($inscrites as $fichier => $paquet) {
+            $slug    = sanitize_key((string) ($paquet['slug'] ?? ''));
+            $prefixe = (string) ($paquet['prefixe'] ?? '');
+
+            if (!is_string($fichier) || $slug === '' || $prefixe === '' || $prefixe === self::THEME_PREFIXE) {
+                continue;
+            }
+
+            $suivies[$fichier] = [
+                'slug'    => $slug,
+                'prefixe' => $prefixe,
+                'archive' => (string) ($paquet['archive'] ?? $slug),
+            ];
+        }
+
+        return $suivies;
+    }
+
+    /**
+     * Préfixe de balise → slug, et slug → nom d'archive, pour tous les paquets.
+     *
+     * @return array{prefixes: array<string, string>, archives: array<string, string>}
+     */
+    private static function paquets(): array
+    {
+        $prefixes = [self::THEME_PREFIXE => self::THEME_SLUG];
+        $archives = [self::THEME_SLUG => self::THEME_ARCHIVE];
+
+        foreach (self::extensions() as $paquet) {
+            $prefixes[$paquet['prefixe']] = $paquet['slug'];
+            $archives[$paquet['slug']]    = $paquet['archive'];
+        }
+
+        return ['prefixes' => $prefixes, 'archives' => $archives];
+    }
+
     // -- Réponses aux filtres de WordPress ------------------------------------
 
     /**
@@ -127,12 +184,14 @@ final class Updater
         // déclenche pour **toute** extension hébergée sur github.com. Rendre
         // l'offre reçue telle quelle est ce qui empêche d'écraser celle d'un
         // voisin.
-        if ($fichier !== self::PLUGIN_FICHIER) {
+        $paquet = self::extensions()[$fichier] ?? null;
+
+        if ($paquet === null) {
             return $offre;
         }
 
-        $version = self::versionInstallee($entetes, VERSION);
-        $release = self::plusRecente(self::PLUGIN_SLUG, $version);
+        $version = self::versionInstallee($entetes, $fichier === self::PLUGIN_FICHIER ? VERSION : '0.0.0');
+        $release = self::plusRecente($paquet['slug'], $version);
 
         if ($release === null) {
             return $offre;
@@ -140,8 +199,8 @@ final class Updater
 
         return [
             'id'      => 'https://github.com/' . self::DEPOT,
-            'slug'    => self::PLUGIN_SLUG,
-            'plugin'  => self::PLUGIN_FICHIER,
+            'slug'    => $paquet['slug'],
+            'plugin'  => $fichier,
             'version' => $release['version'],
             'url'     => $release['url'],
             'package' => $release['package'],
@@ -185,7 +244,7 @@ final class Updater
     {
         $fichier = is_object($element) ? ($element->plugin ?? '') : ($element['plugin'] ?? '');
 
-        return $fichier === self::PLUGIN_FICHIER
+        return is_string($fichier) && isset(self::extensions()[$fichier])
             ? (bool) apply_filters('subalcatel_auto_update_plugin', false)
             : $choix;
     }
@@ -226,11 +285,20 @@ final class Updater
 
         $slug = is_object($arguments) ? ($arguments->slug ?? '') : ($arguments['slug'] ?? '');
 
-        if ($slug !== self::PLUGIN_SLUG) {
+        $fichier = null;
+
+        foreach (self::extensions() as $candidat => $paquet) {
+            if ($paquet['slug'] === $slug) {
+                $fichier = $candidat;
+                break;
+            }
+        }
+
+        if ($fichier === null) {
             return $resultat;
         }
 
-        $release = self::derniere(self::PLUGIN_SLUG);
+        $release = self::derniere($slug);
 
         if ($release === null) {
             return $resultat;
@@ -238,7 +306,8 @@ final class Updater
 
         // Nom, socle et version de PHP se lisent dans l'en-tête de l'extension :
         // les recopier ici les ferait diverger au premier relèvement.
-        $entete = get_file_data(PLUGIN_FILE, [
+        $chemin = $fichier === self::PLUGIN_FICHIER ? PLUGIN_FILE : WP_PLUGIN_DIR . '/' . $fichier;
+        $entete = get_file_data($chemin, [
             'Name'        => 'Plugin Name',
             'Author'      => 'Author',
             'RequiresWP'  => 'Requires at least',
@@ -247,7 +316,7 @@ final class Updater
 
         return (object) [
             'name'          => $entete['Name'],
-            'slug'          => self::PLUGIN_SLUG,
+            'slug'          => $slug,
             'version'       => $release['version'],
             'author'        => $entete['Author'],
             'homepage'      => 'https://github.com/' . self::DEPOT,
@@ -502,14 +571,23 @@ final class Updater
      */
     private static function releases(): array
     {
+        // Le cache est lu pour une liste de paquets donnée : une extension qui
+        // s'inscrit après coup (un profil qu'on vient d'installer) ne doit pas
+        // attendre six heures pour être vue. L'ancien format — une simple
+        // liste — est relu comme une absence de cache.
+        $suivis = array_keys(self::paquets()['prefixes']);
+        sort($suivis);
         $cache = get_site_transient(self::CACHE);
 
-        if (is_array($cache)) {
-            return $cache;
+        if (is_array($cache) && ($cache['paquets'] ?? null) === $suivis && is_array($cache['releases'] ?? null)) {
+            return $cache['releases'];
         }
 
+        // Cinquante et non vingt : trois paquets partagent la liste, et une
+        // série de versions de l'extension ne doit pas repousser la dernière
+        // du profil hors de la page.
         $reponse = wp_remote_get(
-            'https://api.github.com/repos/' . self::DEPOT . '/releases?per_page=20',
+            'https://api.github.com/repos/' . self::DEPOT . '/releases?per_page=50',
             [
                 'timeout'    => 10,
                 'user-agent' => 'subalcatel-club/' . VERSION . '; ' . home_url('/'),
@@ -522,7 +600,7 @@ final class Updater
             // désactivée. La raison est consignée — l'onglet « Mises à jour » la
             // montre à qui la cherche.
             self::memoriser($reponse, 0);
-            set_site_transient(self::CACHE, [], self::CACHE_ECHEC);
+            set_site_transient(self::CACHE, ['paquets' => $suivis, 'releases' => []], self::CACHE_ECHEC);
 
             return [];
         }
@@ -531,7 +609,7 @@ final class Updater
         $releases = is_array($brut) ? self::interpreter($brut) : [];
 
         self::memoriser($reponse, count($releases));
-        set_site_transient(self::CACHE, $releases, self::CACHE_SUCCES);
+        set_site_transient(self::CACHE, ['paquets' => $suivis, 'releases' => $releases], self::CACHE_SUCCES);
 
         return $releases;
     }
@@ -543,6 +621,7 @@ final class Updater
     private static function interpreter(array $brut): array
     {
         $prive = defined('SUBALCATEL_GITHUB_TOKEN') && SUBALCATEL_GITHUB_TOKEN !== '';
+        $paquets = self::paquets();
         $releases = [];
 
         foreach ($brut as $release) {
@@ -554,7 +633,7 @@ final class Updater
             $slug = null;
             $version = '';
 
-            foreach (self::PREFIXES as $prefixe => $candidat) {
+            foreach ($paquets['prefixes'] as $prefixe => $candidat) {
                 if (str_starts_with($balise, $prefixe)) {
                     $slug = $candidat;
                     $version = ltrim(substr($balise, strlen($prefixe)), 'v');
@@ -577,7 +656,7 @@ final class Updater
             // connaît le nouveau : les releases jointes sous l'ancien nom
             // seulement restent ainsi installables.
             $attendus = [
-                self::ARCHIVES[$slug] . '-' . $version . '.zip',
+                $paquets['archives'][$slug] . '-' . $version . '.zip',
                 $slug . '-' . $version . '.zip',
             ];
             $paquet = '';

@@ -254,7 +254,7 @@ final class SiteMap
                     . self::numbered([
                         'Créez votre compte sur le site.',
                         'Remplissez le formulaire d’adhésion : formule, options, informations personnelles.',
-                        'Réglez selon le mode choisi dans votre dossier : HelloAsso, chèque ou CE Orange.',
+                        'Réglez selon le mode choisi : la consigne et le lien de paiement figurent sur votre dossier.',
                         'Déposez votre certificat médical de non contre-indication à la plongée.',
                         'Le bureau valide votre dossier — vous recevez une confirmation par courriel.',
                     ])

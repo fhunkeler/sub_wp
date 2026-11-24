@@ -178,11 +178,11 @@ final class ApplicationService
             'montant'    => number_format($quote->total(), 2, ',', ' ') . ' €',
             'formule'    => $plan->title,
             'reglement'  => PaymentMethods::label($paymentMethod),
-            // Réglé par le CE, la répartition précède les consignes : le
-            // montant ci-dessus est ce que le club encaisse, pas ce que paie
-            // l'adhérent.
-            'consignes'  => ($paymentMethod === CeOrangeShare::METHOD
-                ? CeOrangeShare::sentence(CeOrangeShare::fromQuote($quote)) . "\n"
+            // Réglé par un tiers payeur, la répartition précède les
+            // consignes : le montant ci-dessus est ce que le club encaisse,
+            // pas ce que paie l'adhérent.
+            'consignes'  => (($thirdParty = ThirdPartyShare::forMethod($paymentMethod)) !== null
+                ? $thirdParty->sentence($thirdParty->fromQuote($quote)) . "\n"
                 : '') . PaymentMethods::instructions(
                 $paymentMethod,
                 $this->campaigns->paymentLink($campaignId, $paymentMethod),

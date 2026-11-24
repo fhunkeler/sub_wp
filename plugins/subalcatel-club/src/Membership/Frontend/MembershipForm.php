@@ -7,7 +7,7 @@ namespace Subalcatel\Club\Membership\Frontend;
 use Subalcatel\Club\Membership\ApplicantIdentity;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
-use Subalcatel\Club\Membership\CeOrangeShare;
+use Subalcatel\Club\Membership\ThirdPartyShare;
 use Subalcatel\Club\Membership\IncompleteApplication;
 use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Membership\PricingEngine;
@@ -183,20 +183,17 @@ final class MembershipForm
                             <span>Total</span>
                             <strong data-quote-total>—</strong>
                         </p>
-                        <?php // Rempli quand le règlement passe par le CE Orange. ?>
+                        <?php // Rempli quand le mode de règlement déclare un tiers payeur (un CE…). ?>
                         <div class="sub-summary__share" data-quote-share hidden>
                             <p class="sub-summary__share-line">
-                                <span>Pris en charge par le CE Orange</span>
-                                <span data-quote-share-ce>—</span>
+                                <span data-quote-share-label>Pris en charge par un tiers</span>
+                                <span data-quote-share-payer>—</span>
                             </p>
                             <p class="sub-summary__share-line sub-summary__share-line--member">
                                 <span>Reste à votre charge</span>
                                 <strong data-quote-share-member>—</strong>
                             </p>
-                            <p class="sub-summary__share-help">
-                                Carte de niveau et assurance, à régler dans la boutique CE Orange
-                                une fois le dossier déposé.
-                            </p>
+                            <p class="sub-summary__share-help" data-quote-share-help></p>
                         </div>
                     </div>
                     <button type="submit" class="sub-button">Soumettre mon dossier</button>
@@ -233,11 +230,12 @@ final class MembershipForm
             )
             : '';
 
-        // Réglé par le CE, le total n'est pas ce que l'adhérent paie : c'est
-        // ici qu'il atterrit juste après le dépôt, la répartition y figure.
-        $share = (string) ($application['payment_method'] ?? '') === CeOrangeShare::METHOD
-            && $status !== ApplicationService::STATUS_ACTIVE
-            ? '<br>' . esc_html(CeOrangeShare::sentence(CeOrangeShare::fromStoredLines(
+        // Réglé par un tiers payeur, le total n'est pas ce que l'adhérent
+        // paie : c'est ici qu'il atterrit juste après le dépôt, la répartition
+        // y figure.
+        $thirdParty = ThirdPartyShare::forMethod((string) ($application['payment_method'] ?? ''));
+        $share      = $thirdParty !== null && $status !== ApplicationService::STATUS_ACTIVE
+            ? '<br>' . esc_html($thirdParty->sentence($thirdParty->fromStoredLines(
                 (float) $application['total_amount'],
                 (new ApplicationService())->lines((int) $application['id'])
             )))
@@ -463,10 +461,11 @@ final class MembershipForm
         $campaignRepo = new CampaignRepository();
         $link         = $campaignRepo->paymentLink((int) $application['campaign_id'], $method);
 
-        // Réglé par le CE, le total n'est pas ce que l'adhérent paie :
-        // la répartition vient avant les consignes.
-        $share = $method === CeOrangeShare::METHOD
-            ? esc_html(CeOrangeShare::sentence(CeOrangeShare::fromStoredLines(
+        // Réglé par un tiers payeur, le total n'est pas ce que l'adhérent
+        // paie : la répartition vient avant les consignes.
+        $thirdParty = ThirdPartyShare::forMethod($method);
+        $share      = $thirdParty !== null
+            ? esc_html($thirdParty->sentence($thirdParty->fromStoredLines(
                 (float) $application['total_amount'],
                 (new ApplicationService())->lines((int) $application['id'])
             ))) . ' '

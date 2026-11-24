@@ -25,6 +25,7 @@
 /plugins/*
 !/plugins/subalcatel-club/
 !/plugins/subalcatel-import/
+!/plugins/subalcatel-profil/
 
 !/themes/
 /themes/*

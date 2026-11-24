@@ -3,6 +3,7 @@
 
     python3 version.py plugin
     python3 version.py theme
+    python3 version.py profil
 
 Le numéro cesse d'être une intention saisie à la main pour devenir une
 **conséquence** de ce qui a été commité. Deux pannes symétriques l'ont rendu
@@ -50,7 +51,7 @@ from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent
 
-# Les deux paquets publiés : le préfixe de leur étiquette, leur dossier, et le
+# Les paquets publiés : le préfixe de leur étiquette, leur dossier, et le
 # fichier qui porte leur en-tête d'installation.
 PAQUETS = {
     "plugin": {
@@ -65,6 +66,12 @@ PAQUETS = {
         "entete": "themes/subalcatel/style.css",
         "nom": "Thème",
     },
+    "profil": {
+        "prefixe": "profil",
+        "chemin": "plugins/subalcatel-profil",
+        "entete": "plugins/subalcatel-profil/subalcatel-profil.php",
+        "nom": "Profil",
+    },
 }
 
 # Ce qui vit dans le dossier d'un paquet sans partir dans son archive. Doit
@@ -73,6 +80,7 @@ PAQUETS = {
 NON_EMPAQUETE = {
     "plugin": ["tests"],
     "theme": [],
+    "profil": ["tests"],
 }
 
 # `type(portée)!: sujet` — la portée et le point d'exclamation sont optionnels.
@@ -188,6 +196,7 @@ def palier(messages: list[tuple[str, str]]) -> tuple[str, list[str]]:
 PLANCHER = {
     "plugin": (1, 0, 0),  # mise en production du site du club, septembre 2026
     "theme": None,        # déjà passé en 1.0 avant que ce calcul n'existe
+    "profil": (1, 0, 0),  # sorti du cœur en novembre 2026, déjà en service : pas de 0.x
 }
 
 
@@ -222,6 +231,11 @@ EMPLACEMENTS = {
     ],
     "theme": [
         ("themes/subalcatel/style.css", r"^(Version:\s*)(\S+)(\s*)$"),
+    ],
+    "profil": [
+        ("plugins/subalcatel-profil/subalcatel-profil.php", r"^(\s*\*\s*Version:\s*)(\S+)(\s*)$"),
+        ("plugins/subalcatel-profil/subalcatel-profil.php", r"^(const VERSION\s*=\s*')([^']+)(';)$"),
+        ("plugins/subalcatel-profil/readme.md", r"^(Version \*\*)([^*]+)(\*\*)"),
     ],
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Construit les archives d'installation du plugin et du thème Sub Alcatel.
+Construit les archives d'installation de l'extension, du thème et du profil Sub Alcatel.
 
     python3 build-packages.py [dossier-de-sortie] [--reprise]
 
@@ -37,6 +37,7 @@ if not SOURCE.is_dir():
 PLUGIN = ("plugins", "subalcatel-club")
 THEME = ("themes", "subalcatel")
 REPRISE = ("plugins", "subalcatel-import")
+PROFIL = ("plugins", "subalcatel-profil")
 
 # Nom du fichier, sans la version. Il ne touche pas au dossier racine de
 # l'archive, qui reste le slug : WordPress installerait sinon une seconde
@@ -46,6 +47,7 @@ ARCHIVES = {
     PLUGIN[1]: "subalcatel-plugin",
     THEME[1]: "subalcatel-theme",
     REPRISE[1]: "subalcatel-reprise",
+    PROFIL[1]: "subalcatel-profil",
 }
 
 ROUGE, VERT, JAUNE, GRIS, NUL = "\033[31m", "\033[32m", "\033[33m", "\033[90m", "\033[0m"
@@ -213,6 +215,8 @@ def main() -> int:
     ok = construire(*PLUGIN, sortie, exclusions={"tests"})
     print()
     ok &= construire(*THEME, sortie, exclusions=set())
+    print()
+    ok &= construire(*PROFIL, sortie, exclusions={"tests"})
 
     if "--reprise" in options:
         print()

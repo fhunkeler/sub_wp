@@ -14,45 +14,120 @@ namespace Subalcatel\Club\Membership;
  * qu'un export ne doit pas afficher un code technique à leur place.
  *
  * Les adresses de paiement en ligne, elles, ne sont pas ici : HelloAsso ouvre
- * une campagne d'adhésion et une boutique CE Orange **par saison**, comme le
- * club ouvre une campagne par saison. Elles vivent donc sur la campagne, avec
- * les tarifs et les options qu'elles encaissent — voir [CampaignRepository].
- * Cette classe ne fait que les mettre en forme, quand on les lui donne.
+ * une campagne d'adhésion **par saison**, comme le club ouvre une campagne par
+ * saison. Elles vivent donc sur la campagne, avec les tarifs et les options
+ * qu'elles encaissent — voir [CampaignRepository]. Cette classe ne fait que
+ * les mettre en forme, quand on les lui donne.
+ *
+ * La liste est ouverte par le filtre {@see self::FILTER} : un club y ajoute ses
+ * propres modes — Sub Alcatel, le règlement par le CE Orange, depuis son
+ * extension de profil. Un mode peut alors déclarer un **tiers payeur**, qui
+ * prend en charge une partie du montant ({@see ThirdPartyShare}).
  */
 final class PaymentMethods
 {
-    /** Ce que l'adhérent choisit au dépôt de son dossier. */
-    private const OFFERED = [
-        'helloasso' => 'HelloAsso',
-        'cheque'    => 'Chèque',
-        'ce_orange' => 'CE Orange',
-    ];
+    /**
+     * Filtre : la liste des modes de règlement, clé technique → définition.
+     *
+     *     add_filter('subalcatel_payment_methods', static fn (array $modes): array => $modes + [
+     *         'ce_entreprise' => [
+     *             'label'       => 'CE de l’entreprise',     // obligatoire
+     *             'offered'     => true,                      // proposé au dépôt (défaut : true)
+     *             'sentence'    => 'Votre règlement passe…',  // consigne après dépôt
+     *             'link'        => ['label' => '…', 'help' => '…'], // une adresse par campagne
+     *             'link_label'  => 'Boutique du CE',          // texte du lien
+     *             'third_party' => [                          // voir ThirdPartyShare
+     *                 'payer'          => 'Le CE',
+     *                 'by'             => 'par le CE',
+     *                 'member_options' => ['carte_niveau'],
+     *                 'member_label'   => 'carte de niveau',
+     *                 'member_where'   => 'dans la boutique du CE',
+     *             ],
+     *         ],
+     *     ]);
+     *
+     * L'ordre du tableau est celui du formulaire.
+     */
+    public const FILTER = 'subalcatel_payment_methods';
 
-    /** Modes retirés, conservés pour relire l'historique. */
-    private const RETIRED = [
-        'virement' => 'Virement',
-        'especes'  => 'Espèces',
+    /**
+     * Les modes que le cœur connaît. Les deux derniers sont retirés : on ne les
+     * propose plus, mais des règlements anciens les portent, et un export ne
+     * doit pas afficher un code technique à leur place.
+     */
+    private const BUILTIN = [
+        'helloasso' => [
+            'label'      => 'HelloAsso',
+            'sentence'   => 'Réglez en ligne depuis la page HelloAsso du club. '
+                . 'Le bureau confirmera la réception.',
+            'link'       => [
+                'label' => 'HelloAsso — adhésion',
+                'help'  => 'La page de la campagne d’adhésion HelloAsso qui encaisse cette saison.',
+            ],
+            'link_label' => 'Payer mon adhésion en ligne',
+        ],
+        'cheque'    => ['label' => 'Chèque'],
+        'virement'  => ['label' => 'Virement', 'offered' => false],
+        'especes'   => ['label' => 'Espèces', 'offered' => false],
     ];
 
     /**
+     * @return array<string, array{label: string, offered: bool, sentence: ?string, link: ?array{label: string, help: string}, link_label: ?string, third_party: ?array<string, mixed>}>
+     */
+    private static function definitions(): array
+    {
+        $definitions = [];
+
+        foreach ((array) apply_filters(self::FILTER, self::BUILTIN) as $method => $definition) {
+            $method = sanitize_key((string) $method);
+
+            if ($method === '' || !is_array($definition)) {
+                continue;
+            }
+
+            $link = $definition['link'] ?? null;
+
+            $definitions[$method] = [
+                'label'       => (string) ($definition['label'] ?? $method),
+                'offered'     => (bool) ($definition['offered'] ?? true),
+                'sentence'    => isset($definition['sentence']) ? (string) $definition['sentence'] : null,
+                'link'        => is_array($link)
+                    ? ['label' => (string) ($link['label'] ?? ''), 'help' => (string) ($link['help'] ?? '')]
+                    : null,
+                'link_label'  => isset($definition['link_label']) ? (string) $definition['link_label'] : null,
+                'third_party' => is_array($definition['third_party'] ?? null) ? $definition['third_party'] : null,
+            ];
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * Ce que l'adhérent choisit au dépôt de son dossier.
+     *
      * @return array<string, string>
      */
     public static function offered(): array
     {
-        return self::OFFERED;
+        return array_map(
+            static fn (array $d): string => $d['label'],
+            array_filter(self::definitions(), static fn (array $d): bool => $d['offered'])
+        );
     }
 
     /**
+     * Tous les modes, retirés compris, pour relire l'historique.
+     *
      * @return array<string, string>
      */
     public static function all(): array
     {
-        return self::OFFERED + self::RETIRED;
+        return array_map(static fn (array $d): string => $d['label'], self::definitions());
     }
 
     public static function isOffered(string $method): bool
     {
-        return isset(self::OFFERED[$method]);
+        return isset(self::offered()[$method]);
     }
 
     public static function label(string $method): string
@@ -61,27 +136,36 @@ final class PaymentMethods
     }
 
     /**
+     * Le tiers payeur de ce mode, s'il en déclare un.
+     */
+    public static function thirdParty(string $method): ?ThirdPartyShare
+    {
+        $definition = self::definitions()[$method]['third_party'] ?? null;
+
+        return $definition === null ? null : ThirdPartyShare::fromDefinition($definition);
+    }
+
+    /**
      * Ce que l'onglet « Règlement » d'une campagne propose de remplir.
      *
      * Le chèque n'y figure pas : il n'encaisse pas en ligne, et a sa propre
      * consigne (à l'ordre de qui, quelle adresse) — voir [chequeFields] et le
      * formulaire dédié de l'écran de campagne. L'aide dit ce qu'on attend, pour
-     * éviter qu'on colle l'adresse de l'adhésion dans la case du CE.
+     * éviter qu'on colle l'adresse de l'adhésion dans la case d'un autre mode.
      *
      * @return array<string, array{label: string, help: string}>
      */
     public static function linkFields(): array
     {
-        return [
-            'helloasso' => [
-                'label' => 'HelloAsso — adhésion',
-                'help'  => 'La page de la campagne d’adhésion HelloAsso qui encaisse cette saison.',
-            ],
-            'ce_orange' => [
-                'label' => 'HelloAsso — boutique CE Orange',
-                'help'  => 'La boutique de la saison, qui porte la carte de niveau et l’assurance.',
-            ],
-        ];
+        $fields = [];
+
+        foreach (self::definitions() as $method => $definition) {
+            if ($definition['offered'] && $definition['link'] !== null) {
+                $fields[$method] = $definition['link'];
+            }
+        }
+
+        return $fields;
     }
 
     /**
@@ -102,7 +186,7 @@ final class PaymentMethods
         $clean    = [];
         $rejected = [];
 
-        foreach (array_keys(self::OFFERED) as $method) {
+        foreach (array_keys(self::offered()) as $method) {
             $url = trim((string) ($links[$method] ?? ''));
 
             if ($url === '') {
@@ -139,7 +223,7 @@ final class PaymentMethods
 
         $links = [];
 
-        foreach (array_keys(self::OFFERED) as $method) {
+        foreach (array_keys(self::offered()) as $method) {
             $links[$method] = (string) ($stored[$method] ?? '');
         }
 
@@ -210,14 +294,12 @@ final class PaymentMethods
     /** La consigne seule, sans lien de paiement en ligne. */
     private static function sentence(string $method, string $chequePayee = '', string $chequeAddress = ''): string
     {
-        return match ($method) {
-            'helloasso' => 'Réglez en ligne depuis la page HelloAsso du club. '
-                . 'Le bureau confirmera la réception.',
-            'cheque'    => self::chequeSentence($chequePayee, $chequeAddress),
-            'ce_orange' => 'Votre règlement passe par le comité d’entreprise Orange. '
-                . 'Le bureau confirmera la réception auprès du CE.',
-            default     => 'Le bureau confirmera la réception de votre règlement.',
-        };
+        if ($method === 'cheque') {
+            return self::chequeSentence($chequePayee, $chequeAddress);
+        }
+
+        return self::definitions()[$method]['sentence']
+            ?? 'Le bureau confirmera la réception de votre règlement.';
     }
 
     /**
@@ -237,10 +319,6 @@ final class PaymentMethods
     /** Ce que porte le lien : ce qu'on va payer, pas « cliquez ici ». */
     private static function linkLabel(string $method): string
     {
-        return match ($method) {
-            'helloasso' => 'Payer mon adhésion en ligne',
-            'ce_orange' => 'Boutique CE Orange — carte de niveau et assurance',
-            default     => 'Régler en ligne',
-        };
+        return self::definitions()[$method]['link_label'] ?? 'Régler en ligne';
     }
 }

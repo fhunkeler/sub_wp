@@ -6,7 +6,7 @@ namespace Subalcatel\Club\Membership\Frontend;
 
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
-use Subalcatel\Club\Membership\CeOrangeShare;
+use Subalcatel\Club\Membership\ThirdPartyShare;
 use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Content\Pages;
@@ -146,11 +146,11 @@ final class MyMembership
         $status = (string) $application['status'];
         $lines  = $service->lines((int) $application['id']);
 
-        // Réglé par le CE, le total est ce que le club encaisse au bout du
-        // compte, pas ce que l'adhérent paie : on montre la répartition.
-        $share = (string) ($application['payment_method'] ?? '') === CeOrangeShare::METHOD
-            ? CeOrangeShare::fromStoredLines((float) $application['total_amount'], $lines)
-            : null;
+        // Réglé par un tiers payeur (un CE…), le total est ce que le club
+        // encaisse au bout du compte, pas ce que l'adhérent paie : on montre
+        // la répartition.
+        $thirdParty = ThirdPartyShare::forMethod((string) ($application['payment_method'] ?? ''));
+        $share      = $thirdParty?->fromStoredLines((float) $application['total_amount'], $lines);
         ?>
         <section class="sub-block">
             <h2 class="sub-block__title">
@@ -183,7 +183,7 @@ final class MyMembership
                             .
                         <?php endif; ?>
                         <?php if ($share !== null) : ?>
-                            <?php echo esc_html(CeOrangeShare::sentence($share)); ?>
+                            <?php echo esc_html($thirdParty->sentence($share)); ?>
                         <?php endif; ?>
                         <?php echo PaymentMethods::instructionsHtml(
                             $method,
@@ -242,11 +242,11 @@ final class MyMembership
                     </tr>
                     <?php if ($share !== null) : ?>
                         <tr class="sub-lines__share">
-                            <td>Pris en charge par le CE Orange</td>
-                            <td class="sub-lines__amount"><?php echo esc_html(self::euro($share['ce'])); ?></td>
+                            <td><?php echo esc_html($thirdParty->payerLine()); ?></td>
+                            <td class="sub-lines__amount"><?php echo esc_html(self::euro($share['payer'])); ?></td>
                         </tr>
                         <tr class="sub-lines__share sub-lines__share--member">
-                            <td>Reste à votre charge <span class="sub-lines__value">— carte de niveau et assurance</span></td>
+                            <td>Reste à votre charge<?php if ($thirdParty->memberLabel !== '') : ?> <span class="sub-lines__value">— <?php echo esc_html($thirdParty->memberLabel); ?></span><?php endif; ?></td>
                             <td class="sub-lines__amount"><strong><?php echo esc_html(self::euro($share['member'])); ?></strong></td>
                         </tr>
                     <?php endif; ?>

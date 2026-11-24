@@ -6,7 +6,7 @@ namespace Subalcatel\Club\Exports\Admin;
 
 use Subalcatel\Club\Exports\AuditLogExport;
 use Subalcatel\Club\Exports\ExportRegistry;
-use Subalcatel\Club\Exports\MembershipDetailExport;
+use Subalcatel\Club\Membership\Exports\MembershipDetailExport;
 use Subalcatel\Club\Support\Audit;
 use Subalcatel\Club\Ui\AdminUi;
 

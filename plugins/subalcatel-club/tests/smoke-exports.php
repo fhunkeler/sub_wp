@@ -79,6 +79,33 @@ if (!class_exists(ZipArchive::class)) {
 }
 
 // --- Droits -------------------------------------------------------------------------
+echo "\n--- Registre ---\n";
+
+// Les exports vivent dans leur domaine et sont inscrits au démarrage : la
+// liste doit rester la même, dans le même ordre, qu'au temps où le registre
+// les nommait lui-même.
+$check(
+    'Les neuf exports sont inscrits, dans l\'ordre de l\'écran',
+    array_map(static fn ($e) => $e->key(), ExportRegistry::all()) === [
+        'members', 'ffessm', 'membership-detail', 'missing-documents', 'expiries',
+        'payments', 'event-roster', 'mailing-list', 'audit-log',
+    ]
+);
+
+$avant = count(ExportRegistry::all());
+ExportRegistry::add(\Subalcatel\Club\Events\Exports\EventRosterExport::class);
+$check('Inscrire deux fois le même export ne le double pas', count(ExportRegistry::all()) === $avant);
+
+$refuse = false;
+try {
+    ExportRegistry::add(\stdClass::class);
+} catch (\RuntimeException) {
+    $refuse = true;
+}
+$check('Le registre refuse ce qui n\'est pas un export', $refuse && count(ExportRegistry::all()) === $avant);
+
+$check('Chaque appel construit des exports neufs', ExportRegistry::all()[0] !== ExportRegistry::all()[0]);
+
 echo "\n--- Filtrage par les droits ---\n";
 
 // Des membres simples auxquels on n'ajoute QUE la capacité testée : le rôle
@@ -251,7 +278,7 @@ $check('Chaque ligne a autant de cellules que de colonnes',
         true
     ));
 
-$saisons = \Subalcatel\Club\Exports\MembershipDetailExport::campaigns();
+$saisons = \Subalcatel\Club\Membership\Exports\MembershipDetailExport::campaigns();
 $check('La saison de test figure dans le choix des saisons',
     array_key_exists($bureauCampaignId, $saisons), count($saisons) . ' saison(s)');
 

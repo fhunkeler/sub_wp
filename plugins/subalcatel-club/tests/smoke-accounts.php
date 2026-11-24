@@ -192,7 +192,7 @@ $technique = $makeUser('administrator');
 
 $check('L’administrateur technique n’est pas du club', !Roles::isMemberOfClub($technique));
 $check('Il ne sort pas de l’annuaire',
-    !in_array($technique, wp_list_pluck(\Subalcatel\Club\Exports\Members::all(), 'ID'), true));
+    !in_array($technique, wp_list_pluck(\Subalcatel\Club\Identity\Members::all(), 'ID'), true));
 
 // Il possède toutes les capacités — c’est le but, il dépanne le bureau — et se
 // retrouvait par là dans la liste de diffusion du bureau.
@@ -208,7 +208,7 @@ $mixte = $makeUser(Roles::MEMBER);
 
 $check('Un adhérent administrateur reste du club', Roles::isMemberOfClub($mixte));
 $check('Et reste dans l’annuaire',
-    in_array($mixte, wp_list_pluck(\Subalcatel\Club\Exports\Members::all(), 'ID'), true),
+    in_array($mixte, wp_list_pluck(\Subalcatel\Club\Identity\Members::all(), 'ID'), true),
     'le rôle technique s’ajoute au sien, il ne l’efface pas');
 
 $check('Son compte ne se modifie pas depuis le site pour autant',

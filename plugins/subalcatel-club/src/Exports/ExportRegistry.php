@@ -13,9 +13,39 @@ use Subalcatel\Club\Support\Audit;
  * Fermée volontairement : un constructeur de requêtes dans l'interface finit
  * par n'être compris de personne et par exposer plus que prévu. Chaque export
  * est écrit, relu, et lié à une capacité.
+ *
+ * Les exports vivent dans leur domaine (`Events\Exports\EventRosterExport`,
+ * `Membership\Exports\PaymentsExport`…), au-dessus de ce registre : il ne
+ * peut donc pas les nommer. Ils y sont inscrits par {@see add()} — depuis
+ * `Plugin::boot()` pour ceux du club, et demain depuis le module qui apporte
+ * les siens. La liste reste fermée : seul du code peut l'allonger.
  */
 final class ExportRegistry
 {
+    /** @var list<class-string<Export>> dans l'ordre d'affichage */
+    private static array $classes = [];
+
+    /**
+     * Inscrit des exports, dans l'ordre où ils doivent s'afficher.
+     *
+     * Ce sont des classes, pas des instances : chaque appel à {@see all()}
+     * en construit de neuves, comme avant le registre ouvert.
+     *
+     * @param class-string<Export> ...$classes
+     */
+    public static function add(string ...$classes): void
+    {
+        foreach ($classes as $class) {
+            if (!is_subclass_of($class, Export::class)) {
+                throw new RuntimeException(sprintf('%s n’est pas un export.', $class));
+            }
+
+            if (!in_array($class, self::$classes, true)) {
+                self::$classes[] = $class;
+            }
+        }
+    }
+
     public const FORMAT_CSV  = 'csv';
     public const FORMAT_XLSX = 'xlsx';
 
@@ -24,17 +54,7 @@ final class ExportRegistry
      */
     public static function all(): array
     {
-        return [
-            new MembersExport(),
-            new FfessmExport(),
-            new MembershipDetailExport(),
-            new MissingDocumentsExport(),
-            new ExpiriesExport(),
-            new PaymentsExport(),
-            new EventRosterExport(),
-            new MailingListExport(),
-            new AuditLogExport(),
-        ];
+        return array_map(static fn (string $class): Export => new $class(), self::$classes);
     }
 
     /**

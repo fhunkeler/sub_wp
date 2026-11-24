@@ -35,20 +35,23 @@ pas publiée.
 
 `plugins/subalcatel-club/src/` est rangé **par domaine** : `Identity` (comptes),
 `Membership` (adhésions), `Events` (sorties), `Documents`, `Communication`,
-`Content`, `Exports`, `Security`… Chaque domaine porte son code métier à sa
-racine, et ses écrans dans `Admin/` (administration) et `Frontend/` (site
-public) :
+`Content`, `Security`… Chaque domaine porte son code métier à sa racine, ses
+écrans dans `Admin/` (administration) et `Frontend/` (site public), et ses
+tableaux pour le bureau dans `Exports/` :
 
 ```
 Events/
   EventService.php          règles des sorties
   Admin/EventsScreen.php    écran Club → Événements
   Frontend/OutingForm.php   « Organiser une sortie »
+  Exports/EventRosterExport.php   feuille d'émargement
 ```
 
-Deux dossiers ne sont pas des domaines : `Ui` (briques d'écran communes :
-`AdminUi`, `Notice`, `Dates`…) et `Site`, qui assemble le tout (menu du club,
-tableau de bord, réglages, statistiques, espace membre).
+Trois dossiers ne sont pas des domaines : `Ui` (briques d'écran communes :
+`AdminUi`, `Notice`, `Dates`…), `Exports` (le socle des exports : registre,
+CSV, Excel — chaque domaine y inscrit les siens par `ExportRegistry::add()`)
+et `Site`, qui assemble le tout (menu du club, tableau de bord, réglages,
+statistiques, espace membre).
 
 `couches.py` fixe l'ordre dans lequel ces dossiers peuvent s'utiliser, et la CI
 le fait respecter : un domaine ne connaît que ceux qui sont sous lui, et son

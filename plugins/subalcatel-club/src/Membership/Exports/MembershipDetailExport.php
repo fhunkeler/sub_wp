@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Membership\Exports;
 
 use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\Option;
 use Subalcatel\Club\Membership\PaymentMethods;
+use Subalcatel\Club\Identity\Members;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Le détail d'un dossier d'adhésion, aux colonnes de l'ancien site.

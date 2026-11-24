@@ -13,7 +13,7 @@
  * celle qu'on devinerait.
  */
 
-use Subalcatel\Club\Import\ArticleThumbnails;
+use Subalcatel\Import\ArticleThumbnails;
 
 global $wpdb;
 

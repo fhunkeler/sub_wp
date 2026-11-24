@@ -14,7 +14,7 @@
  * À lancer sur le clone "sub_export", après export-production.php write :
  *
  *   docker exec -e WORDPRESS_DB_NAME=sub_export sub_demo_cli \
- *     wp --allow-root eval-file wp-content/plugins/subalcatel-club/tools/list-kept-media.php
+ *     wp --allow-root eval-file wp-content/plugins/subalcatel-import/tools/list-kept-media.php
  */
 
 global $wpdb;

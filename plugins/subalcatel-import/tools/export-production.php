@@ -51,15 +51,17 @@
  * documents).
  *
  *   docker exec -e WORDPRESS_DB_NAME=sub_export sub_demo_cli \
- *     wp --allow-root eval-file wp-content/plugins/subalcatel-club/tools/export-production.php
+ *     wp --allow-root eval-file wp-content/plugins/subalcatel-import/tools/export-production.php
  *        → simulation, aucune écriture
  *   ... export-production.php write
  *        → suppression réelle, sur sub_export uniquement
  */
 
-use Subalcatel\Club\Import\UserImporter;
-use Subalcatel\Club\Import\ArticleImporter;
-use Subalcatel\Club\Import\MembershipImporter;
+require_once dirname(__DIR__) . '/autoload.php';
+
+use Subalcatel\Import\UserImporter;
+use Subalcatel\Import\ArticleImporter;
+use Subalcatel\Import\MembershipImporter;
 use Subalcatel\Club\Identity\DerivedCapabilities;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Policy\EligibilityPolicy;

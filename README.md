@@ -5,6 +5,7 @@ Extension et thème du club de plongée Sub Alcatel, pour WordPress 6.5+ / PHP 8
 | Dossier | Rôle |
 |---|---|
 | `plugins/subalcatel-club/` | Adhésions, événements, documents, droits. Toute la règle métier. |
+| `plugins/subalcatel-import/` | Reprise de l'ancien site Joomla et export de production. Outils en ligne de commande, hors releases. |
 | `themes/subalcatel/` | Thème bloc. Présentation seule, aucune règle métier. |
 | `build-packages.py` | Fabrique les archives d'installation. |
 | `version.py` | Calcule le numéro de la prochaine version, et contrôle les messages de commit. |
@@ -25,7 +26,9 @@ Ajouter → Téléverser* et *Apparence → Thèmes → Ajouter → Téléverser
 nom du fichier change : à l'intérieur, les dossiers restent `subalcatel-club/`
 et `subalcatel/`, que WordPress lit pour savoir quoi remplacer.
 Il refuse de construire si un identifiant figure dans les fichiers, et exclut
-`tests/` de l'archive livrée.
+`tests/` de l'archive livrée. L'extension de reprise n'est construite que sur
+demande (`--reprise`, archive `subalcatel-reprise-<version>.zip`) : elle n'est
+pas publiée.
 
 ## Travailler sur le code
 

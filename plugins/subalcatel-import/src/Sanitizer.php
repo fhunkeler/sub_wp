@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Import;
+namespace Subalcatel\Import;
 
 /**
  * Assainissement des données venant du Joomla compromis.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Import;
+namespace Subalcatel\Import;
 
 /**
  * Entrée unique des images venant de l'ancien site.

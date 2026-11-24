@@ -24,11 +24,11 @@
  *
  * Simulation par défaut, comme les autres outils de reprise :
  *
- *   wp eval-file wp-content/plugins/subalcatel-club/tools/trier-articles.php
+ *   wp eval-file wp-content/plugins/subalcatel-import/tools/trier-articles.php
  *   wp eval-file … trier-articles.php write     ← écrit réellement
  */
 
-use Subalcatel\Club\Import\ArticleImporter;
+use Subalcatel\Import\ArticleImporter;
 
 global $wpdb;
 

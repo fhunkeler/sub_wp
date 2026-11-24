@@ -23,6 +23,7 @@
 !/plugins/
 /plugins/*
 !/plugins/subalcatel-club/
+!/plugins/subalcatel-import/
 
 !/themes/
 /themes/*

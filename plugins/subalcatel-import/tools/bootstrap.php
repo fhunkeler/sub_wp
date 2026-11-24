@@ -20,7 +20,9 @@ declare(strict_types=1);
  * une pièce d'archive, jamais une base de travail.
  */
 
-use Subalcatel\Club\Import\LegacySource;
+require_once dirname(__DIR__) . '/autoload.php';
+
+use Subalcatel\Import\LegacySource;
 
 /**
  * Source héritée configurée, ou arrêt avec le mode d'emploi.

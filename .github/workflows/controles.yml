@@ -151,7 +151,7 @@ jobs:
           wp option update start_of_week 1
           wp rewrite structure '/%postname%/'
 
-          wp plugin activate subalcatel-club
+          wp plugin activate subalcatel-club subalcatel-import
           wp theme activate subalcatel
 
       - name: Toutes les suites
@@ -166,11 +166,11 @@ jobs:
           total=0
           echecs=0
 
-          for fichier in site/wp-content/plugins/subalcatel-club/tests/smoke-*.php; do
-            suite=$(basename "$fichier")
+          for fichier in site/wp-content/plugins/subalcatel-*/tests/smoke-*.php; do
+            suite=${fichier#site/wp-content/plugins/}
             total=$((total + 1))
 
-            if sortie=$(wp eval-file "wp-content/plugins/subalcatel-club/tests/$suite" 2>&1); then
+            if sortie=$(wp eval-file "wp-content/plugins/$suite" 2>&1); then
               echo "OK    $suite"
               echo "- \`$suite\`" >> "$GITHUB_STEP_SUMMARY"
             else

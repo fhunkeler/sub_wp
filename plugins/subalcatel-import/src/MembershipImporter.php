@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Import;
+namespace Subalcatel\Import;
 
 use Subalcatel\Club\Membership\ApplicationService;
 

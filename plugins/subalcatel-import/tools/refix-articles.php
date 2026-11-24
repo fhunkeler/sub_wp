@@ -5,10 +5,10 @@
  * base : celui-ci a perdu le préfixe `data:` et n'est plus récupérable.
  */
 
-use Subalcatel\Club\Import\ArticleImporter;
-use Subalcatel\Club\Import\EmbeddedImages;
-use Subalcatel\Club\Import\Report;
-use Subalcatel\Club\Import\Sanitizer;
+use Subalcatel\Import\ArticleImporter;
+use Subalcatel\Import\EmbeddedImages;
+use Subalcatel\Import\Report;
+use Subalcatel\Import\Sanitizer;
 
 global $wpdb;
 

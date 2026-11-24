@@ -2,7 +2,7 @@
 """
 Construit les archives d'installation du plugin et du thème Sub Alcatel.
 
-    python3 build-packages.py [dossier-de-sortie]
+    python3 build-packages.py [dossier-de-sortie] [--reprise]
 
 Les archives produites s'installent par « Extensions → Ajouter → Téléverser »
 et « Apparence → Thèmes → Ajouter → Téléverser ».
@@ -12,9 +12,9 @@ Ce qui est volontairement exclu :
                  identifiants de la base de développement ;
   - .git, node_modules, fichiers d'éditeur et de système.
 
-Les outils de reprise (tools/) sont conservés : ils servent sur le serveur cible
-lors de la migration et ne contiennent aucun identifiant — la source héritée se
-règle par des options WordPress.
+La reprise Joomla vit dans sa propre extension, `subalcatel-import`. Elle ne
+part pas dans les releases : `--reprise` en fait une archive à installer à la
+main, si une reprise devait être rejouée ailleurs que sur le poste de travail.
 """
 
 from __future__ import annotations
@@ -36,12 +36,17 @@ if not SOURCE.is_dir():
 
 PLUGIN = ("plugins", "subalcatel-club")
 THEME = ("themes", "subalcatel")
+REPRISE = ("plugins", "subalcatel-import")
 
 # Nom du fichier, sans la version. Il ne touche pas au dossier racine de
 # l'archive, qui reste le slug : WordPress installerait sinon une seconde
 # extension à côté de la première. L'outil de mise à jour de l'extension
 # cherche ces mêmes noms dans les releases (`Updater::ARCHIVES`).
-ARCHIVES = {PLUGIN[1]: "subalcatel-plugin", THEME[1]: "subalcatel-theme"}
+ARCHIVES = {
+    PLUGIN[1]: "subalcatel-plugin",
+    THEME[1]: "subalcatel-theme",
+    REPRISE[1]: "subalcatel-reprise",
+}
 
 ROUGE, VERT, JAUNE, GRIS, NUL = "\033[31m", "\033[32m", "\033[33m", "\033[90m", "\033[0m"
 
@@ -120,11 +125,11 @@ def verifier_secrets(fichiers: list[Path], dossier: Path) -> list[str]:
     return incidents
 
 
-def verifier_entete(dossier: Path, slug: str) -> tuple[str, list[str]]:
+def verifier_entete(dossier: Path, famille: str, slug: str) -> tuple[str, list[str]]:
     """Version déclarée, et alertes sur l'en-tête d'installation."""
     alertes = []
 
-    if slug == PLUGIN[1]:
+    if famille == "plugins":
         principal = dossier / f"{slug}.php"
         motif_version = re.compile(r"^\s*\*\s*Version:\s*(.+)$", re.M)
         motif_nom = re.compile(r"^\s*\*\s*Plugin Name:\s*(.+)$", re.M)
@@ -160,7 +165,7 @@ def construire(famille: str, slug: str, sortie: Path, exclusions: set[str]) -> b
         print(f"  {ROUGE}ABSENT{NUL} {dossier}")
         return False
 
-    version, alertes = verifier_entete(dossier, slug)
+    version, alertes = verifier_entete(dossier, famille, slug)
     fichiers = paquets(dossier, exclusions)
     incidents = verifier_secrets(fichiers, dossier)
 
@@ -196,7 +201,9 @@ def construire(famille: str, slug: str, sortie: Path, exclusions: set[str]) -> b
 
 
 def main() -> int:
-    sortie = Path(sys.argv[1]) if len(sys.argv) > 1 else RACINE / "dist"
+    options = [a for a in sys.argv[1:] if a.startswith("--")]
+    positionnels = [a for a in sys.argv[1:] if not a.startswith("--")]
+    sortie = Path(positionnels[0]) if positionnels else RACINE / "dist"
     sortie.mkdir(parents=True, exist_ok=True)
 
     print(f"\nConstruction des archives Sub Alcatel")
@@ -206,6 +213,10 @@ def main() -> int:
     ok = construire(*PLUGIN, sortie, exclusions={"tests"})
     print()
     ok &= construire(*THEME, sortie, exclusions=set())
+
+    if "--reprise" in options:
+        print()
+        ok &= construire(*REPRISE, sortie, exclusions={"tests"})
 
     print(f"\n{'Archives prêtes dans ' + str(sortie) if ok else ROUGE + 'Construction incomplète.' + NUL}\n")
 

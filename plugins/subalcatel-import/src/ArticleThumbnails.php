@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Import;
+namespace Subalcatel\Import;
 
 /**
  * Choix d'une image mise en avant pour les articles repris.

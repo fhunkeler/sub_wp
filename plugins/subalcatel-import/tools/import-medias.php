@@ -6,9 +6,9 @@
  *   wp eval-file import-medias.php write    → écriture
  */
 
-use Subalcatel\Club\Import\ArticleImporter;
-use Subalcatel\Club\Import\LegacyMedia;
-use Subalcatel\Club\Import\Report;
+use Subalcatel\Import\ArticleImporter;
+use Subalcatel\Import\LegacyMedia;
+use Subalcatel\Import\Report;
 
 global $wpdb;
 

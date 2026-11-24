@@ -3,7 +3,7 @@
  * Test de fumée — reprise des données Joomla.
  *
  *   docker exec sub_demo_wp wp --allow-root eval-file \
- *     wp-content/plugins/subalcatel-club/tests/smoke-import.php
+ *     wp-content/plugins/subalcatel-import/tests/smoke-import.php
  *
  * Ce que ce test garde, et qui compte plus que le nombre de lignes reprises :
  * la reprise ne fait **jamais** entrer dans le nouveau site ce qui a rendu
@@ -12,13 +12,14 @@
  * sans créer de doublon.
  */
 
-require_once __DIR__ . '/helpers.php';
+require_once dirname(__DIR__, 2) . '/subalcatel-club/tests/helpers.php';
+require_once dirname(__DIR__) . '/autoload.php';
 
-use Subalcatel\Club\Import\LegacyMedia;
-use Subalcatel\Club\Import\LegacySource;
-use Subalcatel\Club\Import\Report;
-use Subalcatel\Club\Import\Sanitizer;
-use Subalcatel\Club\Import\UserImporter;
+use Subalcatel\Import\LegacyMedia;
+use Subalcatel\Import\LegacySource;
+use Subalcatel\Import\Report;
+use Subalcatel\Import\Sanitizer;
+use Subalcatel\Import\UserImporter;
 
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {
@@ -239,7 +240,7 @@ $bandeau   = $faireMedia(553, 49);     // filet de pied de page
 $heritee   = $faireMedia(240, 180);    // vignette héritée d'une fiche de site
 $heritee2  = $faireMedia(240, 161);    // une seconde, plus loin dans l'article
 
-$thumbnails = new \Subalcatel\Club\Import\ArticleThumbnails();
+$thumbnails = new \Subalcatel\Import\ArticleThumbnails();
 
 $check('Passe la pastille d’ouverture pour la photo',
     $thumbnails->choose($balise($icone) . '<p>Bravo !</p>' . $balise($photo)) === $photo,

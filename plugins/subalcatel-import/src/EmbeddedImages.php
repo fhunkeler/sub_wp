@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Import;
+namespace Subalcatel\Import;
 
 /**
  * Extraction des images encodées en base64 dans les articles Joomla.

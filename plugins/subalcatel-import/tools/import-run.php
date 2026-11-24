@@ -7,7 +7,7 @@
  *   wp eval-file import-run.php write articles
  */
 
-use Subalcatel\Club\Import\JoomlaImport;
+use Subalcatel\Import\JoomlaImport;
 
 require_once __DIR__ . '/bootstrap.php';
 

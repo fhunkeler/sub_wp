@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Documents\Exports;
 
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Identity\ProfileFields;
+use Subalcatel\Club\Identity\Members;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Qui n'a pas déposé quoi, et depuis quand.

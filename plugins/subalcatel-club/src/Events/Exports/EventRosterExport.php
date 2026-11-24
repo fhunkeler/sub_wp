@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Events\Exports;
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Identity\ProfileFields;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Liste des inscrits d'une sortie, pour le directeur de plongée.

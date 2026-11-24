@@ -5,8 +5,9 @@ Vérifie que le code de l'extension se superpose sans boucle.
     python3 couches.py
 
 Le code est rangé **par domaine** : `Events/`, `Membership/`, `Documents/`…
-Chaque domaine porte son code métier à sa racine, et ses écrans dans deux
-sous-dossiers, `Admin/` (administration) et `Frontend/` (site public).
+Chaque domaine porte son code métier à sa racine, ses écrans dans deux
+sous-dossiers, `Admin/` (administration) et `Frontend/` (site public), et ses
+tableaux pour le bureau dans `Exports/`.
 
 Chaque espace de noms est une couche, et `COUCHES` les range de la plus basse à
 la plus haute. Une couche n'utilise que celles qui sont en dessous d'elle. Le
@@ -16,7 +17,7 @@ pas encore rangé.
 Deux bandes :
 
   - **le code métier** des domaines, en bas. Il ne connaît aucun écran ;
-  - **les écrans** (`X\Admin`, `X\Frontend`), au-dessus de tout le code
+  - **les exports et les écrans** (`X\Exports`, `X\Admin`, `X\Frontend`), au-dessus de tout le code
     métier : un écran peut utiliser n'importe quel domaine, mais seulement les
     écrans rangés sous lui. `Site` assemble le tout (menu du club, tableau de
     bord, réglages, espace membre) et se trouve en haut.
@@ -58,6 +59,7 @@ COUCHES = [
     # --- Code métier ---------------------------------------------------------
     "Support",              # outils sans dépendance : journal, PDF, noms partagés
     "Ui",                   # briques d'écran communes : formulaires, avis, graphiques, dates
+    "Exports",              # socle des exports : registre, CSV, Excel ; journal d'audit
     "Notifications",        # courriels, modèles, file et quota d'envoi
     "Identity",             # comptes, rôles, niveaux, représentants légaux
     "Documents",            # pièces des membres et leur stockage
@@ -67,11 +69,16 @@ COUCHES = [
     "Content",              # pages du site, visibilité, documents du club
     "Setup",                # construction du site, mises à jour
     "Events",               # sorties, inscriptions, agenda
-    "Exports",              # tableaux et fichiers pour le bureau
     "Privacy",              # purge et données personnelles : touche à tout
     "Database",             # schéma et migrations, qui appellent les domaines
     "Security",             # connexion, mots de passe, double authentification
     "Maintenance",          # entretien quotidien, état du site
+    # --- Exports de chaque domaine ----------------------------------------------
+    "Identity\\Exports",
+    "Documents\\Exports",
+    "Communication\\Exports",
+    "Membership\\Exports",
+    "Events\\Exports",
     # --- Écrans ----------------------------------------------------------------
     "Notifications\\Admin",
     "Identity\\Frontend",   # connexion, inscription, profil
@@ -120,9 +127,10 @@ def main() -> int:
     for dossier in sorted({f.parent for f in SRC.rglob("*.php")} - {SRC}):
         espace = "\\".join(dossier.relative_to(SRC).parts)
         # Un sous-dossier du code métier (`Documents/Storage`) appartient à son
-        # domaine ; un dossier d'écrans doit, lui, être rangé explicitement.
+        # domaine ; un dossier d'écrans ou d'exports doit, lui, être rangé
+        # explicitement.
         rangé = espace in rang or (
-            couche(espace, rang) is not None and dossier.name not in ("Admin", "Frontend")
+            couche(espace, rang) is not None and dossier.name not in ("Admin", "Frontend", "Exports")
         )
         if not rangé:
             erreurs.append(

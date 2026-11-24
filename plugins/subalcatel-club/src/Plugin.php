@@ -73,6 +73,16 @@ use Subalcatel\Club\Privacy\AccountDeletion;
 use Subalcatel\Club\Privacy\MemberPurge;
 use Subalcatel\Club\Privacy\PersonalData;
 use Subalcatel\Club\Identity\LegalGuardian;
+use Subalcatel\Club\Exports\ExportRegistry;
+use Subalcatel\Club\Exports\AuditLogExport;
+use Subalcatel\Club\Identity\Exports\MembersExport;
+use Subalcatel\Club\Membership\Exports\FfessmExport;
+use Subalcatel\Club\Membership\Exports\MembershipDetailExport;
+use Subalcatel\Club\Membership\Exports\ExpiriesExport;
+use Subalcatel\Club\Membership\Exports\PaymentsExport;
+use Subalcatel\Club\Documents\Exports\MissingDocumentsExport;
+use Subalcatel\Club\Communication\Exports\MailingListExport;
+use Subalcatel\Club\Events\Exports\EventRosterExport;
 
 /**
  * Point d'entrée du plugin.
@@ -220,6 +230,19 @@ final class Plugin
         DocumentsScreen::register();
         NotificationsScreen::register();
         ExportsScreen::register();
+
+        // Chaque export vit dans son domaine ; l'ordre est celui de l'écran.
+        ExportRegistry::add(
+            MembersExport::class,
+            FfessmExport::class,
+            MembershipDetailExport::class,
+            MissingDocumentsExport::class,
+            ExpiriesExport::class,
+            PaymentsExport::class,
+            EventRosterExport::class,
+            MailingListExport::class,
+            AuditLogExport::class,
+        );
         SettingsScreen::register();
         UpdatesScreen::register();
     }

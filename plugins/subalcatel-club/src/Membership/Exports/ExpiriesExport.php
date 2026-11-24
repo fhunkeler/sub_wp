@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Membership\Exports;
+
+use Subalcatel\Club\Identity\Members;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Échéances à venir : adhésions et documents.

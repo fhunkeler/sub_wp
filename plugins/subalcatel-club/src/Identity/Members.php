@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Identity;
 
-use Subalcatel\Club\Identity\Roles;
 
 /**
  * Aides partagées par les exports de membres.

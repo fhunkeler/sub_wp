@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Membership\Exports;
 
 use Subalcatel\Club\Membership\PaymentMethods;
+use Subalcatel\Club\Identity\Members;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Registre des règlements, pour la trésorerie.

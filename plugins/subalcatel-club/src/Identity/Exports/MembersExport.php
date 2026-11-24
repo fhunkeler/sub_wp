@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Identity\Exports;
 
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Policy\EligibilityPolicy;
+use Subalcatel\Club\Identity\Members;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Exports centrés sur les membres.

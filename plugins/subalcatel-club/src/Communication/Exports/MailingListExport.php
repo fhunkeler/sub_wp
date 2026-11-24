@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Exports;
+namespace Subalcatel\Club\Communication\Exports;
 
 use Subalcatel\Club\Communication\MailingLists;
 use Subalcatel\Club\Communication\Subscriptions;
+use Subalcatel\Club\Exports\Export;
 
 /**
  * Destinataires d'une liste de diffusion, pour l'outil d'envoi.

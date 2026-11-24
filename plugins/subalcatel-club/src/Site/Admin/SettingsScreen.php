@@ -6,7 +6,7 @@ namespace Subalcatel\Club\Site\Admin;
 
 use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Events\EventService;
-use Subalcatel\Club\Exports\Members;
+use Subalcatel\Club\Identity\Members;
 use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Identity\DiveLevels;

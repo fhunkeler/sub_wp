@@ -241,7 +241,7 @@ $refusedApplicationId = $bureauService->submit($refusedMember, $bureauCampaignId
     'pret_bloc'              => 'non',
     'pret_detendeur'         => 'non',
     'pret_gilet'             => 'non',
-], 'ce_orange');
+], 'cheque');
 $bureauService->refuse($refusedApplicationId, $office, 'Dossier incomplet');
 
 $bureau = ExportRegistry::find('membership-detail');

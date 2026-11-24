@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Membership\Frontend;
 
 use Subalcatel\Club\Membership\CampaignRepository;
-use Subalcatel\Club\Membership\CeOrangeShare;
+use Subalcatel\Club\Membership\ThirdPartyShare;
 use Subalcatel\Club\Membership\PricingEngine;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -71,17 +71,21 @@ final class QuoteEndpoint
             }
         }
 
-        // Réglé par le CE, le total reste celui que le club encaisse : on dit
-        // en plus ce que le CE prend, et ce qui reste à l'adhérent.
-        $share = null;
+        // Réglé par un tiers payeur, le total reste celui que le club
+        // encaisse : on dit en plus ce que le tiers prend, et ce qui reste à
+        // l'adhérent. Les intitulés suivent le tiers déclaré par le mode.
+        $share      = null;
+        $thirdParty = ThirdPartyShare::forMethod(sanitize_key((string) $request->get_param('payment_method')));
 
-        if (sanitize_key((string) $request->get_param('payment_method')) === CeOrangeShare::METHOD) {
-            $split = CeOrangeShare::fromQuote($quote);
+        if ($thirdParty !== null) {
+            $split = $thirdParty->fromQuote($quote);
             $share = [
-                'ce'             => $split['ce'],
+                'payer'          => $split['payer'],
                 'member'         => $split['member'],
-                'ce_display'     => number_format($split['ce'], 2, ',', ' ') . ' €',
+                'payer_display'  => number_format($split['payer'], 2, ',', ' ') . ' €',
                 'member_display' => number_format($split['member'], 2, ',', ' ') . ' €',
+                'payer_label'    => $thirdParty->payerLine(),
+                'help'           => $thirdParty->memberHelp(),
             ];
         }
 

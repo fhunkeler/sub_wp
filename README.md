@@ -1,10 +1,11 @@
 # Sub Alcatel — code du site
 
-Extension et thème du club de plongée Sub Alcatel, pour WordPress 6.5+ / PHP 8.1+.
+Extension, thème et profil du club de plongée Sub Alcatel, pour WordPress 6.5+ / PHP 8.1+.
 
 | Dossier | Rôle |
 |---|---|
-| `plugins/subalcatel-club/` | Adhésions, événements, documents, droits. Toute la règle métier. |
+| `plugins/subalcatel-club/` | Adhésions, événements, documents, droits. Le produit, commun à tous les clubs. |
+| `plugins/subalcatel-profil/` | Ce qui n'est vrai que pour Sub Alcatel (le règlement par le CE Orange…), branché sur les filtres du cœur. |
 | `plugins/subalcatel-import/` | Reprise de l'ancien site Joomla et export de production. Outils en ligne de commande, hors releases. |
 | `themes/subalcatel/` | Thème bloc. Présentation seule, aucune règle métier. |
 | `build-packages.py` | Fabrique les archives d'installation. |
@@ -21,11 +22,13 @@ blanche pour que cela le reste.
 python3 build-packages.py dist
 ```
 
-Le script produit `dist/subalcatel-plugin-<version>.zip` (l'extension) et
-`dist/subalcatel-theme-<version>.zip` (le thème), prêts pour *Extensions →
+Le script produit `dist/subalcatel-plugin-<version>.zip` (l'extension),
+`dist/subalcatel-theme-<version>.zip` (le thème) et
+`dist/subalcatel-profil-<version>.zip` (le profil), prêts pour *Extensions →
 Ajouter → Téléverser* et *Apparence → Thèmes → Ajouter → Téléverser*. Seul le
-nom du fichier change : à l'intérieur, les dossiers restent `subalcatel-club/`
-et `subalcatel/`, que WordPress lit pour savoir quoi remplacer.
+nom du fichier change : à l'intérieur, les dossiers restent `subalcatel-club/`,
+`subalcatel/` et `subalcatel-profil/`, que WordPress lit pour savoir quoi
+remplacer.
 Il refuse de construire si un identifiant figure dans les fichiers, et exclut
 `tests/` de l'archive livrée. L'extension de reprise n'est construite que sur
 demande (`--reprise`, archive `subalcatel-reprise-<version>.zip`) : elle n'est
@@ -145,8 +148,8 @@ release et les commits qui ont touché son archive depuis. S'il n'y en a aucun,
 rien n'est publié. Sinon le palier se déduit des types, le numéro est écrit
 dans les en-têtes, commité, étiqueté, et l'archive part en release.
 
-Publier l'extension seule, ou le thème seul, ne se décide donc pas : cela
-découle de ce que les commits ont touché.
+Publier l'extension seule, le thème seul ou le profil seul ne se décide donc
+pas : cela découle de ce que les commits ont touché.
 
 **La seule chose qui se décide, c'est le passage d'un cap.** Un palier majeur
 ne sort jamais du calcul tant que la majeure vaut `0` : « cette interface est
@@ -170,6 +173,7 @@ Voir d'avance ce qu'une branche publiera :
 ```
 python3 version.py plugin
 python3 version.py theme
+python3 version.py profil
 ```
 
 ## Mises à jour des sites
@@ -192,3 +196,16 @@ define('SUBALCATEL_GITHUB_TOKEN', '…');
 ```
 
 Dépôt public : ne rien définir, le téléchargement est anonyme.
+
+### Le profil du club
+
+`subalcatel-profil` se met à jour comme le cœur, une fois installé : il
+s'inscrit lui-même auprès de `Updater` (filtre `subalcatel_updater_plugins`).
+Sa **première** installation, elle, se fait à la main, par *Extensions →
+Ajouter → Téléverser* avec l'archive de la release `profil-1.0.0`.
+
+L'ordre compte : **le profil d'abord, le cœur ensuite.** Le profil nomme les
+filtres du cœur en toutes lettres et ne fait rien sur un cœur plus ancien ; on
+peut donc l'installer et l'activer sans risque, puis mettre le cœur à jour. Dans
+l'ordre inverse, le règlement par le CE Orange disparaît du formulaire
+d'adhésion jusqu'à l'activation du profil.

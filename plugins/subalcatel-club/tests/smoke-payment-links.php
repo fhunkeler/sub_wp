@@ -10,6 +10,9 @@
  * qui n'est pas du web est écartée plutôt que retenue, et que la consigne
  * affichée à l'adhérent porte le lien de SA campagne — en texte pour le
  * courriel, en lien cliquable pour l'écran.
+ *
+ * Le second mode à adresse est déclaré par le test, par le filtre que les
+ * profils de club utilisent : le cœur se vérifie sans aucun profil.
  */
 
 require_once __DIR__ . '/helpers.php';
@@ -20,6 +23,17 @@ use Subalcatel\Club\Membership\PaymentMethods;
 
 global $wpdb;
 $p = $wpdb->prefix . 'sub_';
+
+// Un mode à adresse de plus, comme la boutique d'un CE.
+$declare = static fn (array $modes): array => $modes + [
+    'boutique_test' => [
+        'label'      => 'Boutique du test',
+        'sentence'   => 'Votre règlement passe par la boutique du test.',
+        'link'       => ['label' => 'Boutique du test', 'help' => 'La boutique de la saison.'],
+        'link_label' => 'Boutique du test — carte de niveau',
+    ],
+];
+add_filter(PaymentMethods::FILTER, $declare);
 
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {
@@ -66,7 +80,7 @@ $boutique = 'https://www.helloasso.com/associations/asac-tregor-subalcatel/bouti
 $result = PaymentMethods::sanitizeLinks([
     'helloasso' => '  ' . $adhesion . '  ',
     'cheque'    => '',
-    'ce_orange' => $boutique,
+    'boutique_test' => $boutique,
 ]);
 $repo->savePaymentLinks($saison1, $result['links']);
 
@@ -74,8 +88,8 @@ $check('Aucun refus sur une saisie valide', $result['rejected'] === []);
 $check('Espaces autour de l’adresse retirés',
     $repo->paymentLink($saison1, 'helloasso') === $adhesion,
     $repo->paymentLink($saison1, 'helloasso'));
-$check('Boutique CE Orange enregistrée',
-    $repo->paymentLink($saison1, 'ce_orange') === $boutique);
+$check('Adresse de la boutique enregistrée',
+    $repo->paymentLink($saison1, 'boutique_test') === $boutique);
 $check('Le chèque reste sans lien', $repo->paymentLink($saison1, 'cheque') === '');
 
 // --- Le lien suit la campagne, pas le site -------------------------------------
@@ -101,10 +115,10 @@ echo "\n--- Adresses refusées ---\n";
 
 $result = PaymentMethods::sanitizeLinks([
     'helloasso' => 'javascript:alert(1)',
-    'ce_orange' => 'helloasso.com/sans-schema',
+    'boutique_test' => 'helloasso.com/sans-schema',
 ]);
 $check('Un `javascript:` est écarté', $result['links']['helloasso'] === '');
-$check('Une adresse sans schéma est écartée', $result['links']['ce_orange'] === '');
+$check('Une adresse sans schéma est écartée', $result['links']['boutique_test'] === '');
 $check('Les deux refus sont signalés au bureau',
     count($result['rejected']) === 2,
     implode(', ', $result['rejected']));
@@ -116,13 +130,13 @@ $text = PaymentMethods::instructions('helloasso', $adhesion);
 $check('Courriel : l’adresse est lisible telle quelle', str_contains($text, $adhesion));
 $check('Courriel : pas de balise HTML', !str_contains($text, '<a '));
 
-$html = PaymentMethods::instructionsHtml('ce_orange', $boutique);
+$html = PaymentMethods::instructionsHtml('boutique_test', $boutique);
 $check('Écran : lien cliquable', str_contains($html, '<a class="sub-payment-link" href="' . $boutique . '"'));
 $check('Écran : le lien dit ce qu’on paie', str_contains($html, 'carte de niveau'));
 // Une seule balise ouvrante et une seule fermante : la consigne elle-même passe
 // par `esc_html`, et rien d'autre que le lien n'est du HTML.
 $check('Écran : la consigne entière, et le lien pour seule balise',
-    str_contains($html, 'comité d’entreprise Orange') && substr_count($html, '<') === 2,
+    str_contains($html, 'passe par la boutique du test') && substr_count($html, '<') === 2,
     $html);
 $check('Sans lien, la consigne reste seule',
     !str_contains(PaymentMethods::instructionsHtml('cheque'), '<a '));
@@ -193,6 +207,7 @@ $wpdb->delete("{$p}campaigns", ['id' => $ouverte]);
 foreach ([$saison1, $saison2] as $id) {
     $wpdb->delete("{$p}campaigns", ['id' => $id]);
 }
+remove_filter(PaymentMethods::FILTER, $declare);
 
 printf("\n%s\n", $failures === 0 ? '✓ Tous les contrôles passent.' : "✗ {$failures} échec(s).");
 exit($failures === 0 ? 0 : 1);

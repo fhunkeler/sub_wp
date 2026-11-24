@@ -1938,7 +1938,7 @@
 	padding-top: 12px;
 }
 
-/* Réglé par le CE Orange : sous le total, ce que le CE prend et ce qui reste. */
+/* Réglé par un tiers payeur (un CE…) : sous le total, ce qu'il prend et ce qui reste. */
 .sub-lines tfoot .sub-lines__share td {
 	border-top: 0;
 	font-size: 16px;

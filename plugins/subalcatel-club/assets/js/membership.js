@@ -77,8 +77,9 @@
 	}
 
 	/**
-	 * Réglé par le CE Orange, le total reste ce que le club encaisse : le
-	 * serveur ajoute ce que le CE prend et ce qui reste à l'adhérent.
+	 * Réglé par un tiers payeur (un CE…), le total reste ce que le club
+	 * encaisse : le serveur ajoute ce que le tiers prend, ce qui reste à
+	 * l'adhérent, et les intitulés propres à ce tiers.
 	 */
 	function renderShare(share) {
 		if (!shareEl) {
@@ -87,8 +88,10 @@
 
 		shareEl.hidden = !share;
 		if (share) {
-			shareEl.querySelector('[data-quote-share-ce]').textContent = share.ce_display;
+			shareEl.querySelector('[data-quote-share-label]').textContent = share.payer_label;
+			shareEl.querySelector('[data-quote-share-payer]').textContent = share.payer_display;
 			shareEl.querySelector('[data-quote-share-member]').textContent = share.member_display;
+			shareEl.querySelector('[data-quote-share-help]').textContent = share.help;
 		}
 	}
 

@@ -159,7 +159,7 @@ jobs:
           wp option update start_of_week 1
           wp rewrite structure '/%postname%/'
 
-          wp plugin activate subalcatel-club subalcatel-import
+          wp plugin activate subalcatel-club subalcatel-import subalcatel-profil
           wp theme activate subalcatel
 
       - name: Toutes les suites
@@ -242,7 +242,7 @@ jobs:
         run: |
           # Un rappel, sans valeur bloquante : voir d'avance le numéro que la
           # fusion produira, plutôt que de le découvrir après.
-          for paquet in plugin theme; do
+          for paquet in plugin theme profil; do
             python3 version.py "$paquet" 2>&1 >/dev/null | sed 's/^/  /' \
               | tee -a "$GITHUB_STEP_SUMMARY"
           done

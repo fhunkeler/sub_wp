@@ -78,6 +78,7 @@ $payload = static function (string $balise, string $archive, string $corps): arr
 $jeu = [
     $payload('plugin-9.9.9', 'subalcatel-plugin-9.9.9.zip', "## Nouveautés\n* Une ligne de note"),
     $payload('theme-9.9.9', 'subalcatel-theme-9.9.9.zip', "## Nouveautés du thème\n* Une autre ligne"),
+    $payload('module-9.9.9', 'subalcatel-module-9.9.9.zip', "## Nouveautés du module\n* Encore une ligne"),
 ];
 
 $servir = static function ($court, $args, $url) use ($jeu) {
@@ -116,6 +117,33 @@ $check('Une autre extension n’est pas détournée',
 
 $check('Une autre demande n’est pas détournée',
     Updater::ficheExtension(false, 'query_plugins', (object) ['slug' => 'subalcatel-club']) === false);
+
+// --- Une extension du même dépôt qui s'inscrit elle-même ---------------------
+//
+// Le profil d'un club, demain un module : publiés par ce dépôt, ils se
+// déclarent par le filtre, et le cœur n'a pas à les connaître. Le cache des
+// releases suit la liste des paquets : il n'a pas à être vidé pour cela.
+echo "\n--- Extension inscrite par filtre ---\n";
+
+$inscrire = static fn (array $p): array => $p + [
+    'subalcatel-module/subalcatel-module.php' => [
+        'slug' => 'subalcatel-module', 'prefixe' => 'module-', 'archive' => 'subalcatel-module',
+    ],
+];
+$check('Avant inscription : aucune offre pour elle',
+    Updater::offrePlugin(false, ['Version' => '1.0.0'], 'subalcatel-module/subalcatel-module.php') === false);
+
+add_filter(Updater::PLUGINS_FILTER, $inscrire);
+$offreModule = Updater::offrePlugin(false, ['Version' => '1.0.0'], 'subalcatel-module/subalcatel-module.php');
+$check('Inscrite : sa release est retrouvée sans vider le cache',
+    is_array($offreModule) && $offreModule['version'] === '9.9.9', $offreModule['version'] ?? 'aucune offre');
+$check('… avec son archive à elle',
+    is_array($offreModule) && str_ends_with((string) $offreModule['package'], 'subalcatel-module-9.9.9.zip'));
+$check('… et sous son propre slug', is_array($offreModule) && $offreModule['slug'] === 'subalcatel-module');
+$check('L’extension du club garde la sienne',
+    (Updater::offrePlugin(false, ['Version' => '1.0.0'], Updater::PLUGIN_FICHIER)['package'] ?? '')
+        === 'https://example.test/subalcatel-plugin-9.9.9.zip');
+remove_filter(Updater::PLUGINS_FILTER, $inscrire);
 
 // --- Le thème, qui n'a pas d'équivalent de `plugins_api` ---------------------
 echo "\n--- Notes du thème ---\n";

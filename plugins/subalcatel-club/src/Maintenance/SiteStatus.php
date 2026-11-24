@@ -6,6 +6,8 @@ namespace Subalcatel\Club\Maintenance;
 
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Documents\DocumentStorage;
+use Subalcatel\Club\Membership\ApplicationService;
+use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Notifications\SendQuota;
 use Subalcatel\Club\Security\TwoFactorGate;
 
@@ -140,6 +142,8 @@ final class SiteStatus
             );
         }
 
+        $items[] = self::paymentMethods();
+
         $installed = Schema::installedVersion();
         $expected  = Schema::expectedVersion();
 
@@ -155,6 +159,41 @@ final class SiteStatus
         $items[] = self::item('Base de données', self::INFO, (string) $wpdb->db_server_info());
 
         return $items;
+    }
+
+    /**
+     * Les modes de règlement proposés, et ceux que des dossiers attendent
+     * encore sans qu'aucune extension ne les déclare plus.
+     *
+     * Le cas visé : le cœur mis à jour avant le profil du club. Le CE Orange
+     * disparaît alors du formulaire, et les dossiers qui l'attendent affichent
+     * un code technique à sa place. Rien ne casse franchement — c'est pour cela
+     * qu'il faut le dire.
+     *
+     * @return array{label: string, status: string, value: string, help: string}
+     */
+    private static function paymentMethods(): array
+    {
+        global $wpdb;
+
+        $used = array_map('strval', $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT payment_method FROM {$wpdb->prefix}sub_applications
+             WHERE status = %s AND payment_method IS NOT NULL AND payment_method <> ''",
+            ApplicationService::STATUS_AWAITING_PAYMENT
+        )));
+        $orphans = array_values(array_diff($used, array_keys(PaymentMethods::all())));
+
+        if ($orphans !== []) {
+            return self::item(
+                'Modes de règlement',
+                self::BAD,
+                'non déclaré : ' . implode(', ', $orphans),
+                'Des dossiers attendent un règlement par un mode que plus aucune extension ne déclare. '
+                    . 'Installer ou réactiver l’extension de profil du club (subalcatel-profil).'
+            );
+        }
+
+        return self::item('Modes de règlement', self::OK, implode(', ', PaymentMethods::offered()));
     }
 
     /**

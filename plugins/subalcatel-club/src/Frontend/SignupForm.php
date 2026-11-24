@@ -9,7 +9,10 @@ use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
-use Subalcatel\Club\Support\PasswordPolicy;
+use Subalcatel\Club\Security\PasswordPolicy;
+use Subalcatel\Club\Content\Pages;
+use Subalcatel\Club\Support\AdminLinks;
+use Subalcatel\Club\Identity\AccountFields;
 
 /**
  * Création de compte : shortcode [subalcatel_creer_compte].
@@ -225,7 +228,7 @@ final class SignupForm
         }
 
         $userId = wp_insert_user([
-            'user_login'   => self::uniqueLogin($first, $last),
+            'user_login'   => AccountFields::uniqueLogin($first, $last),
             'user_email'   => $email,
             'user_pass'    => $password,
             'first_name'   => $first,
@@ -245,31 +248,6 @@ final class SignupForm
     }
 
     /**
-     * Identifiant lisible et unique.
-     *
-     * Dérivé du nom plutôt que de l'adresse : il s'affiche dans l'écran Comptes
-     * de WordPress, où « prenom.nom » se reconnaît alors que
-     * « jdupont1987 » ne dit rien à personne.
-     */
-    public static function uniqueLogin(string $first, string $last): string
-    {
-        $base = sanitize_user(
-            remove_accents($first) . '.' . remove_accents($last),
-            true
-        );
-        $base = strtolower($base) ?: 'membre';
-
-        $login = $base;
-        $i     = 2;
-
-        while (username_exists($login)) {
-            $login = $base . $i++;
-        }
-
-        return $login;
-    }
-
-    /**
      * Prévient les personnes habilitées à valider.
      *
      * Sans cet avertissement, un compte peut attendre des semaines : personne
@@ -285,10 +263,7 @@ final class SignupForm
 
         // Vers la file elle-même, pas vers l'annuaire : le courriel annonce une
         // demande à traiter, le lien doit ouvrir là où on la traite.
-        $link = \Subalcatel\Club\Admin\AdminUi::tabUrl(
-            \Subalcatel\Club\Admin\MembersScreen::SLUG,
-            \Subalcatel\Club\Admin\AccountsScreen::TAB
-        );
+        $link = AdminLinks::page(AdminLinks::MEMBERS, AdminLinks::ACCOUNTS_TAB);
 
         foreach (get_users(['fields' => ['ID', 'user_email']]) as $candidate) {
             if (!user_can((int) $candidate->ID, 'sub_validate_account')) {

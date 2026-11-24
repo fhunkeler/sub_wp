@@ -19,7 +19,7 @@ use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\DemoSeeder;
 use Subalcatel\Club\Notifications\EmailTemplates;
-use Subalcatel\Club\Policy\Decision;
+use Subalcatel\Club\Support\Decision;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
 global $wpdb;

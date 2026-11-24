@@ -24,10 +24,10 @@ use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Frontend\MemberDashboard;
 use Subalcatel\Club\Frontend\OutingRoster;
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
-use Subalcatel\Club\Setup\SiteMap;
+use Subalcatel\Club\Content\SiteMap;
 
 global $wpdb;
 

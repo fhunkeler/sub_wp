@@ -14,6 +14,7 @@ use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Identity\TechnicalAccounts;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use WP_User;
+use Subalcatel\Club\Support\AdminLinks;
 
 /**
  * Les personnes : annuaire, fiche individuelle, et les deux files qui les
@@ -35,7 +36,7 @@ use WP_User;
  */
 final class MembersScreen
 {
-    public const SLUG = 'subalcatel-members';
+    public const SLUG = AdminLinks::MEMBERS;
 
     /** @var list<string> */
     public const CAPABILITIES = [

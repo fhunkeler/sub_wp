@@ -8,8 +8,9 @@ use RuntimeException;
 use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
-use Subalcatel\Club\Policy\EligibilityPolicy;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\AdminLinks;
+use Subalcatel\Club\Identity\AccountApproval;
 
 /**
  * Cycle de vie d'un dossier d'adhésion.
@@ -90,7 +91,7 @@ final class ApplicationService
         // Première porte : le bureau doit avoir validé le compte. Laisser un
         // dossier arriver avant cette validation reviendrait à instruire des
         // demandes de gens dont on ne sait rien.
-        $account = (new EligibilityPolicy())->hasApprovedAccount($userId);
+        $account = AccountApproval::decisionFor($userId);
 
         if (!$account->allowed) {
             throw new RuntimeException($account->reason);
@@ -233,7 +234,7 @@ final class ApplicationService
             'formule'   => $plan->title,
             'montant'   => number_format($quote->total(), 2, ',', ' ') . ' €',
             'reglement' => PaymentMethods::label($paymentMethod),
-            'lien'      => \Subalcatel\Club\Admin\ApplicationEditor::url($applicationId),
+            'lien'      => AdminLinks::application($applicationId),
         ], ['entity_type' => 'application', 'entity_id' => $applicationId]);
     }
 

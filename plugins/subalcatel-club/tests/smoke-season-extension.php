@@ -15,7 +15,7 @@
 require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Database\Schema;
-use Subalcatel\Club\Identity\DerivedCapabilities;
+use Subalcatel\Club\Policy\DerivedCapabilities;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
 global $wpdb;

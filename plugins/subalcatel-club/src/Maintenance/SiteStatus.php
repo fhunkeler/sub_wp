@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Support;
+namespace Subalcatel\Club\Maintenance;
 
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Documents\DocumentStorage;
-use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\SendQuota;
+use Subalcatel\Club\Security\TwoFactorGate;
 
 /**
  * Ce qu'il faut savoir d'un site avant d'y chercher une panne.

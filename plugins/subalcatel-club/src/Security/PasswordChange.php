@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Identity;
+namespace Subalcatel\Club\Security;
 
 use Subalcatel\Club\Support\Audit;
-use Subalcatel\Club\Support\PasswordPolicy;
+use Subalcatel\Club\Security\PasswordPolicy;
 use WP_Session_Tokens;
 
 /**

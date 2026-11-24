@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Support;
+namespace Subalcatel\Club\Security;
 
 /**
  * Déplace l'écran de connexion sur une adresse choisie par le club.

@@ -147,7 +147,7 @@ final class ProfileForm
         // d'enregistrement, ils passaient pour la suite du formulaire.
         if ($userId === get_current_user_id()) {
             echo '<div class="sub-profile-extra"><h2 class="sub-profile-extra__title">Sécurité et confidentialité</h2>';
-            echo \Subalcatel\Club\Identity\PasswordChange::renderPanel($userId);
+            echo \Subalcatel\Club\Security\PasswordChange::renderPanel($userId);
             echo \Subalcatel\Club\Communication\Subscriptions::renderPanel($userId);
             echo \Subalcatel\Club\Privacy\AccountDeletion::renderPanel($userId);
             echo '</div>';

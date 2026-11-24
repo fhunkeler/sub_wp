@@ -15,7 +15,7 @@
 use Subalcatel\Club\Admin\SiteStatusScreen;
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Support\Audit;
-use Subalcatel\Club\Support\SiteStatus;
+use Subalcatel\Club\Maintenance\SiteStatus;
 
 global $wpdb;
 

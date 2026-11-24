@@ -9,7 +9,8 @@
 #
 # Trois contrôles, du moins cher au plus utile :
 #
-#   1. `code`       — syntaxe PHP, et archives constructibles sans fuite d'identifiant ;
+#   1. `code`       — syntaxe PHP, couches sans boucle (`couches.py`), et
+#                     archives constructibles sans fuite d'identifiant ;
 #   2. `fumee`      — toutes les suites du plugin, sur un WordPress neuf ;
 #   3. `convention` — les messages de commit, dont le numéro de la prochaine
 #                     version se déduit désormais.
@@ -69,6 +70,13 @@ jobs:
             >> "$GITHUB_STEP_SUMMARY"
 
           exit $(( erreurs > 0 ))
+
+      - name: Couches sans boucle
+        run: |
+          # Une couche n'utilise que celles qui sont en dessous d'elle : c'est
+          # ce qui permet d'isoler un module, et un jour de le sortir dans une
+          # extension à part. `couches.py` dit quoi faire d'une infraction.
+          python3 couches.py | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Archives constructibles, et sans identifiant
         run: |

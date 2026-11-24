@@ -8,6 +8,7 @@ use RuntimeException;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\Decision;
 
 /**
  * Validation des comptes par le bureau.
@@ -197,5 +198,29 @@ final class AccountApproval
         if (!user_can($actorId, 'sub_validate_account')) {
             throw new RuntimeException('Droit de validation des comptes requis.');
         }
+    }
+
+    /**
+     * Le compte a-t-il été validé par le bureau ? Réponse prête à afficher.
+     *
+     * {@see \Subalcatel\Club\Policy\EligibilityPolicy::hasApprovedAccount}
+     * s'y ramène ; le dossier d'adhésion l'appelle directement, sans passer
+     * par la politique d'éligibilité, qui se situe au-dessus des adhésions.
+     */
+    public static function decisionFor(int $userId): Decision
+    {
+        return match (self::statusOf($userId)) {
+            self::STATUS_PENDING => Decision::deny(
+                'Votre compte est en attente de validation par le bureau. '
+                . 'Vous recevrez un courriel dès qu’il sera validé.',
+                Decision::ACCOUNT_PENDING
+            ),
+            self::STATUS_REFUSED => Decision::deny(
+                'Votre compte n’a pas été validé par le bureau. '
+                . 'Contactez-le si vous pensez qu’il s’agit d’une erreur.',
+                Decision::ACCOUNT_REFUSED
+            ),
+            default => Decision::allow(),
+        };
     }
 }

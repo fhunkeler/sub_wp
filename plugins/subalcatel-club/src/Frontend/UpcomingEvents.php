@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Events\EventService;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Aperçu public des prochaines sorties : [subalcatel_prochaines_sorties].

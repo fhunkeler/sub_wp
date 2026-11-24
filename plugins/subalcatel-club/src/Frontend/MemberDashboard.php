@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Frontend;
 
-use Subalcatel\Club\Admin\ClubMenu;
+use Subalcatel\Club\Support\AdminLinks;
 use Subalcatel\Club\Communication\ListMessages;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Events\EventService;
-use Subalcatel\Club\Identity\DerivedCapabilities;
+use Subalcatel\Club\Policy\DerivedCapabilities;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\MembershipGrace;
 use Subalcatel\Club\Policy\EligibilityPolicy;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Tableau de bord du membre : shortcode [subalcatel_espace_membre].
@@ -454,7 +455,7 @@ final class MemberDashboard
 
             <p class="sub-block__links">
                 <a class="sub-button sub-button--small sub-button--ghost"
-                   href="<?php echo esc_url(admin_url('admin.php?page=' . ClubMenu::SLUG)); ?>">
+                   href="<?php echo esc_url(AdminLinks::page(AdminLinks::CLUB)); ?>">
                     Administration du club
                 </a>
             </p>

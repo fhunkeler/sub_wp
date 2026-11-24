@@ -13,9 +13,9 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Setup\SiteBuilder;
-use Subalcatel\Club\Setup\SiteMap;
+use Subalcatel\Club\Content\SiteMap;
 
 // `wp_login_form()` reconstruit l'URL courante et lit HTTP_HOST, absent en
 // ligne de commande. On le pose : c'est l'environnement qui manque, pas le code.

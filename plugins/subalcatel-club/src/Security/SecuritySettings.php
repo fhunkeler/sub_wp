@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Support;
+namespace Subalcatel\Club\Security;
 
 /**
  * Réglages de sécurité modifiables depuis l'administration.

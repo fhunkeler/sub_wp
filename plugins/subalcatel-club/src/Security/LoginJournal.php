@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Support;
+namespace Subalcatel\Club\Security;
 
-use Subalcatel\Club\Notifications\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
 use WP_User;
+use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Support\Cron;
 
 /**
  * Journal des connexions des comptes qui touchent aux données sensibles.
@@ -40,7 +41,7 @@ final class LoginJournal
         // Avant [LoginAudit] (priorité 10) : l'historique consulté pour juger
         // l'appareil ne doit pas contenir la connexion en cours.
         add_action('wp_login', [self::class, 'onLogin'], 5, 2);
-        add_action(DailyDigest::HOOK, [self::class, 'purge']);
+        add_action(Cron::DAILY, [self::class, 'purge']);
     }
 
     /**

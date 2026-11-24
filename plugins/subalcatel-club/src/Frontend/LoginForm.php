@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Frontend;
 
+use Subalcatel\Club\Content\Pages;
+
 /**
  * Connexion aux couleurs du club : shortcode [subalcatel_connexion].
  *
@@ -70,7 +72,7 @@ final class LoginForm
                 'bloque' => sprintf(
                     'Trop de tentatives de connexion. Réessayez dans %d minutes, '
                     . 'ou utilisez « Mot de passe oublié ? » sous le formulaire.',
-                    (int) ceil(\Subalcatel\Club\Support\SecuritySettings::windowSeconds() / 60)
+                    (int) ceil(\Subalcatel\Club\Security\SecuritySettings::windowSeconds() / 60)
                 ),
                 // Le journal montre surtout des adhérents qui tapent leur e-mail
                 // avec le mot de passe de l'ancien site, souvent rempli par le

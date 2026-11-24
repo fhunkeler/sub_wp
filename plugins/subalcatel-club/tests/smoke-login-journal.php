@@ -21,7 +21,7 @@
 use Subalcatel\Club\Admin\LoginJournalScreen;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Notifications\EmailTemplates;
-use Subalcatel\Club\Support\LoginJournal;
+use Subalcatel\Club\Security\LoginJournal;
 
 global $wpdb;
 

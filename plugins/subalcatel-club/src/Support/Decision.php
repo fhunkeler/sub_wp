@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Policy;
+namespace Subalcatel\Club\Support;
 
 /**
  * Résultat d'un contrôle de droit : autorisé ou non, et pourquoi.

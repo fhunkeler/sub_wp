@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Support;
+namespace Subalcatel\Club\Security;
+
+use Subalcatel\Club\Support\Audit;
 
 /**
  * Ralentisseur de connexion.

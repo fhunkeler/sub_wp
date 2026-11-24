@@ -23,8 +23,8 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\CampaignsScreen;
-use Subalcatel\Club\Notifications\DailyDigest;
+use Subalcatel\Club\Membership\CampaignNotices;
+use Subalcatel\Club\Maintenance\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\Mailer;
@@ -69,7 +69,7 @@ $makeUser = static function (string $firstName): int {
 // L'état réel de la démo est rendu à la fin.
 $savedSettings = get_option(SendQuota::OPTION_SETTINGS, null);
 $savedCounter  = get_option(SendQuota::OPTION_COUNTER, null);
-$savedPending  = get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null);
+$savedPending  = get_option(CampaignNotices::OPTION_PENDING, null);
 $savedQueue    = get_option(MailQueue::OPTION, null);
 $startedAt     = current_time('mysql');
 
@@ -196,18 +196,18 @@ $check('… une seule fois', $mailsTo($emails[1]) === $before + 1);
 echo "\n--- Annonce d'ouverture de campagne ---\n";
 
 $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'open'], ['id' => $campaignId]);
-delete_option(CampaignsScreen::OPTION_PENDING_NOTICES);
+delete_option(CampaignNotices::OPTION_PENDING);
 delete_option(MailQueue::OPTION);
 
 $setSent(250);
 $check('pas de place : l\'annonce est mise en attente',
-    CampaignsScreen::notifyCampaignOpened($campaignId) === 'postponed');
+    CampaignNotices::opened($campaignId) === 'postponed');
 $check('… dans la file d\'attente des envois',
     MailQueue::hasJobFor(EmailTemplates::CAMPAIGN_OPENED, 'campaign', $campaignId));
 $check('… et plus dans l\'ancienne liste',
-    get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
+    get_option(CampaignNotices::OPTION_PENDING, null) === null);
 $check('rouvrir la campagne ne la met pas deux fois en file',
-    CampaignsScreen::notifyCampaignOpened($campaignId) === 'skipped' && count(MailQueue::jobs()) === 1);
+    CampaignNotices::opened($campaignId) === 'skipped' && count(MailQueue::jobs()) === 1);
 
 $before = $mailsTo($emails[1]);
 $setSent(0);
@@ -221,16 +221,16 @@ $wpdb->query($wpdb->prepare(
     "DELETE FROM {$wpdb->prefix}sub_notification_log WHERE entity_type = 'campaign' AND entity_id = %d",
     $campaignId
 ));
-update_option(CampaignsScreen::OPTION_PENDING_NOTICES, [$campaignId], false);
-$check('ancienne liste : l\'entretien quotidien la reprend', CampaignsScreen::retryPendingNotices() === 1);
-$check('… et la vide', get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
+update_option(CampaignNotices::OPTION_PENDING, [$campaignId], false);
+$check('ancienne liste : l\'entretien quotidien la reprend', CampaignNotices::retryPending() === 1);
+$check('… et la vide', get_option(CampaignNotices::OPTION_PENDING, null) === null);
 
 // Une campagne refermée entre-temps n'est plus annoncée.
-update_option(CampaignsScreen::OPTION_PENDING_NOTICES, [$campaignId], false);
+update_option(CampaignNotices::OPTION_PENDING, [$campaignId], false);
 $wpdb->update("{$wpdb->prefix}sub_campaigns", ['status' => 'closed'], ['id' => $campaignId]);
 $check('campagne refermée : retirée de la liste sans envoi',
-    CampaignsScreen::retryPendingNotices() === 0
-    && get_option(CampaignsScreen::OPTION_PENDING_NOTICES, null) === null);
+    CampaignNotices::retryPending() === 0
+    && get_option(CampaignNotices::OPTION_PENDING, null) === null);
 
 // =============================================================================
 // Ménage
@@ -258,7 +258,7 @@ foreach ($members as $id) {
 foreach ([
     SendQuota::OPTION_SETTINGS              => $savedSettings,
     SendQuota::OPTION_COUNTER               => $savedCounter,
-    CampaignsScreen::OPTION_PENDING_NOTICES => $savedPending,
+    CampaignNotices::OPTION_PENDING => $savedPending,
     MailQueue::OPTION                       => $savedQueue,
 ] as $option => $value) {
     $value === null ? delete_option($option) : update_option($option, $value, false);

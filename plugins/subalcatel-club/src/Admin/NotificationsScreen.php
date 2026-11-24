@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
-use Subalcatel\Club\Notifications\DailyDigest;
+use Subalcatel\Club\Maintenance\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\Mailer;

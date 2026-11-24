@@ -76,7 +76,7 @@ $check('Le lien RSD (→ xmlrpc) est retiré du head',
 // méthodes vidées : un scanner le signalait « activé » tant qu'il répondait.
 // Testé en HTTP dans l'audit — ici on documente l'intention.
 $check('Le blocage vise le fichier, pas seulement les méthodes',
-    str_contains((string) file_get_contents(__DIR__ . '/../src/Support/Hardening.php'), "XMLRPC_REQUEST')"),
+    str_contains((string) file_get_contents(__DIR__ . '/../src/Security/Hardening.php'), "XMLRPC_REQUEST')"),
     'GET /xmlrpc.php → 403, vérifié en conditions réelles');
 
 // --- Éditeur de fichiers -----------------------------------------------------
@@ -109,7 +109,7 @@ echo "\n--- Dossier des médias ---\n";
 // Le club a été piraté par 36 fichiers PHP déposés dans le « images/ » du
 // Joomla. « wp-content/uploads » est l'équivalent WordPress : le seul dossier
 // où un visiteur peut faire arriver un fichier de son choix.
-Subalcatel\Club\Support\Hardening::protectUploads();
+Subalcatel\Club\Security\Hardening::protectUploads();
 
 $uploads = wp_get_upload_dir()['basedir'] ?? '';
 

@@ -14,9 +14,9 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Frontend\MenuVisibility;
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Setup\SiteBuilder;
-use Subalcatel\Club\Setup\SiteMap;
+use Subalcatel\Club\Content\SiteMap;
 
 global $wpdb;
 

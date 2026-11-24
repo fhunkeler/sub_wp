@@ -15,7 +15,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Support\PasswordPolicy;
+use Subalcatel\Club\Security\PasswordPolicy;
 
 add_filter('subalcatel_password_breach_check_enabled', '__return_false');
 

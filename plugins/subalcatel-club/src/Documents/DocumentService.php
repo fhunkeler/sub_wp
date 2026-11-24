@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Documents;
 
 use RuntimeException;
-use Subalcatel\Club\Policy\Decision;
+use Subalcatel\Club\Support\Decision;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
 use Subalcatel\Club\Support\Audit;

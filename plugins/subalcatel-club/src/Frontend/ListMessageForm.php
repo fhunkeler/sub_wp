@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Communication\ListMessages;
 use Subalcatel\Club\Notifications\MailQueue;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Écrire au club : shortcode [subalcatel_ecrire_au_club].

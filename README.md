@@ -8,6 +8,7 @@ Extension et thème du club de plongée Sub Alcatel, pour WordPress 6.5+ / PHP 8
 | `plugins/subalcatel-import/` | Reprise de l'ancien site Joomla et export de production. Outils en ligne de commande, hors releases. |
 | `themes/subalcatel/` | Thème bloc. Présentation seule, aucune règle métier. |
 | `build-packages.py` | Fabrique les archives d'installation. |
+| `couches.py` | Vérifie que les dossiers de l'extension se superposent sans boucle. |
 | `version.py` | Calcule le numéro de la prochaine version, et contrôle les messages de commit. |
 
 Ce dépôt contient **le code, et rien d'autre** : ni base de données, ni médias,

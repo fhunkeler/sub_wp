@@ -18,7 +18,7 @@ require_once __DIR__ . '/helpers.php';
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Frontend\OutingForm;
-use Subalcatel\Club\Identity\DerivedCapabilities;
+use Subalcatel\Club\Policy\DerivedCapabilities;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
 

@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Frontend;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\Option;
 use Subalcatel\Club\Membership\Plan;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Grille tarifaire publique : shortcode [subalcatel_tarifs].

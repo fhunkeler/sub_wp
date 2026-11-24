@@ -15,7 +15,7 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\MembershipGrace;
-use Subalcatel\Club\Policy\Decision;
+use Subalcatel\Club\Support\Decision;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 
 global $wpdb;

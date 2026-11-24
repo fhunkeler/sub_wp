@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Frontend;
+namespace Subalcatel\Club\Content;
 
 /**
  * Résolution des pages du site.
@@ -127,7 +127,7 @@ final class Pages
 
         self::$aliases = [];
 
-        foreach (\Subalcatel\Club\Setup\SiteMap::pages() as $page) {
+        foreach (\Subalcatel\Club\Content\SiteMap::pages() as $page) {
             foreach ((array) ($page['legacy'] ?? []) as $legacy) {
                 self::$aliases[(string) $legacy] = (string) $page['key'];
             }

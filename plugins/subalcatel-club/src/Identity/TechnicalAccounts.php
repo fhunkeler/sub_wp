@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Identity;
 
-use Subalcatel\Club\Privacy\MemberPurge;
 
 /**
  * Comptes techniques : ceux qui administrent, sans être personne.
@@ -41,6 +40,9 @@ use Subalcatel\Club\Privacy\MemberPurge;
 final class TechnicalAccounts
 {
     public const META = '_sub_technical_account';
+
+    /** Action émise quand un compte devient technique, une fois ses métas effacées. */
+    public const MARKED_ACTION = 'subalcatel_technical_account_marked';
 
     /**
      * Les seules métas du plugin qu'un compte technique conserve.
@@ -98,11 +100,12 @@ final class TechnicalAccounts
         // Préférences de diffusion, jeton de désabonnement, groupes constitués
         // par le bureau : le compte sort des listes de toute façon, laisser ces
         // métas ne ferait qu'entretenir une donnée que plus rien ne lit. Les
-        // deux premières sont des métas `sub_*`, déjà parties ci-dessus ; ces
-        // appels emportent ce qui vit ailleurs — le jeton et la table des
-        // groupes.
-        MemberPurge::forgetCommunication($userId);
-        MemberPurge::forgetDiveLevelHistory($userId);
+        // deux premières sont des métas `sub_*`, déjà parties ci-dessus ; ce
+        // qui vit ailleurs — le jeton, la table des groupes, l'historique des
+        // brevets — est emporté par {@see \Subalcatel\Club\Privacy\MemberPurge},
+        // qui écoute cette action. Les comptes sont tout en bas des couches :
+        // ils annoncent, la purge, plus haut, agit.
+        do_action(self::MARKED_ACTION, $userId);
 
         update_user_meta($userId, self::META, '1');
 

@@ -21,6 +21,12 @@ final class AdminLinks
     /** Annuaire des membres. */
     public const MEMBERS = 'subalcatel-members';
 
+    /** Communication : listes de diffusion et modèles de courriel. */
+    public const COMMUNICATION = 'subalcatel-communication';
+
+    /** Réglages du club. */
+    public const SETTINGS = 'subalcatel-settings';
+
     /** Onglet de l'annuaire : comptes en attente de validation. */
     public const ACCOUNTS_TAB = 'comptes';
 

@@ -18,7 +18,7 @@
  * Les envois sont interceptés — rien ne sort réellement.
  */
 
-use Subalcatel\Club\Admin\LoginJournalScreen;
+use Subalcatel\Club\Security\Admin\LoginJournalScreen;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Security\LoginJournal;

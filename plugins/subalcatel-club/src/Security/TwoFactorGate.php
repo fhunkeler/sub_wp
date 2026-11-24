@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Security;
 
 use WP_User;
-use Subalcatel\Club\Security\SecuritySettings;
 
 /**
  * Exige la double authentification des comptes qui touchent aux données

@@ -12,7 +12,7 @@
  * courriel sans rien livrer de personnel.
  */
 
-use Subalcatel\Club\Admin\SiteStatusScreen;
+use Subalcatel\Club\Maintenance\Admin\SiteStatusScreen;
 use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Support\Audit;
 use Subalcatel\Club\Maintenance\SiteStatus;

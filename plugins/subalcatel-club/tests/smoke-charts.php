@@ -21,7 +21,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\DashboardCharts;
+use Subalcatel\Club\Site\Admin\DashboardCharts;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Documents\DocumentTypes;
 use Subalcatel\Club\Membership\ApplicationService;

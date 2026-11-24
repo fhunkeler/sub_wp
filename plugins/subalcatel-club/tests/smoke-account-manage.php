@@ -14,7 +14,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\MembersScreen;
+use Subalcatel\Club\Identity\Admin\MembersScreen;
 use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Security\PasswordChange;

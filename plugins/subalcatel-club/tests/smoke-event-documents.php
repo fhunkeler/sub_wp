@@ -17,12 +17,12 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\ClubDocumentsScreen;
-use Subalcatel\Club\Admin\EventsScreen;
+use Subalcatel\Club\Content\Admin\ClubDocumentsScreen;
+use Subalcatel\Club\Events\Admin\EventsScreen;
 use Subalcatel\Club\Content\ClubDocuments;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
-use Subalcatel\Club\Frontend\EventDetails;
+use Subalcatel\Club\Events\Frontend\EventDetails;
 use Subalcatel\Club\Identity\Roles;
 
 global $wpdb;

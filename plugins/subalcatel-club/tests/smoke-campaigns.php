@@ -17,7 +17,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\CampaignsScreen;
+use Subalcatel\Club\Membership\Admin\CampaignsScreen;
 use Subalcatel\Club\Membership\ApplicationService;
 
 global $wpdb;

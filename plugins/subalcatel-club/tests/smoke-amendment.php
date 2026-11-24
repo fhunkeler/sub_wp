@@ -159,7 +159,7 @@ $wpdb->update(
 wp_set_current_user($bureau);
 $_GET['application_id'] = $applicationId;
 ob_start();
-\Subalcatel\Club\Admin\ApplicationEditor::render();
+\Subalcatel\Club\Membership\Admin\ApplicationEditor::render();
 $ecran = ob_get_clean();
 
 $check('L’écran signale la réponse devenue inconnue',

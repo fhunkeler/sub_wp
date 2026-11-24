@@ -12,7 +12,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Frontend\LoginForm;
+use Subalcatel\Club\Identity\Frontend\LoginForm;
 
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {

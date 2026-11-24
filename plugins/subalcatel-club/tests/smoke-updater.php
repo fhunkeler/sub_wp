@@ -195,7 +195,7 @@ wp_set_current_user($administrateurs[0]->ID);
 
 add_filter('pre_http_request', $servir, 10, 3);
 ob_start();
-\Subalcatel\Club\Admin\UpdatesScreen::renderTab();
+\Subalcatel\Club\Setup\Admin\UpdatesScreen::renderTab();
 $ecran = ob_get_clean();
 remove_all_filters('pre_http_request');
 

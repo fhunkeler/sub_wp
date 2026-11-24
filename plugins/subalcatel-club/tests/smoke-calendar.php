@@ -12,7 +12,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\DashboardScreen;
+use Subalcatel\Club\Site\Admin\DashboardScreen;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
 use Subalcatel\Club\Events\IcalFeed;

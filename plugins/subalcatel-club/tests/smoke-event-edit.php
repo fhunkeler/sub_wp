@@ -15,7 +15,7 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
-use Subalcatel\Club\Frontend\MemberDashboard;
+use Subalcatel\Club\Ui\Dates;
 use Subalcatel\Club\Identity\DiveLevels;
 
 EventTypeSeeder::run();
@@ -65,13 +65,13 @@ update_option('timezone_string', 'Europe/Paris');
 
 $check(
     'Séance d’hiver à 20 h affichée à 20 h',
-    str_contains(MemberDashboard::frDateTime('2026-12-08 20:00:00'), '20h00'),
-    MemberDashboard::frDateTime('2026-12-08 20:00:00')
+    str_contains(Dates::frDateTime('2026-12-08 20:00:00'), '20h00'),
+    Dates::frDateTime('2026-12-08 20:00:00')
 );
 $check(
     'Séance d’été à 20 h affichée à 20 h',
-    str_contains(MemberDashboard::frDateTime('2027-06-08 20:00:00'), '20h00'),
-    MemberDashboard::frDateTime('2027-06-08 20:00:00')
+    str_contains(Dates::frDateTime('2027-06-08 20:00:00'), '20h00'),
+    Dates::frDateTime('2027-06-08 20:00:00')
 );
 
 update_option('timezone_string', $timezone);

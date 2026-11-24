@@ -20,8 +20,8 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\AnnualCharts;
-use Subalcatel\Club\Admin\StatisticsScreen;
+use Subalcatel\Club\Membership\Admin\AnnualCharts;
+use Subalcatel\Club\Site\Admin\StatisticsScreen;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;

@@ -14,7 +14,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\ApplicationsScreen;
+use Subalcatel\Club\Membership\Admin\ApplicationsScreen;
 
 global $wpdb;
 $p = $wpdb->prefix . 'sub_';

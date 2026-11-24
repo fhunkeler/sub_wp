@@ -21,7 +21,7 @@ require_once __DIR__ . '/helpers.php';
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Documents\DocumentStorage;
 use Subalcatel\Club\Documents\DocumentTypes;
-use Subalcatel\Club\Frontend\DocumentsForm;
+use Subalcatel\Club\Documents\Frontend\DocumentsForm;
 use Subalcatel\Club\Support\FileResponse;
 
 global $wpdb;
@@ -149,11 +149,11 @@ $check('Espace membre : lien en nouvel onglet', (bool) preg_match(
 ));
 
 $sources = [
-    'Admin/DocumentsScreen.php'     => 'DocumentsForm::downloadUrl',
-    'Admin/ClubDocumentsScreen.php' => 'DocumentDelivery::url',
-    'Admin/EventsScreen.php'        => 'DocumentDelivery::url',
-    'Frontend/ClubDocumentsList.php' => 'DocumentDelivery::url',
-    'Frontend/EventDetails.php'     => 'DocumentDelivery::url',
+    'Documents/Admin/DocumentsScreen.php'  => 'DocumentsForm::downloadUrl',
+    'Content/Admin/ClubDocumentsScreen.php' => 'DocumentDelivery::url',
+    'Events/Admin/EventsScreen.php'      => 'DocumentDelivery::url',
+    'Content/Frontend/ClubDocumentsList.php' => 'DocumentDelivery::url',
+    'Events/Frontend/EventDetails.php'   => 'DocumentDelivery::url',
 ];
 foreach ($sources as $path => $call) {
     $source = (string) file_get_contents(dirname(__DIR__) . '/src/' . $path);
@@ -164,7 +164,7 @@ foreach ($sources as $path => $call) {
 }
 
 // --- Les deux points de diffusion passent par FileResponse --------------------------------
-foreach (['Frontend/DocumentsForm.php', 'Content/DocumentDelivery.php'] as $path) {
+foreach (['Documents/Frontend/DocumentsForm.php', 'Content/DocumentDelivery.php'] as $path) {
     $source = (string) file_get_contents(dirname(__DIR__) . '/src/' . $path);
     $check(
         "Diffusion par FileResponse : {$path}",

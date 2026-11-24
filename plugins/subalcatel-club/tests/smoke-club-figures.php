@@ -13,7 +13,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Frontend\ClubFigures;
+use Subalcatel\Club\Identity\Frontend\ClubFigures;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\TechnicalAccounts;
 

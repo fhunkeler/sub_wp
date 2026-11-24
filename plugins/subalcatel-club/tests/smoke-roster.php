@@ -22,8 +22,8 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
-use Subalcatel\Club\Frontend\MemberDashboard;
-use Subalcatel\Club\Frontend\OutingRoster;
+use Subalcatel\Club\Site\Frontend\MemberDashboard;
+use Subalcatel\Club\Events\Frontend\OutingRoster;
 use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
@@ -305,7 +305,7 @@ $bureau = wp_insert_user([
     'role'         => Roles::OFFICE,
 ]);
 
-$lienAdmin = admin_url('admin.php?page=' . \Subalcatel\Club\Admin\ClubMenu::SLUG);
+$lienAdmin = admin_url('admin.php?page=' . \Subalcatel\Club\Site\Admin\ClubMenu::SLUG);
 
 wp_set_current_user($bureau);
 $bureauVue = MemberDashboard::render();

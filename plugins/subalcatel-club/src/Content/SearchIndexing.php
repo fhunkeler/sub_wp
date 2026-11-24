@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Content;
 
-use Subalcatel\Club\Frontend\Pages;
-use Subalcatel\Club\Setup\SiteMap;
 
 /**
  * Pages publiques tenues hors des moteurs de recherche.

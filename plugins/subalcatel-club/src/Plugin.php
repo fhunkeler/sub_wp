@@ -52,19 +52,19 @@ use Subalcatel\Club\Frontend\OutingRoster;
 use Subalcatel\Club\Frontend\MembershipForm;
 use Subalcatel\Club\Frontend\ProfileForm;
 use Subalcatel\Club\Frontend\QuoteEndpoint;
-use Subalcatel\Club\Identity\DerivedCapabilities;
+use Subalcatel\Club\Policy\DerivedCapabilities;
 use Subalcatel\Club\Identity\DiveLevels;
-use Subalcatel\Club\Identity\PasswordChange;
+use Subalcatel\Club\Security\PasswordChange;
 use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Setup\Updater;
-use Subalcatel\Club\Support\Hardening;
-use Subalcatel\Club\Support\LoginAudit;
-use Subalcatel\Club\Support\LoginJournal;
-use Subalcatel\Club\Support\LoginThrottle;
-use Subalcatel\Club\Support\LoginUrl;
-use Subalcatel\Club\Support\TwoFactorGate;
-use Subalcatel\Club\Support\PasswordPolicy;
-use Subalcatel\Club\Notifications\DailyDigest;
+use Subalcatel\Club\Security\Hardening;
+use Subalcatel\Club\Security\LoginAudit;
+use Subalcatel\Club\Security\LoginJournal;
+use Subalcatel\Club\Security\LoginThrottle;
+use Subalcatel\Club\Security\LoginUrl;
+use Subalcatel\Club\Security\TwoFactorGate;
+use Subalcatel\Club\Security\PasswordPolicy;
+use Subalcatel\Club\Maintenance\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Notifications\SendQuota;
@@ -72,6 +72,7 @@ use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Privacy\AccountDeletion;
 use Subalcatel\Club\Privacy\MemberPurge;
 use Subalcatel\Club\Privacy\PersonalData;
+use Subalcatel\Club\Identity\LegalGuardian;
 
 /**
  * Point d'entrée du plugin.
@@ -194,6 +195,7 @@ final class Plugin
         Visibility::register();
         SearchIndexing::register();
         Subscriptions::register();
+        LegalGuardian::register();
         PersonalData::register();
         AccountDeletion::register();
 

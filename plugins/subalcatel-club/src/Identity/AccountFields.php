@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Identity;
 
-use Subalcatel\Club\Frontend\SignupForm;
 use Subalcatel\Club\Support\Audit;
 use WP_User;
 
@@ -97,7 +96,7 @@ final class AccountFields
         }
 
         $userId = wp_insert_user([
-            'user_login'   => SignupForm::uniqueLogin($firstName, $lastName),
+            'user_login'   => self::uniqueLogin($firstName, $lastName),
             'user_email'   => $email,
             'user_pass'    => wp_generate_password(),
             'first_name'   => $firstName,
@@ -321,5 +320,30 @@ final class AccountFields
     private static function failure(string $message): array
     {
         return ['ok' => false, 'message' => $message, 'changed' => []];
+    }
+
+    /**
+     * Identifiant lisible et unique.
+     *
+     * Dérivé du nom plutôt que de l'adresse : il s'affiche dans l'écran Comptes
+     * de WordPress, où « prenom.nom » se reconnaît alors que
+     * « jdupont1987 » ne dit rien à personne.
+     */
+    public static function uniqueLogin(string $first, string $last): string
+    {
+        $base = sanitize_user(
+            remove_accents($first) . '.' . remove_accents($last),
+            true
+        );
+        $base = strtolower($base) ?: 'membre';
+
+        $login = $base;
+        $i     = 2;
+
+        while (username_exists($login)) {
+            $login = $base . $i++;
+        }
+
+        return $login;
     }
 }

@@ -8,6 +8,7 @@ use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Membership\MembershipGrace;
+use Subalcatel\Club\Support\Decision;
 
 /**
  * Point de décision unique du plugin.
@@ -39,19 +40,7 @@ final class EligibilityPolicy
      */
     public function hasApprovedAccount(int $userId): Decision
     {
-        return match (AccountApproval::statusOf($userId)) {
-            AccountApproval::STATUS_PENDING => Decision::deny(
-                'Votre compte est en attente de validation par le bureau. '
-                . 'Vous recevrez un courriel dès qu’il sera validé.',
-                Decision::ACCOUNT_PENDING
-            ),
-            AccountApproval::STATUS_REFUSED => Decision::deny(
-                'Votre compte n’a pas été validé par le bureau. '
-                . 'Contactez-le si vous pensez qu’il s’agit d’une erreur.',
-                Decision::ACCOUNT_REFUSED
-            ),
-            default => Decision::allow(),
-        };
+        return AccountApproval::decisionFor($userId);
     }
 
     public function hasActiveMembership(int $userId, ?string $onDate = null): Decision

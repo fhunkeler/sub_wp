@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Setup;
 
 use Subalcatel\Club\Content\Visibility;
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Content\SiteMap;
 
 /**
  * Installe l'arborescence du site : pages, hiérarchie, visibilité, menus.

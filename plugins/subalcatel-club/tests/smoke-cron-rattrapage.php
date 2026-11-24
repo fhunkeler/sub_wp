@@ -22,7 +22,7 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Documents\DocumentTypes;
 use Subalcatel\Club\Identity\LegalGuardian;
-use Subalcatel\Club\Notifications\DailyDigest;
+use Subalcatel\Club\Maintenance\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 
 global $wpdb;

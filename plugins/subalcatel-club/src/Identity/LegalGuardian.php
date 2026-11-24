@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Identity;
 
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Notifications\Mailer;
 
 /**
  * Représentant légal d'un adhérent mineur.
@@ -23,6 +24,15 @@ use Subalcatel\Club\Support\Audit;
 final class LegalGuardian
 {
     public const MAJORITY_AGE = 18;
+
+    /**
+     * Les courriels destinés à un mineur partent aussi à son représentant :
+     * c'est d'ici que {@see Mailer} apprend qui il est.
+     */
+    public static function register(): void
+    {
+        add_filter(Mailer::GUARDIAN_FILTER, static fn ($guardian, int $userId) => self::of($userId), 10, 2);
+    }
 
     /**
      * Coordonnées du représentant légal.

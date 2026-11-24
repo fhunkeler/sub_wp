@@ -16,7 +16,7 @@
 require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Identity\Roles;
-use Subalcatel\Club\Support\TwoFactorGate;
+use Subalcatel\Club\Security\TwoFactorGate;
 
 $failures = 0;
 $check = static function (string $label, bool $ok, string $note = '') use (&$failures): void {

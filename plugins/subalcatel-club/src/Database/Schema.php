@@ -35,22 +35,6 @@ final class Schema
      */
     private const EVENT_DATES_GMT_SINCE = '2026-09-25 09:37:35';
 
-    /**
-     * Colonnes qui désignent la personne concernée par la ligne.
-     *
-     * Elles doivent accepter NULL : c'est ainsi qu'une ligne conservée cesse de
-     * désigner quelqu'un quand le compte disparaît (cf. [MemberPurge]). Zéro ne
-     * ferait pas l'affaire — la clé UNIQUE (event_id,user_id) n'en tolérerait
-     * qu'un seul par sortie, alors que MySQL considère deux NULL comme
-     * distincts.
-     */
-    private const SUBJECT_COLUMNS = [
-        'event_registrations' => ['user_id'],
-        'applications'        => ['user_id'],
-        'payments'            => ['user_id'],
-        'events'              => ['organizer_id', 'dive_leader_id'],
-        'notification_log'    => ['recipient_id'],
-    ];
 
     /** Version du schéma que ce code attend. */
     public static function expectedVersion(): int
@@ -685,7 +669,7 @@ final class Schema
     {
         global $wpdb;
 
-        foreach (self::SUBJECT_COLUMNS as $table => $columns) {
+        foreach (MemberPurge::SUBJECT_COLUMNS as $table => $columns) {
             $name = $wpdb->prefix . 'sub_' . $table;
 
             foreach ($columns as $column) {
@@ -703,17 +687,4 @@ final class Schema
         }
     }
 
-    /**
-     * Colonnes à détacher, pour [MemberPurge::repairOrphans].
-     *
-     * Une table peut en porter plusieurs : une sortie désigne à la fois qui
-     * l'a ouverte et qui la dirige, et le départ d'un compte doit solder les
-     * deux.
-     *
-     * @return array<string, list<string>>
-     */
-    public static function subjectColumns(): array
-    {
-        return self::SUBJECT_COLUMNS;
-    }
 }

@@ -11,7 +11,7 @@
  */
 
 use Subalcatel\Club\Content\SearchIndexing;
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Setup\SiteBuilder;
 
 $failures = 0;

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\IcalFeed;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Calendrier mensuel : shortcode [subalcatel_calendrier].

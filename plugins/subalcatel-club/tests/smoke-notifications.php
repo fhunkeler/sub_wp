@@ -19,7 +19,7 @@ use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\DemoSeeder;
-use Subalcatel\Club\Notifications\DailyDigest;
+use Subalcatel\Club\Maintenance\DailyDigest;
 use Subalcatel\Club\Notifications\EmailTemplates;
 use Subalcatel\Club\Notifications\Mailer;
 

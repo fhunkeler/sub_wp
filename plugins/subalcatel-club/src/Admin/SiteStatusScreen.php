@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
-use Subalcatel\Club\Support\SiteStatus;
+use Subalcatel\Club\Maintenance\SiteStatus;
 
 /**
  * Réglages → État du site.

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Notifications;
 
-use Subalcatel\Club\Communication\Subscriptions;
-use Subalcatel\Club\Identity\LegalGuardian;
 use WP_User;
 
 /**
@@ -18,6 +16,27 @@ use WP_User;
  */
 final class Mailer
 {
+    /**
+     * Filtre : représentant légal d'un membre, ou null.
+     *
+     *     apply_filters(Mailer::GUARDIAN_FILTER, null, $userId)
+     *     → array{name: string, email: string, ...}|null
+     *
+     * Le courriel est l'infrastructure la plus basse du plugin : comptes,
+     * documents, adhésions, sorties s'en servent tous. Il ne peut donc pas
+     * aller chercher lui-même qui représente un mineur ; c'est
+     * {@see \Subalcatel\Club\Identity\LegalGuardian} qui le lui dit.
+     */
+    public const GUARDIAN_FILTER = 'subalcatel_mail_guardian';
+
+    /**
+     * Filtre : lien de désabonnement propre à un membre, ou chaîne vide.
+     *
+     * Fourni par {@see \Subalcatel\Club\Communication\Subscriptions}, pour
+     * la même raison.
+     */
+    public const UNSUBSCRIBE_FILTER = 'subalcatel_mail_unsubscribe_url';
+
     /**
      * Envoie un modèle à un membre.
      *
@@ -57,6 +76,16 @@ final class Mailer
      * @param array<string, string> $variables
      * @param array<string, mixed> $context
      */
+    /**
+     * @return array{name: string, email: string}|null
+     */
+    private static function guardianOf(int $userId): ?array
+    {
+        $guardian = apply_filters(self::GUARDIAN_FILTER, null, $userId);
+
+        return is_array($guardian) && is_email((string) ($guardian['email'] ?? '')) ? $guardian + ['name' => ''] : null;
+    }
+
     private static function copyToGuardian(
         string $templateCode,
         int $userId,
@@ -69,7 +98,7 @@ final class Mailer
             return;
         }
 
-        $guardian = LegalGuardian::of($userId);
+        $guardian = self::guardianOf($userId);
 
         if ($guardian === null) {
             return;
@@ -129,7 +158,7 @@ final class Mailer
         // fournir d'avance. La copie au représentant légal reçoit celui du
         // mineur — c'est à lui de pouvoir dire stop pour son enfant.
         if (!empty($context['recipient_id']) && str_contains((string) $template['body'], '{desabonnement}')) {
-            $variables['desabonnement'] ??= Subscriptions::unsubscribeUrl((int) $context['recipient_id']);
+            $variables['desabonnement'] ??= (string) apply_filters(self::UNSUBSCRIBE_FILTER, '', (int) $context['recipient_id']);
         }
 
         $subject = self::render((string) $template['subject'], $variables);
@@ -249,7 +278,7 @@ final class Mailer
 
         if ((int) ($template['copy_guardian'] ?? 0) === 1) {
             foreach ($userIds as $userId) {
-                $count += LegalGuardian::of((int) $userId) === null ? 0 : 1;
+                $count += self::guardianOf((int) $userId) === null ? 0 : 1;
             }
         }
 

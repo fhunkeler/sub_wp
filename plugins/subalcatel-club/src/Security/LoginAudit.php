@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Support;
+namespace Subalcatel\Club\Security;
 
 use WP_User;
+use Subalcatel\Club\Support\Audit;
 
 /**
  * Trace des connexions dans le journal du club.

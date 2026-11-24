@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Notifications;
+namespace Subalcatel\Club\Maintenance;
 
-use Subalcatel\Club\Admin\CampaignsScreen;
+use Subalcatel\Club\Membership\CampaignNotices;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Documents\DocumentTypes;
 use Subalcatel\Club\Identity\LegalGuardian;
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Notifications\SendQuota;
+use Subalcatel\Club\Notifications\Mailer;
+use Subalcatel\Club\Notifications\MailQueue;
+use Subalcatel\Club\Notifications\EmailTemplates;
+use Subalcatel\Club\Support\Cron;
 
 /**
  * Entretien quotidien : expirations, purges et rappels.
@@ -24,7 +29,7 @@ use Subalcatel\Club\Support\Audit;
  */
 final class DailyDigest
 {
-    public const HOOK = 'subalcatel_daily';
+    public const HOOK = Cron::DAILY;
 
     public static function register(): void
     {
@@ -57,7 +62,7 @@ final class DailyDigest
             'came_of_age'          => self::comeOfAge($onDate),
             // Après les rappels : une annonce de campagne reportée passe
             // avant eux si elle tient, mais ne doit pas les priver du quota.
-            'campaign_notices'     => CampaignsScreen::retryPendingNotices(),
+            'campaign_notices'     => CampaignNotices::retryPending(),
             'deferred'             => SendQuota::deferredCount(),
             // La file d'attente des envois groupés passe en dernier : elle
             // prend ce que les rappels du jour ont laissé du quota. Les

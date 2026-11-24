@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Events;
 
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Support\Audit;
 
 /**

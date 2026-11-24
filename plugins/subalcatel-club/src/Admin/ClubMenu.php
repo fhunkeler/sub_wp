@@ -8,6 +8,7 @@ use Subalcatel\Club\Content\ClubDocuments;
 use Subalcatel\Club\Documents\DocumentService;
 use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\Roles;
+use Subalcatel\Club\Support\AdminLinks;
 
 /**
  * Le menu « Club », déclaré en un seul endroit.
@@ -25,7 +26,7 @@ use Subalcatel\Club\Identity\Roles;
  */
 final class ClubMenu
 {
-    public const SLUG = 'subalcatel-club';
+    public const SLUG = AdminLinks::CLUB;
 
     public static function register(): void
     {

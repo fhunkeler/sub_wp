@@ -17,6 +17,7 @@
 !/.githooks/
 !/build-packages.py
 !/version.py
+!/couches.py
 !/README.md
 !/docs/
 

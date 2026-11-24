@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Frontend;
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\RegistrationFields;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Mes inscriptions : shortcode [subalcatel_mes_inscriptions].

@@ -19,10 +19,12 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Admin\MembersScreen;
 use Subalcatel\Club\Communication\MailingLists;
+use Subalcatel\Club\Communication\Subscriptions;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\ProfileFields;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Identity\TechnicalAccounts;
+use Subalcatel\Club\Privacy\MemberPurge;
 
 global $wpdb;
 
@@ -80,9 +82,35 @@ $check(
     !empty(ProfileFields::forUser($technique)['birth_date']['required'])
 );
 
+// Ce qui vit hors des métas : un brevet enregistré et un jeton de
+// désabonnement. La purge les emporte en écoutant l'action du marquage — les
+// comptes, tout en bas des couches, n'appellent plus la purge eux-mêmes.
+$wpdb->insert("{$wpdb->prefix}sub_dive_level_history", [
+    'user_id'       => $technique,
+    'level_term_id' => 1,
+    'obtained_on'   => '2020-06-01',
+]);
+update_user_meta($technique, Subscriptions::META_TOKEN, 'jeton-desabonnement');
+
+$check(
+    'la purge écoute le marquage',
+    has_action(TechnicalAccounts::MARKED_ACTION, [MemberPurge::class, 'forgetTechnicalAccount']) !== false
+);
+
 $cleared = TechnicalAccounts::mark($technique);
 
 $check('mark() marque le compte', TechnicalAccounts::is($technique));
+$check(
+    'mark() emporte l\'historique des brevets',
+    (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->prefix}sub_dive_level_history WHERE user_id = %d",
+        $technique
+    )) === 0
+);
+$check(
+    'mark() emporte le jeton de désabonnement',
+    get_user_meta($technique, Subscriptions::META_TOKEN, true) === ''
+);
 $check('mark() ne marque pas les autres', !TechnicalAccounts::is($ordinaire));
 
 $check(

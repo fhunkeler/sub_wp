@@ -12,7 +12,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Support\LoginThrottle;
+use Subalcatel\Club\Security\LoginThrottle;
 
 global $wpdb;
 $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%sub_login%'");

@@ -62,7 +62,7 @@ require_once dirname(__DIR__) . '/autoload.php';
 use Subalcatel\Import\UserImporter;
 use Subalcatel\Import\ArticleImporter;
 use Subalcatel\Import\MembershipImporter;
-use Subalcatel\Club\Identity\DerivedCapabilities;
+use Subalcatel\Club\Policy\DerivedCapabilities;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use Subalcatel\Club\Identity\DiveLevels;

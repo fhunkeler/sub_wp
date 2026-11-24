@@ -11,6 +11,7 @@ use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\IncompleteApplication;
 use Subalcatel\Club\Membership\PaymentMethods;
 use Subalcatel\Club\Membership\PricingEngine;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Formulaire d'adhésion : shortcode [subalcatel_adhesion].

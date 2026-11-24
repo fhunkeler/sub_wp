@@ -13,7 +13,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Support\SecuritySettings;
+use Subalcatel\Club\Security\SecuritySettings;
 
 // Table rase : ces tests écrivent l'option, on ne veut pas partir d'un état hérité.
 delete_option('subalcatel_security');

@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Subalcatel\Club\Identity;
+namespace Subalcatel\Club\Policy;
 
 use Subalcatel\Club\Policy\EligibilityPolicy;
 use WP_User;
+use Subalcatel\Club\Identity\DiveLevels;
 
 /**
  * Droits de création de sortie déduits du niveau de plongée.

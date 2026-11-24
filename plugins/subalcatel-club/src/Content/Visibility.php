@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Content;
 
-use Subalcatel\Club\Frontend\Pages;
 
 /**
  * Visibilité des articles et des pages : public, connexion requise, ou

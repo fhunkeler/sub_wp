@@ -7,6 +7,7 @@ namespace Subalcatel\Club\Frontend;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\RegistrationFields;
 use Subalcatel\Club\Notifications\MailQueue;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Mes sorties organisées : shortcode [subalcatel_mes_sorties_organisees].

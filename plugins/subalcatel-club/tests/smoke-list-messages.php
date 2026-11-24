@@ -24,11 +24,11 @@ use Subalcatel\Club\Communication\ListMessages;
 use Subalcatel\Club\Communication\MailingLists;
 use Subalcatel\Club\Communication\Subscriptions;
 use Subalcatel\Club\Frontend\ListMessageForm;
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Notifications\EmailTemplates;
-use Subalcatel\Club\Setup\SiteMap;
+use Subalcatel\Club\Content\SiteMap;
 
 DiveLevels::seed();
 EmailTemplates::seed();

@@ -6,6 +6,7 @@ namespace Subalcatel\Club\Admin;
 
 use RuntimeException;
 use Subalcatel\Club\Identity\AccountApproval;
+use Subalcatel\Club\Support\AdminLinks;
 
 /**
  * File des comptes à valider.
@@ -20,7 +21,7 @@ use Subalcatel\Club\Identity\AccountApproval;
 final class AccountsScreen
 {
     /** Onglet de {@see MembersScreen} où vit cette file. */
-    public const TAB = 'comptes';
+    public const TAB = AdminLinks::ACCOUNTS_TAB;
 
     public static function register(): void
     {

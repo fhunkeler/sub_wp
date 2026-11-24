@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Subalcatel\Club\Communication;
 
 use Subalcatel\Club\Support\Audit;
+use Subalcatel\Club\Notifications\Mailer;
 
 /**
  * Préférence de réception des communications du club.
@@ -45,6 +46,10 @@ final class Subscriptions
     public static function register(): void
     {
         add_action('admin_post_' . self::ACTION_UNSUBSCRIBE, [self::class, 'handleUnsubscribe']);
+
+        // Le lien {desabonnement} des modèles : le courriel ne connaît pas les
+        // abonnements, il le demande.
+        add_filter(Mailer::UNSUBSCRIBE_FILTER, static fn ($url, int $userId): string => self::unsubscribeUrl($userId), 10, 2);
 
         // Le désabonnement doit fonctionner sans connexion : exiger un compte
         // pour se désinscrire, c'est ne pas offrir de désinscription.

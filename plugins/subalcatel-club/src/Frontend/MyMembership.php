@@ -9,6 +9,7 @@ use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\CeOrangeShare;
 use Subalcatel\Club\Membership\MembershipCertificate;
 use Subalcatel\Club\Membership\PaymentMethods;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Mon adhésion : shortcode [subalcatel_mon_adhesion].

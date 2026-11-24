@@ -7,17 +7,17 @@ namespace Subalcatel\Club\Admin;
 use Subalcatel\Club\Content\Visibility;
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Exports\Members;
-use Subalcatel\Club\Frontend\Pages;
+use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Identity\AccountFields;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Membership\ClubIdentity;
 use Subalcatel\Club\Setup\SiteBuilder;
-use Subalcatel\Club\Setup\SiteMap;
+use Subalcatel\Club\Content\SiteMap;
 use Subalcatel\Club\Support\Audit;
 use Subalcatel\Club\Support\OpeningHours;
-use Subalcatel\Club\Support\SecuritySettings;
-use Subalcatel\Club\Support\TwoFactorGate;
+use Subalcatel\Club\Security\SecuritySettings;
+use Subalcatel\Club\Security\TwoFactorGate;
 use WP_Term;
 
 /**

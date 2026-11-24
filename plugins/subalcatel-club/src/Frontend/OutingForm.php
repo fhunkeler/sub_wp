@@ -9,6 +9,7 @@ use Subalcatel\Club\Identity\AccountApproval;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Notifications\MailQueue;
 use Subalcatel\Club\Policy\EligibilityPolicy;
+use Subalcatel\Club\Content\Pages;
 
 /**
  * Organiser une sortie : shortcode [subalcatel_creer_sortie].

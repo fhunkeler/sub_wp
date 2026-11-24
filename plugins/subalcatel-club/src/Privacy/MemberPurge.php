@@ -6,9 +6,9 @@ namespace Subalcatel\Club\Privacy;
 
 use Subalcatel\Club\Communication\CustomGroups;
 use Subalcatel\Club\Communication\Subscriptions;
-use Subalcatel\Club\Database\Schema;
 use Subalcatel\Club\Documents\DocumentStorage;
 use Subalcatel\Club\Events\EventService;
+use Subalcatel\Club\Identity\TechnicalAccounts;
 use Subalcatel\Club\Support\Audit;
 
 /**
@@ -37,11 +37,42 @@ use Subalcatel\Club\Support\Audit;
  */
 final class MemberPurge
 {
+    /**
+     * Colonnes qui désignent la personne concernée par la ligne.
+     *
+     * Elles doivent accepter NULL : c'est ainsi qu'une ligne conservée cesse de
+     * désigner quelqu'un quand le compte disparaît (voir plus bas). Zéro ne
+     * ferait pas l'affaire — la clé UNIQUE (event_id,user_id) n'en tolérerait
+     * qu'un seul par sortie, alors que MySQL considère deux NULL comme
+     * distincts.
+     *
+     * Le schéma les rend nullables ({@see \Subalcatel\Club\Database\Schema})
+     * et lit cette liste d'ici : c'est la purge qui sait où un membre est nommé,
+     * et la base de données se situe au-dessus d'elle.
+     */
+    public const SUBJECT_COLUMNS = [
+        'event_registrations' => ['user_id'],
+        'applications'        => ['user_id'],
+        'payments'            => ['user_id'],
+        'events'              => ['organizer_id', 'dive_leader_id'],
+        'notification_log'    => ['recipient_id'],
+    ];
+
     public static function register(): void
     {
         // `deleted_user` et non `delete_user` : on agit une fois la suppression
         // acquise, jamais sur une opération qui peut encore échouer.
         add_action('deleted_user', [self::class, 'forgetUser']);
+
+        // Un compte devenu technique sort des listes : rien ne doit rester de
+        // ses abonnements, de ses groupes ni de son historique de brevets.
+        add_action(TechnicalAccounts::MARKED_ACTION, [self::class, 'forgetTechnicalAccount']);
+    }
+
+    public static function forgetTechnicalAccount(int $userId): void
+    {
+        self::forgetCommunication($userId);
+        self::forgetDiveLevelHistory($userId);
     }
 
     /**
@@ -334,7 +365,7 @@ final class MemberPurge
         // 4. Le reste de ce qui se conserve : dossiers, règlements, événements
         //    organisés. La liste vient du schéma, pour qu'une colonne ajoutée
         //    là-bas soit soldée ici sans qu'on y pense.
-        foreach (Schema::subjectColumns() as $table => $columns) {
+        foreach (self::SUBJECT_COLUMNS as $table => $columns) {
             $name = $wpdb->prefix . 'sub_' . $table;
 
             foreach ($columns as $column) {

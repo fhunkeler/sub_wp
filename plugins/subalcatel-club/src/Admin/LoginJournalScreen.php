@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Admin;
 
-use Subalcatel\Club\Support\LoginJournal;
-use Subalcatel\Club\Support\TwoFactorGate;
+use Subalcatel\Club\Security\LoginJournal;
+use Subalcatel\Club\Security\TwoFactorGate;
 
 /**
  * Réglages → Connexions.

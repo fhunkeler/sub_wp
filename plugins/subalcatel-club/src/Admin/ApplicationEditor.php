@@ -9,6 +9,7 @@ use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\IncompleteApplication;
 use Subalcatel\Club\Membership\PricingEngine;
+use Subalcatel\Club\Support\AdminLinks;
 
 /**
  * Correction d'un dossier d'adhésion, avant son activation.
@@ -26,7 +27,7 @@ use Subalcatel\Club\Membership\PricingEngine;
  */
 final class ApplicationEditor
 {
-    public const SLUG = 'subalcatel-dossier-edit';
+    public const SLUG = AdminLinks::APPLICATION_EDITOR;
 
     public static function register(): void
     {
@@ -35,7 +36,7 @@ final class ApplicationEditor
 
     public static function url(int $applicationId): string
     {
-        return admin_url(sprintf('admin.php?page=%s&application_id=%d', self::SLUG, $applicationId));
+        return AdminLinks::application($applicationId);
     }
 
     public static function render(): void

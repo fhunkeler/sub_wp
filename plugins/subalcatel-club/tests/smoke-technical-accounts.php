@@ -17,7 +17,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\MembersScreen;
+use Subalcatel\Club\Identity\Admin\MembersScreen;
 use Subalcatel\Club\Communication\MailingLists;
 use Subalcatel\Club\Communication\Subscriptions;
 use Subalcatel\Club\Identity\DiveLevels;

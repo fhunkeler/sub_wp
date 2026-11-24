@@ -60,7 +60,7 @@ final class AccountFields
     /**
      * Crée un compte à l'initiative du bureau.
      *
-     * À la différence de l'inscription du site ({@see \Subalcatel\Club\Frontend\SignupForm}),
+     * À la différence de l'inscription du site ({@see \Subalcatel\Club\Identity\Frontend\SignupForm}),
      * ce compte n'entre pas dans la file de validation : quelqu'un du bureau
      * l'a créé sciemment, il n'y a rien à valider a posteriori — il prend
      * directement le rôle choisi. Le mot de passe suit la même règle que

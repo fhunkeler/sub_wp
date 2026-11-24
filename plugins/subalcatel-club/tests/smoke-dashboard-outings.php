@@ -20,7 +20,7 @@ require_once __DIR__ . '/helpers.php';
 
 use Subalcatel\Club\Events\EventService;
 use Subalcatel\Club\Events\EventTypeSeeder;
-use Subalcatel\Club\Frontend\MemberDashboard;
+use Subalcatel\Club\Site\Frontend\MemberDashboard;
 use Subalcatel\Club\Identity\DiveLevels;
 
 EventTypeSeeder::run();

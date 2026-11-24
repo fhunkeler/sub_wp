@@ -15,7 +15,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Frontend\QuoteEndpoint;
+use Subalcatel\Club\Membership\Frontend\QuoteEndpoint;
 use Subalcatel\Club\Membership\ApplicationService;
 use Subalcatel\Club\Membership\CampaignRepository;
 use Subalcatel\Club\Membership\CeOrangeShare;

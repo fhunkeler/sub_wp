@@ -305,7 +305,7 @@ $entree   = [
 ];
 
 wp_set_current_user(0);
-\Subalcatel\Club\Frontend\MenuVisibility::forget();
+\Subalcatel\Club\Content\Frontend\MenuVisibility::forget();
 $check('Un visiteur ne voit pas « Mon espace »', trim(render_block($entree)) === '',
     'vérifié par le rendu réel, pas par un appel direct au filtre');
 
@@ -317,11 +317,11 @@ $membre = wp_insert_user([
 ]);
 
 wp_set_current_user($membre);
-\Subalcatel\Club\Frontend\MenuVisibility::forget();
+\Subalcatel\Club\Content\Frontend\MenuVisibility::forget();
 $check('Un membre le voit', trim(render_block($entree)) !== '');
 
 wp_set_current_user(0);
-\Subalcatel\Club\Frontend\MenuVisibility::forget();
+\Subalcatel\Club\Content\Frontend\MenuVisibility::forget();
 require_once ABSPATH . 'wp-admin/includes/user.php';
 wp_delete_user($membre);
 

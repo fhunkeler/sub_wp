@@ -13,7 +13,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\SettingsScreen;
+use Subalcatel\Club\Site\Admin\SettingsScreen;
 use Subalcatel\Club\Identity\OfficePosition;
 use Subalcatel\Club\Identity\Roles;
 

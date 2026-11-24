@@ -23,8 +23,8 @@ require_once ABSPATH . 'wp-admin/includes/dashboard.php';
 // ligne, le test conclurait à tort que le bloc ne s'enregistre pour personne.
 set_current_screen('dashboard');
 
-use Subalcatel\Club\Admin\DashboardScreen;
-use Subalcatel\Club\Admin\DashboardWidget;
+use Subalcatel\Club\Site\Admin\DashboardScreen;
+use Subalcatel\Club\Site\Admin\DashboardWidget;
 use Subalcatel\Club\Identity\Roles;
 use Subalcatel\Club\Membership\ApplicationService;
 
@@ -165,7 +165,7 @@ $check('Une file traitée disparaît du bloc',
 // là où elle est écrite, plutôt que de vider la base pour l'obtenir.
 $check('Le bloc a une phrase pour l’absence de file',
     str_contains(
-        (string) file_get_contents(dirname(__DIR__) . '/src/Admin/DashboardWidget.php'),
+        (string) file_get_contents(dirname(__DIR__) . '/src/Site/Admin/DashboardWidget.php'),
         'Rien n’attend le bureau'
     ),
     'un bloc vide et muet fait douter qu’il fonctionne');

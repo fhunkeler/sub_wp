@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Subalcatel\Club\Content;
 
-use Subalcatel\Club\Content\Visibility;
-use Subalcatel\Club\Content\Pages;
 
 /**
  * Arborescence du site, sous forme déclarative.

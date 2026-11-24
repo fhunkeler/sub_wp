@@ -31,6 +31,29 @@ Il refuse de construire si un identifiant figure dans les fichiers, et exclut
 demande (`--reprise`, archive `subalcatel-reprise-<version>.zip`) : elle n'est
 pas publiée.
 
+## Organisation de l'extension
+
+`plugins/subalcatel-club/src/` est rangé **par domaine** : `Identity` (comptes),
+`Membership` (adhésions), `Events` (sorties), `Documents`, `Communication`,
+`Content`, `Exports`, `Security`… Chaque domaine porte son code métier à sa
+racine, et ses écrans dans `Admin/` (administration) et `Frontend/` (site
+public) :
+
+```
+Events/
+  EventService.php          règles des sorties
+  Admin/EventsScreen.php    écran Club → Événements
+  Frontend/OutingForm.php   « Organiser une sortie »
+```
+
+Deux dossiers ne sont pas des domaines : `Ui` (briques d'écran communes :
+`AdminUi`, `Notice`, `Dates`…) et `Site`, qui assemble le tout (menu du club,
+tableau de bord, réglages, statistiques, espace membre).
+
+`couches.py` fixe l'ordre dans lequel ces dossiers peuvent s'utiliser, et la CI
+le fait respecter : un domaine ne connaît que ceux qui sont sous lui, et son
+code métier ne connaît aucun écran.
+
 ## Travailler sur le code
 
 `main` n'accepte pas de commit direct : le travail passe par une branche, puis

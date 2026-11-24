@@ -23,7 +23,7 @@ require_once __DIR__ . '/helpers.php';
 use Subalcatel\Club\Communication\ListMessages;
 use Subalcatel\Club\Communication\MailingLists;
 use Subalcatel\Club\Communication\Subscriptions;
-use Subalcatel\Club\Frontend\ListMessageForm;
+use Subalcatel\Club\Communication\Frontend\ListMessageForm;
 use Subalcatel\Club\Content\Pages;
 use Subalcatel\Club\Identity\DiveLevels;
 use Subalcatel\Club\Identity\Roles;

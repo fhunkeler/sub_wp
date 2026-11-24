@@ -12,7 +12,7 @@
 
 require_once __DIR__ . '/helpers.php';
 
-use Subalcatel\Club\Admin\AdminUi;
+use Subalcatel\Club\Ui\AdminUi;
 use Subalcatel\Club\Support\Audit;
 
 global $wpdb;

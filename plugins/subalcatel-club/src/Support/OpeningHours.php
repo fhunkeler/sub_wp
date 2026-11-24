@@ -8,7 +8,7 @@ namespace Subalcatel\Club\Support;
  * Horaires de permanence du local, modifiables depuis l'administration.
  *
  * Affichés sur la page Contact via le raccourci [subalcatel_permanences] — voir
- * [\Subalcatel\Club\Frontend\PermanencesShortcode]. Le bureau change ces
+ * [\Subalcatel\Club\Content\Frontend\PermanencesShortcode]. Le bureau change ces
  * créneaux au fil des saisons ; ils n'ont donc plus leur place en dur dans le
  * gabarit du thème.
  */

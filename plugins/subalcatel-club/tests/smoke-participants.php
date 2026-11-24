@@ -128,20 +128,20 @@ $check('Un visiteur non connecté non plus', !ClubDocuments::isActiveMember(0));
 echo "\n--- Espace membre ---\n";
 
 wp_set_current_user($tom);
-$myPage = \Subalcatel\Club\Frontend\MyRegistrations::render();
+$myPage = \Subalcatel\Club\Events\Frontend\MyRegistrations::render();
 $check('« Mes inscriptions » montre les autres inscrits', str_contains($myPage, 'Léa Vidal'),
     'un inscrit voit qui vient sans repasser par l’agenda');
 $check('Sans rien du dossier réservé au DP', !str_contains($myPage, '06 12 34 56 78')
     && !str_contains($myPage, 'Allergie iode'));
 
 ob_start();
-\Subalcatel\Club\Frontend\ParticipantsList::render($service, $eventId, $lapsed);
+\Subalcatel\Club\Events\Frontend\ParticipantsList::render($service, $eventId, $lapsed);
 $check('Une adhésion expirée ne voit pas la liste', ob_get_clean() === '');
 
 // Pas besoin d'être inscrit : savoir qui vient, et si quelqu'un propose un
 // pot, aide justement à se décider.
 ob_start();
-\Subalcatel\Club\Frontend\ParticipantsList::render($service, $eventId, $upToDate);
+\Subalcatel\Club\Events\Frontend\ParticipantsList::render($service, $eventId, $upToDate);
 $nonInscrit = (string) ob_get_clean();
 $check('Un adhérent non inscrit voit les participants', str_contains($nonInscrit, 'Léa Vidal'));
 $check('… et le pot, sans déplier la liste',
@@ -153,7 +153,7 @@ $vide = $service->create('plongee-exploration', [
     'starts_at' => gmdate('Y-m-d H:i:s', time() + 7 * 86400),
 ], $dp);
 ob_start();
-\Subalcatel\Club\Frontend\ParticipantsList::render($service, $vide, $upToDate);
+\Subalcatel\Club\Events\Frontend\ParticipantsList::render($service, $vide, $upToDate);
 $check('Sans inscrit, la liste le dit', str_contains((string) ob_get_clean(), 'Aucun inscrit pour l’instant'),
     'ne rien afficher laissait croire la liste réservée aux inscrits');
 $wpdb->delete("{$wpdb->prefix}sub_events", ['id' => $vide]);
